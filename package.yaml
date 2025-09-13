@@ -1,0 +1,53 @@
+name: hnes
+version: 0.1.0.0
+github: "Arthi-chaud/hnes"
+license: BSD-3-Clause
+author: "Arthur Jamet"
+copyright: "2025 Arthur Jamet"
+
+extra-source-files:
+  - README.md
+
+description: A NES Emulator written in Haskell
+
+dependencies:
+  - base >= 4.7 && < 5
+  - bytestring
+  - mtl
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wmissing-export-lists
+  - -Wmissing-home-modules
+  - -Wpartial-fields
+  - -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  hnes:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - hnes
+
+tests:
+  hnes-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - hnes
+      - hspec

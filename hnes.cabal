@@ -1,0 +1,74 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.37.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           hnes
+version:        0.1.0.0
+description:    A NES Emulator written in Haskell
+homepage:       https://github.com/Arthi-chaud/hnes#readme
+bug-reports:    https://github.com/Arthi-chaud/hnes/issues
+author:         Arthur Jamet
+maintainer:     Arthur Jamet
+copyright:      2025 Arthur Jamet
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/Arthi-chaud/hnes
+
+library
+  exposed-modules:
+      HNes.CPU.Internal
+      HNes.Internal
+  other-modules:
+      Paths_hnes
+  autogen-modules:
+      Paths_hnes
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , mtl
+  default-language: Haskell2010
+
+executable hnes
+  main-is: Main.hs
+  other-modules:
+      Paths_hnes
+  autogen-modules:
+      Paths_hnes
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , hnes
+    , mtl
+  default-language: Haskell2010
+
+test-suite hnes-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_hnes
+  autogen-modules:
+      Paths_hnes
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , hnes
+    , hspec
+    , mtl
+  default-language: Haskell2010
