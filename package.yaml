@@ -15,6 +15,11 @@ dependencies:
   - bytestring
   - mtl
 
+default-extensions:
+  - BinaryLiterals
+  - LambdaCase
+  - GeneralizedNewtypeDeriving
+
 ghc-options:
   - -Wall
   - -Wcompat

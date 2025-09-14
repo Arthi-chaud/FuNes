@@ -1,13 +1,14 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module HNes.CPU.Internal where
 
 import Foreign
-import HNes.Internal
+import HNes.Bus
+import HNes.Memory
+
+newtype ProgramCounter = PC {unPC :: Word16} deriving (Eq, Show, Num)
 
 -- | Snapshot of the state of the CPU
 data CPUState = MkCPUState
@@ -17,52 +18,57 @@ data CPUState = MkCPUState
     }
     deriving (Eq, Show)
 
-newtype CPU r m a = MkCPU
+-- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
+newtype CPU r a = MkCPU
     { unCPU ::
         CPUState ->
-        Program ->
-        (CPUState -> Program -> a -> m r) ->
-        m r
+        Bus ->
+        (CPUState -> Bus -> a -> IO r) ->
+        IO r
     }
     deriving (Functor)
 
-instance (Monad m) => Applicative (CPU r m) where
+instance Applicative (CPU r) where
     pure a = MkCPU $ \st prog cont -> cont st prog a
     (MkCPU f) <*> (MkCPU a) = MkCPU $ \st prog cont -> f st prog $
         \st' prog' f' -> a st' prog' $
             \st'' prog'' a' -> cont st'' prog'' $ f' a'
 
-instance (Monad m) => Monad (CPU r m) where
+instance Monad (CPU r) where
     (MkCPU a) >>= next = MkCPU $ \st prog cont -> a st prog $
         \st' prog' a' -> unCPU (next a') st' prog' cont
 
-instance (MonadFail m) => MonadFail (CPU r m) where
+instance MonadFail (CPU r) where
     fail s = MkCPU $ \_ _ _ -> fail s
 
-modifyCPUState :: (CPUState -> CPUState) -> CPU r m ()
+modifyCPUState :: (CPUState -> CPUState) -> CPU r ()
 modifyCPUState f = MkCPU $ \st prog cont -> cont (f st) prog ()
 
-incrementPC :: CPU r m ()
+-- | Runs a program, returns the state of the CPU
+runProgram :: Bus -> IO CPUState
+runProgram = runProgramWithState newCPUState
+
+-- | Runs a program, using a custom start state
+runProgramWithState :: CPUState -> Bus -> IO CPUState
+runProgramWithState state prog = unCPU interpret state prog $ \state' _ _ -> return state'
+
+incrementPC :: CPU r ()
 incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
+
+-- | Read Word8 from memory, using the program counter as offset
+readAtPC :: CPU r Word8
+readAtPC = MkCPU $ \state bus cont ->
+    readWord8 (unPC $ programCounter state) bus
+        >>= cont state bus
 
 -- | Get a brand new, clear CPU
 newCPUState :: CPUState
 newCPUState = MkCPUState 0 0 (PC 0)
 
--- | Runs a program, returns the state of the CPU
-runProgram :: (MonadFail m) => Program -> m CPUState
-runProgram = runProgramWithState newCPUState
-
--- | Runs a program, using a custom start state
-runProgramWithState :: (MonadFail m) => CPUState -> Program -> m CPUState
-runProgramWithState state prog = unCPU interpret state prog $ \state' _ _ -> return state'
-
 -- | Interpretation loop of the program
-interpret :: (MonadFail m) => CPU r m ()
+interpret :: CPU r ()
 interpret = do
-    opCode <-
-        MkCPU
-            (\state prog cont -> cont state prog $ readByteOffProgram (programCounter state) prog)
+    opCode <- readAtPC
     incrementPC
     if opCode == 0x00
         then return ()
