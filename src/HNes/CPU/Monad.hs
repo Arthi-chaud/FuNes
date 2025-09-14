@@ -1,23 +1,11 @@
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
 
-module HNes.CPU.Internal where
+module HNes.CPU.Monad where
 
-import Foreign
+import Data.Word
 import HNes.Bus
+import HNes.CPU.State
 import HNes.Memory
-
--- | Offset in the vram of the next instruction to execute
-newtype ProgramCounter = PC {unPC :: MemoryAddr} deriving (Eq, Show, Num)
-
--- | Snapshot of the state of the CPU
-data CPUState = MkCPUState
-    { registerA :: {-# UNPACK #-} !Word8
-    , status :: {-# UNPACK #-} !Word8
-    , programCounter :: {-# UNPACK #-} !ProgramCounter
-    }
-    deriving (Eq, Show)
 
 -- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
 newtype CPU r a = MkCPU
@@ -45,13 +33,8 @@ instance MonadFail (CPU r) where
 modifyCPUState :: (CPUState -> CPUState) -> CPU r ()
 modifyCPUState f = MkCPU $ \st prog cont -> cont (f st) prog ()
 
--- | Runs a program, returns the state of the CPU
-runProgram :: Bus -> IO CPUState
-runProgram = runProgramWithState newCPUState
-
--- | Runs a program, using a custom start state
-runProgramWithState :: CPUState -> Bus -> IO CPUState
-runProgramWithState state prog = unCPU interpret state prog $ \state' _ _ -> return state'
+withCPUState :: (CPUState -> a) -> CPU r a
+withCPUState f = MkCPU $ \st prog cont -> cont st prog (f st)
 
 incrementPC :: CPU r ()
 incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
@@ -62,19 +45,17 @@ readAtPC = MkCPU $ \state bus cont ->
     readWord8 (unPC $ programCounter state) bus
         >>= cont state bus
 
--- | Get a brand new, clear CPU
-newCPUState :: CPUState
-newCPUState = MkCPUState 0 0 (PC 0)
+setRegisterA :: Word8 -> CPU r ()
+setRegisterA byte = modifyCPUState (\st -> st{registerA = byte})
 
--- | Interpretation loop of the program
-interpret :: CPU r ()
-interpret = do
-    opCode <- readAtPC
-    incrementPC
-    if opCode == 0x00
-        then return ()
-        else go opCode >> interpret
-  where
-    go = \case
-        0x00 -> pure () -- Redundant with the check
-        _ -> fail "OP Code not implemented"
+getRegisterA :: CPU r Word8
+getRegisterA = withCPUState registerA
+
+setStatusFlag :: Flag -> CPU r ()
+setStatusFlag flag = modifyCPUState (setStatusFlagPure flag)
+
+clearStatusFlag :: Flag -> CPU r ()
+clearStatusFlag flag = modifyCPUState (clearStatusFlagPure flag)
+
+getStatusFlag :: Flag -> CPU r Bool
+getStatusFlag flag = withCPUState (getStatusFlagPure flag)

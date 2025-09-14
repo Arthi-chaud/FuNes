@@ -25,7 +25,10 @@ source-repository head
 library
   exposed-modules:
       HNes.Bus
-      HNes.CPU.Internal
+      HNes.CPU.Instructions.LDA
+      HNes.CPU.Interpreter
+      HNes.CPU.Monad
+      HNes.CPU.State
       HNes.Memory
   other-modules:
       Paths_hnes
