@@ -8,7 +8,8 @@ import Foreign
 import HNes.Bus
 import HNes.Memory
 
-newtype ProgramCounter = PC {unPC :: Word16} deriving (Eq, Show, Num)
+-- | Offset in the vram of the next instruction to execute
+newtype ProgramCounter = PC {unPC :: MemoryAddr} deriving (Eq, Show, Num)
 
 -- | Snapshot of the state of the CPU
 data CPUState = MkCPUState
@@ -76,5 +77,4 @@ interpret = do
   where
     go = \case
         0x00 -> pure () -- Redundant with the check
-        -- TODO use fail instead
         _ -> fail "OP Code not implemented"

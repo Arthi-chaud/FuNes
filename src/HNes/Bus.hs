@@ -9,10 +9,10 @@ import Text.Printf
 
 -- Constants
 
-ramRange :: (Word16, Word16)
+ramRange :: (MemoryAddr, MemoryAddr)
 ramRange = (0x0000, 0x1fff)
 
-ppuRegisters :: (Word16, Word16)
+ppuRegisters :: (MemoryAddr, MemoryAddr)
 ppuRegisters = (0x2000, 0x3fff)
 
 -- | Interface for the CPU that allows it to read/write to RAM
@@ -26,7 +26,7 @@ instance MemoryInterface Bus where
             unsafeWithForeignPtr ptr (flip readWord8OffPtr (fromIntegral addr) . castPtr)
 
 -- | Translate a memory adress from vram to actual memory
-translateMemoryAddr :: (MonadFail m) => Word16 -> m Word16
+translateMemoryAddr :: (MonadFail m) => MemoryAddr -> m MemoryAddr
 translateMemoryAddr idx
     | inRange ramRange idx = return $ idx .&. 0b0000011111111111
     | inRange ppuRegisters idx =
