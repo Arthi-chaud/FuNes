@@ -71,6 +71,8 @@ test-suite hnes-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      CPU.Instructions.LDASpec
+      Internal
       Paths_hnes
   autogen-modules:
       Paths_hnes
