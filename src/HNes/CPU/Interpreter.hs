@@ -1,9 +1,9 @@
 module HNes.CPU.Interpreter (runProgram, runProgramWithState, interpret) where
 
 import HNes.Bus
-import HNes.CPU.Instructions.INX (inx)
-import HNes.CPU.Instructions.LDA
-import HNes.CPU.Instructions.TAX (tax)
+import HNes.CPU.Instructions.IN
+import HNes.CPU.Instructions.LD
+import HNes.CPU.Instructions.TA
 import HNes.CPU.Monad
 import HNes.CPU.State
 import Text.Printf

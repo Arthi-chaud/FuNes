@@ -1,4 +1,4 @@
-module HNes.CPU.Instructions.LDA (lda) where
+module HNes.CPU.Instructions.LD (lda) where
 
 import HNes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import HNes.CPU.Monad

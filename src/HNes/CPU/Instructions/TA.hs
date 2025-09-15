@@ -1,4 +1,4 @@
-module HNes.CPU.Instructions.TAX (tax) where
+module HNes.CPU.Instructions.TA (tax) where
 
 import HNes.CPU.Instructions.After
 import HNes.CPU.Monad

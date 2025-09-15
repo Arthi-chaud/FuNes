@@ -1,4 +1,4 @@
-module HNes.CPU.Instructions.INX (inx) where
+module HNes.CPU.Instructions.IN (inx) where
 
 import HNes.CPU.Instructions.After
 import HNes.CPU.Monad
