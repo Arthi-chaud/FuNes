@@ -25,7 +25,10 @@ source-repository head
 library
   exposed-modules:
       HNes.Bus
+      HNes.CPU.Instructions.After
+      HNes.CPU.Instructions.INX
       HNes.CPU.Instructions.LDA
+      HNes.CPU.Instructions.TAX
       HNes.CPU.Interpreter
       HNes.CPU.Monad
       HNes.CPU.State
@@ -71,7 +74,10 @@ test-suite hnes-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      CPU.Instructions.INXSpec
       CPU.Instructions.LDASpec
+      CPU.Instructions.MiscSpec
+      CPU.Instructions.TAXSpec
       Internal
       Paths_hnes
   autogen-modules:

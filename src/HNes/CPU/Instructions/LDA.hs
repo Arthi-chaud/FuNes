@@ -1,6 +1,6 @@
 module HNes.CPU.Instructions.LDA (lda) where
 
-import Data.Bits
+import HNes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import HNes.CPU.Monad
 import HNes.CPU.State
 
@@ -11,11 +11,5 @@ lda :: CPU r ()
 lda = do
     param <- readAtPC
     incrementPC
-    setRegisterA param
-    after
-
-after :: CPU r ()
-after = do
-    regA <- getRegisterA
-    if regA == 0 then setStatusFlag Zero else clearStatusFlag Zero
-    if testBit regA 7 then setStatusFlag Negative else clearStatusFlag Negative
+    setRegister A param
+    setZeroAndNegativeFlags param

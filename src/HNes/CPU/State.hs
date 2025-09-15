@@ -9,14 +9,28 @@ newtype ProgramCounter = PC {unPC :: MemoryAddr} deriving (Eq, Show, Num)
 -- | State of the CPU
 data CPUState = MkCPUState
     { registerA :: {-# UNPACK #-} !Word8
+    , registerX :: {-# UNPACK #-} !Word8
     , status :: {-# UNPACK #-} !Word8
     , programCounter :: {-# UNPACK #-} !ProgramCounter
     }
     deriving (Eq, Show)
 
+-- | Enumeration of the CPU's register
+data Register = A | X deriving (Eq, Show)
+
+getRegisterPure :: Register -> CPUState -> Word8
+getRegisterPure = \case
+    A -> registerA
+    X -> registerX
+
+setRegisterPure :: Register -> Word8 -> CPUState -> CPUState
+setRegisterPure reg byte st = case reg of
+    A -> st{registerA = byte}
+    X -> st{registerX = byte}
+
 -- | Get a brand new, clear CPU
 newCPUState :: CPUState
-newCPUState = MkCPUState 0 0 (PC 0)
+newCPUState = MkCPUState 0 0 0 (PC 0)
 
 -- | Flags for the CPU's status
 --

@@ -45,11 +45,11 @@ readAtPC = MkCPU $ \state bus cont ->
     readWord8 (unPC $ programCounter state) bus
         >>= cont state bus
 
-setRegisterA :: Word8 -> CPU r ()
-setRegisterA byte = modifyCPUState (\st -> st{registerA = byte})
+setRegister :: Register -> Word8 -> CPU r ()
+setRegister reg byte = modifyCPUState $ setRegisterPure reg byte
 
-getRegisterA :: CPU r Word8
-getRegisterA = withCPUState registerA
+getRegister :: Register -> CPU r Word8
+getRegister = withCPUState . getRegisterPure
 
 setStatusFlag :: Flag -> CPU r ()
 setStatusFlag flag = modifyCPUState (setStatusFlagPure flag)

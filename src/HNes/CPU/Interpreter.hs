@@ -1,9 +1,12 @@
 module HNes.CPU.Interpreter (runProgram, runProgramWithState, interpret) where
 
 import HNes.Bus
+import HNes.CPU.Instructions.INX (inx)
 import HNes.CPU.Instructions.LDA
+import HNes.CPU.Instructions.TAX (tax)
 import HNes.CPU.Monad
 import HNes.CPU.State
+import Text.Printf
 
 -- TODO rename these 2 functions
 
@@ -28,5 +31,7 @@ interpret = do
   where
     go = \case
         0xa9 -> lda
+        0xaa -> tax
+        0xe8 -> inx
         0x00 -> pure () -- Redundant with the check
-        _ -> fail "OP Code not implemented"
+        code -> fail $ printf "OP Code not implemented: 0x%x" code
