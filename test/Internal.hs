@@ -2,8 +2,10 @@ module Internal (runAndDump, runWithStateAndDump) where
 
 import Data.Word
 import Foreign
+import Foreign (plusPtr)
 import GHC.ForeignPtr (unsafeWithForeignPtr)
 import Nes.Bus
+import Nes.Bus (programLocation)
 import Nes.CPU.Interpreter (runProgramWithState)
 import Nes.CPU.State
 import Nes.Memory
@@ -22,7 +24,7 @@ runWithStateAndDump st program = do
 --
 -- WARNING: The pointer should be allocated to 'memorySize'
 writeProgramToMemory :: [Word8] -> MemoryPointer -> IO ()
-writeProgramToMemory program fptr = unsafeWithForeignPtr fptr (loop program . castPtr)
+writeProgramToMemory program fptr = unsafeWithForeignPtr fptr (loop program . (`plusPtr` fromIntegral programLocation))
   where
     loop :: [Word8] -> Ptr Word8 -> IO ()
     loop [] _ = return ()

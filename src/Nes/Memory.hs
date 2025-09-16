@@ -9,8 +9,10 @@ type MemoryPointer = ForeignPtr ()
 type MemoryAddr = Word16
 
 -- | The size of RAM, in bytes
+--
+-- Equivalent to 64 KiB
 memorySize :: MemoryAddr
-memorySize = 2048
+memorySize = 0xffff
 
 -- | Creates a new memory slot
 newMemory :: IO MemoryPointer

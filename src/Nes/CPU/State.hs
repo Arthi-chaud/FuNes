@@ -1,6 +1,7 @@
 module Nes.CPU.State where
 
 import Foreign
+import Nes.Bus (programLocation)
 import Nes.Memory
 
 -- | Offset in the vram of the next instruction to execute
@@ -30,7 +31,13 @@ setRegisterPure reg byte st = case reg of
 
 -- | Get a brand new, clear CPU
 newCPUState :: CPUState
-newCPUState = MkCPUState 0 0 0 (PC 0)
+newCPUState =
+    MkCPUState
+        { registerA = 0
+        , registerX = 0
+        , status = 0
+        , programCounter = PC programLocation
+        }
 
 -- | Flags for the CPU's status
 --
