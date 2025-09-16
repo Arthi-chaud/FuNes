@@ -1,8 +1,8 @@
-module HNes.CPU.Instructions.TA (tax) where
+module Nes.CPU.Instructions.TA (tax) where
 
-import HNes.CPU.Instructions.After
-import HNes.CPU.Monad
-import HNes.CPU.State
+import Nes.CPU.Instructions.After
+import Nes.CPU.Monad
+import Nes.CPU.State
 
 -- | Transfer Accumulator to X
 --

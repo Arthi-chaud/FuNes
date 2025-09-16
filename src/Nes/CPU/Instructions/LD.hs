@@ -1,8 +1,8 @@
-module HNes.CPU.Instructions.LD (lda) where
+module Nes.CPU.Instructions.LD (lda) where
 
-import HNes.CPU.Instructions.After (setZeroAndNegativeFlags)
-import HNes.CPU.Monad
-import HNes.CPU.State
+import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
+import Nes.CPU.Monad
+import Nes.CPU.State
 
 -- | Load Accumulator
 --

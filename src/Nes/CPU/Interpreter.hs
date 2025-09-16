@@ -1,11 +1,11 @@
-module HNes.CPU.Interpreter (runProgram, runProgramWithState, interpret) where
+module Nes.CPU.Interpreter (runProgram, runProgramWithState, interpret) where
 
-import HNes.Bus
-import HNes.CPU.Instructions.IN
-import HNes.CPU.Instructions.LD
-import HNes.CPU.Instructions.TA
-import HNes.CPU.Monad
-import HNes.CPU.State
+import Nes.Bus
+import Nes.CPU.Instructions.IN
+import Nes.CPU.Instructions.LD
+import Nes.CPU.Instructions.TA
+import Nes.CPU.Monad
+import Nes.CPU.State
 import Text.Printf
 
 -- TODO rename these 2 functions

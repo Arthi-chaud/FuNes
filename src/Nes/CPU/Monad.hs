@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module HNes.CPU.Monad where
+module Nes.CPU.Monad where
 
 import Data.Word
-import HNes.Bus
-import HNes.CPU.State
-import HNes.Memory
+import Nes.Bus
+import Nes.CPU.State
+import Nes.Memory
 
 -- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
 newtype CPU r a = MkCPU

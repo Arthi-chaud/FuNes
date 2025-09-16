@@ -1,4 +1,4 @@
-module HNes.Memory (newMemory, memorySize, MemoryPointer, MemoryAddr, MemoryInterface (..)) where
+module Nes.Memory (newMemory, memorySize, MemoryPointer, MemoryAddr, MemoryInterface (..)) where
 
 import Foreign
 

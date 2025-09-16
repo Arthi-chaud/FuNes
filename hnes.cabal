@@ -24,15 +24,15 @@ source-repository head
 
 library
   exposed-modules:
-      HNes.Bus
-      HNes.CPU.Instructions.After
-      HNes.CPU.Instructions.IN
-      HNes.CPU.Instructions.LD
-      HNes.CPU.Instructions.TA
-      HNes.CPU.Interpreter
-      HNes.CPU.Monad
-      HNes.CPU.State
-      HNes.Memory
+      Nes.Bus
+      Nes.CPU.Instructions.After
+      Nes.CPU.Instructions.IN
+      Nes.CPU.Instructions.LD
+      Nes.CPU.Instructions.TA
+      Nes.CPU.Interpreter
+      Nes.CPU.Monad
+      Nes.CPU.State
+      Nes.Memory
   other-modules:
       Paths_hnes
   autogen-modules:

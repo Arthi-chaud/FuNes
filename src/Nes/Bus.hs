@@ -1,10 +1,10 @@
-module HNes.Bus where
+module Nes.Bus where
 
 import Data.Ix
 import Foreign
 import GHC.ForeignPtr (unsafeWithForeignPtr)
 import GHC.Storable (readWord8OffPtr)
-import HNes.Memory
+import Nes.Memory
 import Text.Printf
 
 -- Constants

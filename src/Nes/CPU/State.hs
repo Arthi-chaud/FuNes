@@ -1,7 +1,7 @@
-module HNes.CPU.State where
+module Nes.CPU.State where
 
 import Foreign
-import HNes.Memory
+import Nes.Memory
 
 -- | Offset in the vram of the next instruction to execute
 newtype ProgramCounter = PC {unPC :: MemoryAddr} deriving (Eq, Show, Num)

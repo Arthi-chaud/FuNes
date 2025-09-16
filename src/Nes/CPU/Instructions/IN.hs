@@ -1,8 +1,8 @@
-module HNes.CPU.Instructions.IN (inx) where
+module Nes.CPU.Instructions.IN (inx) where
 
-import HNes.CPU.Instructions.After
-import HNes.CPU.Monad
-import HNes.CPU.State
+import Nes.CPU.Instructions.After
+import Nes.CPU.Monad
+import Nes.CPU.State
 
 -- | Increment the value of the X register X
 --

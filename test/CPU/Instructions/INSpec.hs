@@ -1,6 +1,6 @@
 module CPU.Instructions.INSpec (spec) where
 
-import HNes.CPU.State
+import Nes.CPU.State
 import Internal
 import Test.Hspec
 

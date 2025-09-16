@@ -1,10 +1,10 @@
 -- | Common CPU Status update to do after instructions
-module HNes.CPU.Instructions.After (setZeroAndNegativeFlags) where
+module Nes.CPU.Instructions.After (setZeroAndNegativeFlags) where
 
 import Data.Bits
 import Data.Word
-import HNes.CPU.Monad
-import HNes.CPU.State
+import Nes.CPU.Monad
+import Nes.CPU.State
 
 setZeroAndNegativeFlags :: Word8 -> CPU r ()
 setZeroAndNegativeFlags res = do
