@@ -33,6 +33,7 @@ library
       Nes.CPU.Monad
       Nes.CPU.State
       Nes.Memory
+      Nes.Memory.Unsafe
   other-modules:
       Paths_funes
   autogen-modules:

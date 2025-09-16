@@ -1,6 +1,11 @@
 module Nes.Memory (newMemory, memorySize, MemoryPointer, MemoryAddr, MemoryInterface (..)) where
 
+import Control.Monad.IO.Class
 import Foreign
+
+type Byte = Word8
+
+type Addr = Word16
 
 -- | The pointer used to interact with memory
 type MemoryPointer = ForeignPtr ()
@@ -20,6 +25,10 @@ newMemory = mallocForeignPtrBytes $ fromIntegral memorySize
 
 -- | Methods for interfaces that exposes memory
 class MemoryInterface a where
-    readWord8 :: MemoryAddr -> a -> IO Word8
+    -- | Reads a single byte
+    readByte :: (MonadIO m, MonadFail m) => MemoryAddr -> a -> m Byte
+
+    -- | Reads two bytes packed in little endian
+    readAddr :: (MonadIO m, MonadFail m) => MemoryAddr -> a -> m Addr
 
 -- TODO Write

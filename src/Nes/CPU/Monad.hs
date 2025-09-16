@@ -2,6 +2,7 @@
 
 module Nes.CPU.Monad where
 
+import Control.Monad.IO.Class
 import Data.Word
 import Nes.Bus
 import Nes.CPU.State
@@ -30,6 +31,9 @@ instance Monad (CPU r) where
 instance MonadFail (CPU r) where
     fail s = MkCPU $ \_ _ _ -> fail s
 
+instance MonadIO (CPU r) where
+    liftIO io = MkCPU $ \st prog cont -> io >>= cont st prog
+
 modifyCPUState :: (CPUState -> CPUState) -> CPU r ()
 modifyCPUState f = MkCPU $ \st prog cont -> cont (f st) prog ()
 
@@ -42,7 +46,7 @@ incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
 -- | Read Word8 from memory, using the program counter as offset
 readAtPC :: CPU r Word8
 readAtPC = MkCPU $ \state bus cont ->
-    readWord8 (unPC $ programCounter state) bus
+    readByte (unPC $ programCounter state) bus
         >>= cont state bus
 
 setRegister :: Register -> Word8 -> CPU r ()
@@ -59,3 +63,23 @@ clearStatusFlag flag = modifyCPUState (clearStatusFlagPure flag)
 
 getStatusFlag :: Flag -> CPU r Bool
 getStatusFlag flag = withCPUState (getStatusFlagPure flag)
+
+-- | Run a memory access operation
+usingBus :: (Bus -> IO a) -> CPU r a
+usingBus withBus = MkCPU $ \st bus cont -> do
+    res <- withBus bus
+    cont st bus res
+
+-- | Resets the state of the CPU
+reset :: CPU r ()
+reset = do
+    pc <- usingBus $ readAddr 0xfffc
+    modifyCPUState
+        ( \st ->
+            st
+                { registerA = 0
+                , registerX = 0
+                , status = 0
+                , programCounter = PC pc
+                }
+        )

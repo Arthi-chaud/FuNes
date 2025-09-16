@@ -1,9 +1,9 @@
 module Nes.Bus where
 
-import Foreign
+import Control.Monad.IO.Class (MonadIO (liftIO))
 import GHC.ForeignPtr (unsafeWithForeignPtr)
-import GHC.Storable (readWord8OffPtr)
 import Nes.Memory
+import Nes.Memory.Unsafe ()
 
 -- Constants
 
@@ -13,9 +13,9 @@ ramRange = (0x0000, 0x1fff)
 ppuRegisters :: (MemoryAddr, MemoryAddr)
 ppuRegisters = (0x2000, 0x3fff)
 
--- | The offset where the program is loaded
+-- | The address where to read the program's offset
 programLocation :: MemoryAddr
-programLocation = 0x8000
+programLocation = 0xfffc
 
 -- | End of the program's in the memory
 programEnd :: MemoryAddr
@@ -25,11 +25,11 @@ programEnd = memorySize
 newtype Bus = Bus {memory :: MemoryPointer}
 
 instance MemoryInterface Bus where
-    readWord8 idx (Bus ptr)
+    readByte idx (Bus fptr)
         | idx >= memorySize = fail "Out-of-bounds memory access"
-        | otherwise = do
-            addr <- translateMemoryAddr idx
-            unsafeWithForeignPtr ptr (flip readWord8OffPtr (fromIntegral addr) . castPtr)
+        | otherwise = liftIO $ unsafeWithForeignPtr fptr (readByte idx)
+
+    readAddr idx (Bus fptr) = liftIO $ unsafeWithForeignPtr fptr (readAddr idx)
 
 -- | Translate a memory adress from vram to actual memory
 translateMemoryAddr :: (MonadFail m) => MemoryAddr -> m MemoryAddr
