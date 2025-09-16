@@ -1,6 +1,7 @@
 module Nes.CPU.Interpreter (runProgram, runProgramWithState, interpret) where
 
 import Nes.Bus
+import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.IN
 import Nes.CPU.Instructions.LD
 import Nes.CPU.Instructions.TA
@@ -30,7 +31,16 @@ interpret = do
         else go opCode >> interpret
   where
     go = \case
-        0xa9 -> lda
+        -- LDA
+        0xa9 -> lda Immediate
+        0xa5 -> lda ZeroPage
+        0xb5 -> lda ZeroPageX
+        0xad -> lda Absolute
+        0xbd -> lda AbsoluteX
+        0xb9 -> lda AbsoluteY
+        0xa1 -> lda IndirectX
+        0xb1 -> lda IndirectY
+        -- TODO
         0xaa -> tax
         0xe8 -> inx
         0x00 -> pure () -- Redundant with the check

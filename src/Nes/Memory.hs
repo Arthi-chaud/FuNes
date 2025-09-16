@@ -1,4 +1,12 @@
-module Nes.Memory (newMemory, memorySize, MemoryPointer, MemoryAddr, MemoryInterface (..)) where
+module Nes.Memory (
+    newMemory,
+    memorySize,
+    Byte,
+    Addr,
+    MemoryPointer,
+    MemoryAddr,
+    MemoryInterface (..),
+) where
 
 import Control.Monad.IO.Class
 import Foreign

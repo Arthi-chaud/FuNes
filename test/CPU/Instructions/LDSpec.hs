@@ -1,7 +1,9 @@
 module CPU.Instructions.LDSpec (spec) where
 
-import Nes.CPU.State
+import Foreign
+import GHC.Storable
 import Internal
+import Nes.CPU.State
 import Test.Hspec
 
 spec :: Spec
@@ -18,3 +20,8 @@ spec = do
             registerA cpu `shouldBe` 0x00
             getStatusFlagPure Zero cpu `shouldBe` True
             getStatusFlagPure Negative cpu `shouldBe` False
+
+        it "Load from memory (Zero Page)" $ do
+            let setup ptr = writeWord8OffPtr (castPtr ptr) 0x10 0x55
+            cpu <- runWithStateAndMemorySetupAndDump newCPUState setup [0xa5, 0x10, 0x00]
+            registerA cpu `shouldBe` 0x55

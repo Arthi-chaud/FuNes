@@ -1,4 +1,4 @@
-module Internal (runAndDump, runWithStateAndDump) where
+module Internal (runAndDump, runWithStateAndDump, runWithStateAndMemorySetupAndDump) where
 
 import Data.Word
 import Foreign
@@ -13,12 +13,16 @@ import Nes.Memory.Unsafe ()
 runAndDump :: [Word8] -> IO CPUState
 runAndDump = runWithStateAndDump newCPUState
 
-runWithStateAndDump :: CPUState -> [Word8] -> IO CPUState
-runWithStateAndDump st program = do
+runWithStateAndMemorySetupAndDump :: CPUState -> (Ptr () -> IO ()) -> [Word8] -> IO CPUState
+runWithStateAndMemorySetupAndDump st memSetup program = do
     fptr <- newMemory
     loadProgramToMemory program fptr
+    unsafeWithForeignPtr fptr memSetup
     st' <- resetPC fptr st
     runProgramWithState st' $ Bus fptr
+
+runWithStateAndDump :: CPUState -> [Word8] -> IO CPUState
+runWithStateAndDump st = runWithStateAndMemorySetupAndDump st (\_ -> return ())
 
 resetPC :: MemoryPointer -> CPUState -> IO CPUState
 resetPC fptr st = do

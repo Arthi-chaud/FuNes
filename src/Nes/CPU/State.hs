@@ -8,25 +8,28 @@ newtype ProgramCounter = PC {unPC :: MemoryAddr} deriving (Eq, Show, Num)
 
 -- | State of the CPU
 data CPUState = MkCPUState
-    { registerA :: {-# UNPACK #-} !Word8
-    , registerX :: {-# UNPACK #-} !Word8
-    , status :: {-# UNPACK #-} !Word8
+    { registerA :: {-# UNPACK #-} !Byte
+    , registerX :: {-# UNPACK #-} !Byte
+    , registerY :: {-# UNPACK #-} !Byte
+    , status :: {-# UNPACK #-} !Byte
     , programCounter :: {-# UNPACK #-} !ProgramCounter
     }
     deriving (Eq, Show)
 
 -- | Enumeration of the CPU's register
-data Register = A | X deriving (Eq, Show)
+data Register = A | X | Y deriving (Eq, Show)
 
-getRegisterPure :: Register -> CPUState -> Word8
+getRegisterPure :: Register -> CPUState -> Byte
 getRegisterPure = \case
     A -> registerA
     X -> registerX
+    Y -> registerY
 
-setRegisterPure :: Register -> Word8 -> CPUState -> CPUState
+setRegisterPure :: Register -> Byte -> CPUState -> CPUState
 setRegisterPure reg byte st = case reg of
     A -> st{registerA = byte}
     X -> st{registerX = byte}
+    Y -> st{registerY = byte}
 
 -- | Get a brand new, clear CPU
 --
@@ -36,6 +39,7 @@ newCPUState =
     MkCPUState
         { registerA = 0
         , registerX = 0
+        , registerY = 0
         , status = 0
         , programCounter = 0
         }

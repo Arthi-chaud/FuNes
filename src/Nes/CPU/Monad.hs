@@ -40,14 +40,16 @@ modifyCPUState f = MkCPU $ \st prog cont -> cont (f st) prog ()
 withCPUState :: (CPUState -> a) -> CPU r a
 withCPUState f = MkCPU $ \st prog cont -> cont st prog (f st)
 
+-- | Returns the value of the Program counter as an Addr
+getPCAsAddr :: CPU r Addr
+getPCAsAddr = withCPUState $ unPC . programCounter
+
 incrementPC :: CPU r ()
 incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
 
 -- | Read Word8 from memory, using the program counter as offset
-readAtPC :: CPU r Word8
-readAtPC = MkCPU $ \state bus cont ->
-    readByte (unPC $ programCounter state) bus
-        >>= cont state bus
+readAtPC :: CPU r Byte
+readAtPC = getPCAsAddr >>= withBus . readByte
 
 setRegister :: Register -> Word8 -> CPU r ()
 setRegister reg byte = modifyCPUState $ setRegisterPure reg byte
@@ -65,15 +67,15 @@ getStatusFlag :: Flag -> CPU r Bool
 getStatusFlag flag = withCPUState (getStatusFlagPure flag)
 
 -- | Run a memory access operation
-usingBus :: (Bus -> IO a) -> CPU r a
-usingBus withBus = MkCPU $ \st bus cont -> do
-    res <- withBus bus
+withBus :: (Bus -> IO a) -> CPU r a
+withBus f = MkCPU $ \st bus cont -> do
+    res <- f bus
     cont st bus res
 
 -- | Resets the state of the CPU
 reset :: CPU r ()
 reset = do
-    pc <- usingBus $ readAddr 0xfffc
+    pc <- withBus $ readAddr 0xfffc
     modifyCPUState
         ( \st ->
             st
