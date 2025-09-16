@@ -30,18 +30,18 @@ data AddressingMode
 getOperandAddr :: AddressingMode -> CPU r Addr
 getOperandAddr = \case
     Immediate -> do
-        arg <- getPCAsAddr
+        arg <- getPC
         incrementPC
         return arg
     ZeroPage -> do
-        addr <- getPCAsAddr
+        addr <- getPC
         arg <- withBus $ readByte addr
         incrementPC
         return $ byteToAddr arg
     ZeroPageX -> zeroPageAddressing registerX
     ZeroPageY -> zeroPageAddressing registerY
     Absolute -> do
-        addr <- getPCAsAddr
+        addr <- getPC
         arg <- withBus $ readAddr addr
         incrementPC >> incrementPC
         return arg
@@ -53,19 +53,19 @@ getOperandAddr = \case
 
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r Addr
 zeroPageAddressing getter = do
-    pos <- getPCAsAddr >>= (withBus . readByte)
+    pos <- getPC >>= (withBus . readByte)
     incrementPC
     withCPUState $ byteToAddr . (+ pos) . getter
 
 absoluteAddressing :: (CPUState -> Byte) -> CPU r Addr
 absoluteAddressing getter = do
-    base <- getPCAsAddr >>= (withBus . readAddr)
+    base <- getPC >>= (withBus . readAddr)
     incrementPC >> incrementPC
     withCPUState $ (+ base) . byteToAddr . getter
 
 indirectAddressing :: (CPUState -> Byte) -> CPU r Addr
 indirectAddressing getter = do
-    base <- getPCAsAddr >>= (withBus . readByte)
+    base <- getPC >>= (withBus . readByte)
     incrementPC
     ptr <- withCPUState $ (+ base) . getter
     low <- withBus (readByte (byteToAddr ptr))

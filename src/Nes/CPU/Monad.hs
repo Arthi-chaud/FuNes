@@ -3,7 +3,6 @@
 module Nes.CPU.Monad where
 
 import Control.Monad.IO.Class
-import Data.Word
 import Nes.Bus
 import Nes.CPU.State
 import Nes.Memory
@@ -41,15 +40,15 @@ withCPUState :: (CPUState -> a) -> CPU r a
 withCPUState f = MkCPU $ \st prog cont -> cont st prog (f st)
 
 -- | Returns the value of the Program counter as an Addr
-getPCAsAddr :: CPU r Addr
-getPCAsAddr = withCPUState $ unPC . programCounter
+getPC :: CPU r Addr
+getPC = withCPUState programCounter
 
 incrementPC :: CPU r ()
 incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
 
 -- | Read Word8 from memory, using the program counter as offset
 readAtPC :: CPU r Byte
-readAtPC = getPCAsAddr >>= withBus . readByte
+readAtPC = getPC >>= withBus . readByte
 
 setRegister :: Register -> Byte -> CPU r ()
 setRegister reg byte = modifyCPUState $ setRegisterPure reg byte
@@ -82,6 +81,6 @@ reset = do
                 { registerA = 0
                 , registerX = 0
                 , status = 0
-                , programCounter = PC pc
+                , programCounter = pc
                 }
         )

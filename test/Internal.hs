@@ -27,7 +27,7 @@ runWithStateAndDump st = runWithStateAndMemorySetupAndDump st (\_ -> return ())
 resetPC :: MemoryPointer -> CPUState -> IO CPUState
 resetPC fptr st = do
     pc <- readAddr 0xfffc fptr
-    return $ st{programCounter = PC pc}
+    return $ st{programCounter = pc}
 
 -- | Writes the given list of bytes at the given pointer
 --

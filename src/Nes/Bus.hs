@@ -5,18 +5,18 @@ import Nes.Memory.Unsafe ()
 
 -- Constants
 
-ramRange :: (MemoryAddr, MemoryAddr)
+ramRange :: (Addr, Addr)
 ramRange = (0x0000, 0x1fff)
 
-ppuRegisters :: (MemoryAddr, MemoryAddr)
+ppuRegisters :: (Addr, Addr)
 ppuRegisters = (0x2000, 0x3fff)
 
 -- | The address where to read the program's offset
-programLocation :: MemoryAddr
+programLocation :: Addr
 programLocation = 0xfffc
 
 -- | End of the program's in the memory
-programEnd :: MemoryAddr
+programEnd :: Addr
 programEnd = memorySize
 
 -- | Interface for the CPU that allows it to read/write to RAM
@@ -29,8 +29,8 @@ instance MemoryInterface Bus where
     readAddr idx (Bus fptr) = readAddr idx fptr
 
 -- | Translate a memory adress from vram to actual memory
-translateMemoryAddr :: (MonadFail m) => MemoryAddr -> m MemoryAddr
-translateMemoryAddr idx = return idx
+translateAddr :: (MonadFail m) => Addr -> m Addr
+translateAddr idx = return idx
 
 -- TODO
 -- \| inRange ramRange idx = return $ idx .&. 0b0000011111111111

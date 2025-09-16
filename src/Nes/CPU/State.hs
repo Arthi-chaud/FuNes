@@ -4,7 +4,6 @@ import Foreign
 import Nes.Memory
 
 -- | Offset in the vram of the next instruction to execute
-newtype ProgramCounter = PC {unPC :: MemoryAddr} deriving (Eq, Show, Num)
 
 -- | State of the CPU
 data CPUState = MkCPUState
@@ -12,7 +11,7 @@ data CPUState = MkCPUState
     , registerX :: {-# UNPACK #-} !Byte
     , registerY :: {-# UNPACK #-} !Byte
     , status :: {-# UNPACK #-} !Byte
-    , programCounter :: {-# UNPACK #-} !ProgramCounter
+    , programCounter :: {-# UNPACK #-} !Addr
     }
     deriving (Eq, Show)
 

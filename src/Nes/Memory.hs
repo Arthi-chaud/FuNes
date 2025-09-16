@@ -7,7 +7,6 @@ module Nes.Memory (
     byteToInt,
     addrToInt,
     MemoryPointer,
-    MemoryAddr,
     MemoryInterface (..),
 ) where
 
@@ -30,13 +29,10 @@ addrToInt = fromIntegral . unAddr
 -- | The pointer used to interact with memory
 type MemoryPointer = ForeignPtr ()
 
--- | Type of the offset from 'MemoryPointer' to interact with memory
-type MemoryAddr = Addr
-
 -- | The size of RAM, in bytes
 --
 -- Equivalent to 64 KiB
-memorySize :: MemoryAddr
+memorySize :: Addr
 memorySize = 0xffff
 
 -- | Creates a new memory slot
@@ -46,15 +42,15 @@ newMemory = mallocForeignPtrBytes $ fromIntegral $ unAddr memorySize
 -- | Methods for interfaces that exposes memory
 class MemoryInterface a where
     -- | Reads a single byte
-    readByte :: (MonadIO m, MonadFail m) => MemoryAddr -> a -> m Byte
+    readByte :: (MonadIO m, MonadFail m) => Addr -> a -> m Byte
 
     -- | Reads two bytes packed in little endian
-    readAddr :: (MonadIO m, MonadFail m) => MemoryAddr -> a -> m Addr
+    readAddr :: (MonadIO m, MonadFail m) => Addr -> a -> m Addr
 
     -- | Writes a single byte
-    writeByte :: (MonadIO m, MonadFail m) => Byte -> MemoryAddr -> a -> m ()
+    writeByte :: (MonadIO m, MonadFail m) => Byte -> Addr -> a -> m ()
 
     -- | Writes two bytes packed in little endian
-    writeAddr :: (MonadIO m, MonadFail m) => Addr -> MemoryAddr -> a -> m ()
+    writeAddr :: (MonadIO m, MonadFail m) => Addr -> Addr -> a -> m ()
 
 -- TODO Write
