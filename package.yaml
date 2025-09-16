@@ -1,6 +1,6 @@
-name: hnes
+name: funes
 version: 0.1.0.0
-github: "Arthi-chaud/hnes"
+github: "Arthi-chaud/funes"
 license: BSD-3-Clause
 author: "Arthur Jamet"
 copyright: "2025 Arthur Jamet"
@@ -35,7 +35,7 @@ library:
   source-dirs: src
 
 executables:
-  hnes:
+  funes:
     main: Main.hs
     source-dirs: app
     ghc-options:
@@ -43,10 +43,10 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - hnes
+      - funes
 
 tests:
-  hnes-test:
+  funes-test:
     main: Spec.hs
     source-dirs: test
     ghc-options:
@@ -54,5 +54,5 @@ tests:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - hnes
+      - funes
       - hspec
