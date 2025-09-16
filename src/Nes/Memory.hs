@@ -1,8 +1,11 @@
 module Nes.Memory (
     newMemory,
     memorySize,
-    Byte,
-    Addr,
+    Byte (..),
+    Addr (..),
+    byteToAddr,
+    byteToInt,
+    addrToInt,
     MemoryPointer,
     MemoryAddr,
     MemoryInterface (..),
@@ -11,15 +14,24 @@ module Nes.Memory (
 import Control.Monad.IO.Class
 import Foreign
 
-type Byte = Word8
+newtype Byte = Byte {unByte :: Word8} deriving (Eq, Show, Num, Bits, Ord)
 
-type Addr = Word16
+newtype Addr = Addr {unAddr :: Word16} deriving (Eq, Show, Num, Bits, Ord)
+
+byteToAddr :: Byte -> Addr
+byteToAddr = Addr . fromIntegral . unByte
+
+byteToInt :: Byte -> Int
+byteToInt = fromIntegral . unByte
+
+addrToInt :: Addr -> Int
+addrToInt = fromIntegral . unAddr
 
 -- | The pointer used to interact with memory
 type MemoryPointer = ForeignPtr ()
 
 -- | Type of the offset from 'MemoryPointer' to interact with memory
-type MemoryAddr = Word16
+type MemoryAddr = Addr
 
 -- | The size of RAM, in bytes
 --
@@ -29,7 +41,7 @@ memorySize = 0xffff
 
 -- | Creates a new memory slot
 newMemory :: IO MemoryPointer
-newMemory = mallocForeignPtrBytes $ fromIntegral memorySize
+newMemory = mallocForeignPtrBytes $ fromIntegral $ unAddr memorySize
 
 -- | Methods for interfaces that exposes memory
 class MemoryInterface a where

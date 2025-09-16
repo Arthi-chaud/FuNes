@@ -7,6 +7,7 @@ import Nes.CPU.Instructions.LD
 import Nes.CPU.Instructions.TA
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.Memory
 import Text.Printf
 
 -- TODO rename these 2 functions
@@ -44,4 +45,4 @@ interpret = do
         0xaa -> tax
         0xe8 -> inx
         0x00 -> pure () -- Redundant with the check
-        code -> fail $ printf "OP Code not implemented: 0x%x" code
+        code -> fail $ printf "OP Code not implemented: 0x%x" (unByte code)

@@ -51,10 +51,10 @@ incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
 readAtPC :: CPU r Byte
 readAtPC = getPCAsAddr >>= withBus . readByte
 
-setRegister :: Register -> Word8 -> CPU r ()
+setRegister :: Register -> Byte -> CPU r ()
 setRegister reg byte = modifyCPUState $ setRegisterPure reg byte
 
-getRegister :: Register -> CPU r Word8
+getRegister :: Register -> CPU r Byte
 getRegister = withCPUState . getRegisterPure
 
 setStatusFlag :: Flag -> CPU r ()
