@@ -1,7 +1,5 @@
 module Nes.Bus where
 
-import Control.Monad.IO.Class (MonadIO (liftIO))
-import GHC.ForeignPtr (unsafeWithForeignPtr)
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 
@@ -27,9 +25,8 @@ newtype Bus = Bus {memory :: MemoryPointer}
 instance MemoryInterface Bus where
     readByte idx (Bus fptr)
         | idx >= memorySize = fail "Out-of-bounds memory access"
-        | otherwise = liftIO $ unsafeWithForeignPtr fptr (readByte idx)
-
-    readAddr idx (Bus fptr) = liftIO $ unsafeWithForeignPtr fptr (readAddr idx)
+        | otherwise = readByte idx fptr
+    readAddr idx (Bus fptr) = readAddr idx fptr
 
 -- | Translate a memory adress from vram to actual memory
 translateMemoryAddr :: (MonadFail m) => MemoryAddr -> m MemoryAddr

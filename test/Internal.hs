@@ -3,7 +3,6 @@ module Internal (runAndDump, runWithStateAndDump) where
 import Data.Word
 import Foreign
 import GHC.ForeignPtr (unsafeWithForeignPtr)
-import GHC.Storable (writeWord8OffPtr)
 import Nes.Bus
 import Nes.CPU.Interpreter (runProgramWithState)
 import Nes.CPU.State
@@ -35,8 +34,7 @@ loadProgramToMemory program fptr =
         fptr
         ( \ptr -> do
             loop program $ (`plusPtr` 0x8000) ptr
-            writeWord8OffPtr (castPtr ptr) 0xfffc 0x00
-            writeWord8OffPtr (castPtr ptr) (0xfffc + 1) 0x80
+            writeAddr 0x8000 0xfffc ptr
         )
   where
     loop :: [Word8] -> Ptr Word8 -> IO ()

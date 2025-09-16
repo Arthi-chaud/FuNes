@@ -31,4 +31,10 @@ class MemoryInterface a where
     -- | Reads two bytes packed in little endian
     readAddr :: (MonadIO m, MonadFail m) => MemoryAddr -> a -> m Addr
 
+    -- | Writes a single byte
+    writeByte :: (MonadIO m, MonadFail m) => Byte -> MemoryAddr -> a -> m ()
+
+    -- | Writes two bytes packed in little endian
+    writeAddr :: (MonadIO m, MonadFail m) => Addr -> MemoryAddr -> a -> m ()
+
 -- TODO Write
