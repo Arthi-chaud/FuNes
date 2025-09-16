@@ -27,6 +27,8 @@ instance MemoryInterface Bus where
         | idx >= memorySize = fail "Out-of-bounds memory access"
         | otherwise = readByte idx fptr
     readAddr idx (Bus fptr) = readAddr idx fptr
+    writeByte byte idx (Bus fptr) = writeByte byte idx fptr
+    writeAddr addr idx (Bus fptr) = writeAddr addr idx fptr
 
 -- | Translate a memory adress from vram to actual memory
 translateAddr :: (MonadFail m) => Addr -> m Addr

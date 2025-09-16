@@ -1,5 +1,7 @@
-module CPU.Instructions.LDSpec (spec) where
+module CPU.Instructions.STSpec (spec) where
 
+import Foreign
+import GHC.Storable (readWord8OffPtr, writeWord8OffPtr)
 import Internal
 import Nes.CPU.State
 import Test.Hspec
@@ -7,9 +9,9 @@ import Test.Hspec
 spec :: Spec
 spec = do
     describe "Register A" $ do
-        it "Base" $ do
+        it "Using Zero Page addressing" $ do
             let st = newCPUState{registerA = 0x10}
-            -- TODO At byte 5, write Y
-            cpu <- runAndDump [0x85, 0x05, 0x00]
-            -- TODO Check byte Y is 0x10
-            registerA cpu `shouldBe` 0x05
+                setup ptr = return ()
+            withStateAndMemorySetup [0x85, 0x05, 0x00] st setup $ \_ ptr -> do
+                byte <- readWord8OffPtr ptr 0x05
+                byte `shouldBe` 0x10

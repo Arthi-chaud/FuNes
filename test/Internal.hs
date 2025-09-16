@@ -1,4 +1,4 @@
-module Internal (runAndDump, runWithStateAndDump, runWithStateAndMemorySetupAndDump) where
+module Internal (withProgram, withState, withMemorySetup, withStateAndMemorySetup) where
 
 import Data.Word
 import Foreign
@@ -9,20 +9,33 @@ import Nes.CPU.State
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 
--- | Runs a program and returns the state of the CPU at the end of the execution
-runAndDump :: [Word8] -> IO CPUState
-runAndDump = runWithStateAndDump newCPUState
-
-runWithStateAndMemorySetupAndDump :: CPUState -> (Ptr () -> IO ()) -> [Word8] -> IO CPUState
-runWithStateAndMemorySetupAndDump st memSetup program = do
+withStateAndMemorySetup ::
+    -- | Program
+    [Word8] ->
+    -- | Initial CPU State
+    CPUState ->
+    -- | Function that write to memory
+    (Ptr a -> IO ()) ->
+    -- | Continuation, run at the end of the program
+    (CPUState -> Ptr a -> IO ()) ->
+    IO ()
+withStateAndMemorySetup program st memSetup post = do
     fptr <- newMemory
     loadProgramToMemory program fptr
-    unsafeWithForeignPtr fptr memSetup
+    unsafeWithForeignPtr fptr $ memSetup . castPtr
     st' <- resetPC fptr st
-    runProgramWithState st' $ Bus fptr
+    st'' <- runProgramWithState st' $ Bus fptr
+    unsafeWithForeignPtr fptr $ post st'' . castPtr
 
-runWithStateAndDump :: CPUState -> [Word8] -> IO CPUState
-runWithStateAndDump st = runWithStateAndMemorySetupAndDump st (\_ -> return ())
+-- | Runs a program and returns the state of the CPU at the end of the execution
+withProgram :: [Word8] -> (CPUState -> IO ()) -> IO ()
+withProgram program cont = withStateAndMemorySetup program newCPUState (\_ -> return ()) (\st _ -> cont st)
+
+withState :: [Word8] -> CPUState -> (CPUState -> IO ()) -> IO ()
+withState program st cont = withStateAndMemorySetup program st (\_ -> return ()) (\st' _ -> cont st')
+
+withMemorySetup :: [Word8] -> (Ptr () -> IO ()) -> (CPUState -> Ptr () -> IO ()) -> IO ()
+withMemorySetup program = withStateAndMemorySetup program newCPUState
 
 resetPC :: MemoryPointer -> CPUState -> IO CPUState
 resetPC fptr st = do
