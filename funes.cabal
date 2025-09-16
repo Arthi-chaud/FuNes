@@ -29,6 +29,7 @@ library
       Nes.CPU.Instructions.After
       Nes.CPU.Instructions.IN
       Nes.CPU.Instructions.LD
+      Nes.CPU.Instructions.Map
       Nes.CPU.Instructions.ST
       Nes.CPU.Instructions.TA
       Nes.CPU.Interpreter
@@ -46,10 +47,12 @@ library
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , mtl
   default-language: Haskell2010
 
@@ -65,10 +68,12 @@ executable funes
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , funes
     , mtl
   default-language: Haskell2010
@@ -92,10 +97,12 @@ test-suite funes-test
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , funes
     , hspec
     , mtl

@@ -1,0 +1,39 @@
+module Nes.CPU.Instructions.Map (opcodeMap) where
+
+import Data.ByteString
+import Data.Map (Map, fromList)
+import Nes.CPU.Instructions.Addressing (AddressingMode (..))
+import Nes.CPU.Instructions.IN
+import Nes.CPU.Instructions.LD
+import Nes.CPU.Instructions.ST
+import Nes.CPU.Instructions.TA
+import Nes.CPU.Monad
+import Nes.Memory (Byte)
+
+type OpCodeEntry r = (ByteString, AddressingMode -> CPU r (), AddressingMode)
+
+-- | Maps op code to the function that executes it and the addressing mode
+opcodeMap :: Map Byte (OpCodeEntry r)
+opcodeMap =
+    fromList
+        [ (0x85, ("STA", sta, ZeroPage))
+        , (0x95, ("STA", sta, ZeroPageX))
+        , (0x8D, ("STA", sta, Absolute))
+        , (0x9D, ("STA", sta, AbsoluteX))
+        , (0x99, ("STA", sta, AbsoluteY))
+        , (0x81, ("STA", sta, IndirectX))
+        , (0x91, ("STA", sta, IndirectY))
+        , (0xa9, ("LDA", lda, Immediate))
+        , (0xa5, ("LDA", lda, ZeroPage))
+        , (0xb5, ("LDA", lda, ZeroPageX))
+        , (0xad, ("LDA", lda, Absolute))
+        , (0xbd, ("LDA", lda, AbsoluteX))
+        , (0xb9, ("LDA", lda, AbsoluteY))
+        , (0xa1, ("LDA", lda, IndirectX))
+        , (0xb1, ("LDA", lda, IndirectY))
+        , -- W/o addressing
+          (0xaa, ("TAX", const tax, None))
+        , (0xe8, ("INX", const inx, None))
+        , -- Note: for this one, the intepreter is responsible for breaking
+          (0x00, ("BRK", const $ pure (), None))
+        ]

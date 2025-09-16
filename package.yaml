@@ -14,11 +14,12 @@ dependencies:
   - base >= 4.7 && < 5
   - bytestring
   - mtl
-
+  - containers
 default-extensions:
   - BinaryLiterals
   - LambdaCase
   - GeneralizedNewtypeDeriving
+  - OverloadedStrings
 
 ghc-options:
   - -Wall

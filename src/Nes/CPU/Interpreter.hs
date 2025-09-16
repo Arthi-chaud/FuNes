@@ -1,11 +1,8 @@
 module Nes.CPU.Interpreter (runProgram, runProgramWithState, interpret) where
 
+import Data.Map
 import Nes.Bus
-import Nes.CPU.Instructions.Addressing
-import Nes.CPU.Instructions.IN
-import Nes.CPU.Instructions.LD
-import Nes.CPU.Instructions.ST
-import Nes.CPU.Instructions.TA
+import Nes.CPU.Instructions.Map
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.Memory
@@ -32,26 +29,6 @@ interpret = do
         then return ()
         else go opCode >> interpret
   where
-    go = \case
-        -- STA
-        0x85 -> sta ZeroPage
-        0x95 -> sta ZeroPageX
-        0x8D -> sta Absolute
-        0x9D -> sta AbsoluteX
-        0x99 -> sta AbsoluteY
-        0x81 -> sta IndirectX
-        0x91 -> sta IndirectY
-        -- LDA
-        0xa9 -> lda Immediate
-        0xa5 -> lda ZeroPage
-        0xb5 -> lda ZeroPageX
-        0xad -> lda Absolute
-        0xbd -> lda AbsoluteX
-        0xb9 -> lda AbsoluteY
-        0xa1 -> lda IndirectX
-        0xb1 -> lda IndirectY
-        -- W/o addressing
-        0xaa -> tax
-        0xe8 -> inx
-        0x00 -> pure () -- Redundant with the check
-        code -> fail $ printf "OP Code not implemented: 0x%x" (unByte code)
+    go opcode = case Data.Map.lookup opcode opcodeMap of
+        Just (_, f, mode) -> f mode
+        Nothing -> fail $ printf "OP Code not implemented: 0x%x" (unByte opcode)
