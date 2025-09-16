@@ -29,6 +29,7 @@ library
       Nes.CPU.Instructions.After
       Nes.CPU.Instructions.IN
       Nes.CPU.Instructions.LD
+      Nes.CPU.Instructions.ST
       Nes.CPU.Instructions.TA
       Nes.CPU.Interpreter
       Nes.CPU.Monad
@@ -79,6 +80,7 @@ test-suite funes-test
       CPU.Instructions.INSpec
       CPU.Instructions.LDSpec
       CPU.Instructions.MiscSpec
+      CPU.Instructions.STSpec
       CPU.Instructions.TASpec
       Internal
       Paths_funes

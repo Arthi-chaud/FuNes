@@ -51,6 +51,9 @@ class MemoryInterface a where
     writeByte :: (MonadIO m, MonadFail m) => Byte -> Addr -> a -> m ()
 
     -- | Writes two bytes packed in little endian
+    --
+    -- the first argument is the address to writeAddr
+    -- the second is the destination
     writeAddr :: (MonadIO m, MonadFail m) => Addr -> Addr -> a -> m ()
 
 -- TODO Write
