@@ -1,8 +1,20 @@
-module Nes.CPU.Instructions.IN (inx, iny) where
+module Nes.CPU.Instructions.IN (inc, inx, iny) where
 
+import Nes.CPU.Instructions.Addressing (AddressingMode, getOperandAddr)
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.Memory
+
+-- | Increment value in memory
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#INC
+inc :: AddressingMode -> CPU r ()
+inc mode = do
+    addr <- getOperandAddr mode
+    res <- (+ 1) <$> withBus (readByte addr)
+    withBus $ writeByte res addr
+    setZeroAndNegativeFlags res
 
 -- | Increment the value of the X register
 --

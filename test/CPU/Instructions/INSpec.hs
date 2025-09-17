@@ -1,11 +1,18 @@
 module CPU.Instructions.INSpec (spec) where
 
+import GHC.Storable
 import Internal
 import Nes.CPU.State
 import Test.Hspec
 
 spec :: Spec
 spec = do
+    describe "In memory" $ do
+        it "Base (Overflow)" $ do
+            let setup ptr = writeWord8OffPtr ptr 0x05 0xff
+            withStateAndMemorySetup [0xe6, 0x05, 0x00] newCPUState setup $ \cpu ptr -> do
+                readWord8OffPtr ptr 0x05 `shouldReturn` 0x00
+                getStatusFlagPure Zero cpu `shouldBe` True
     describe "Register X" $ do
         it "Base" $ do
             let st = newCPUState{registerX = 0x10}

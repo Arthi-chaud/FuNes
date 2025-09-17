@@ -34,6 +34,10 @@ opcodeMap =
         , (0xb9, ("LDA", lda, AbsoluteY))
         , (0xa1, ("LDA", lda, IndirectX))
         , (0xb1, ("LDA", lda, IndirectY))
+        , (0xe6, ("INC", inc, ZeroPage))
+        , (0xf6, ("INC", inc, ZeroPageX))
+        , (0xee, ("INC", inc, Absolute))
+        , (0xfe, ("INC", inc, AbsoluteX))
         , -- W/o addressing
           (0x18, ("CLC", const clc, None))
         , (0xd8, ("CLD", const cld, None))
