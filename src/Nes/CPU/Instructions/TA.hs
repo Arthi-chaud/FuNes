@@ -8,16 +8,16 @@ import Nes.CPU.State
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
 tax :: CPU r ()
-tax = do
-    regA <- getRegister A
-    setRegister X regA
-    setZeroAndNegativeFlags regA
+tax = transferAccToRegister X
 
 -- | Transfer Accumulator to Y
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#TAY
 tay :: CPU r ()
-tay = do
+tay = transferAccToRegister Y
+
+transferAccToRegister :: Register -> CPU r ()
+transferAccToRegister dest = do
     regA <- getRegister A
-    setRegister Y regA
+    setRegister dest regA
     setZeroAndNegativeFlags regA

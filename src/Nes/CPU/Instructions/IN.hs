@@ -20,16 +20,16 @@ inc mode = do
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
 inx :: CPU r ()
-inx = do
-    newRegX <- (+ 1) <$> getRegister X
-    setRegister X newRegX
-    setZeroAndNegativeFlags newRegX
+inx = incrementRegister X
 
 -- | Increment the value of the Y register
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#INY
 iny :: CPU r ()
-iny = do
-    newRegY <- (+ 1) <$> getRegister Y
-    setRegister Y newRegY
+iny = incrementRegister Y
+
+incrementRegister :: Register -> CPU r ()
+incrementRegister reg = do
+    newRegY <- (+ 1) <$> getRegister reg
+    setRegister reg newRegY
     setZeroAndNegativeFlags newRegY

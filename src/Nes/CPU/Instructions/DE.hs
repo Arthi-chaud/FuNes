@@ -20,16 +20,16 @@ dec mode = do
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#DEX
 dex :: CPU r ()
-dex = do
-    res <- (\x -> x - 1) <$> getRegister X
-    setRegister X res
-    setZeroAndNegativeFlags res
+dex = decrementRegister X
 
 -- | Decrement Y register
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#DEY
 dey :: CPU r ()
-dey = do
-    res <- (\y -> y - 1) <$> getRegister Y
-    setRegister Y res
+dey = decrementRegister Y
+
+decrementRegister :: Register -> CPU r ()
+decrementRegister reg = do
+    res <- (\y -> y - 1) <$> getRegister reg
+    setRegister reg res
     setZeroAndNegativeFlags res
