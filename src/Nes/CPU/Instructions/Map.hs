@@ -2,7 +2,8 @@ module Nes.CPU.Instructions.Map (opcodeMap) where
 
 import Data.ByteString
 import Data.Map (Map, fromList)
-import Nes.CPU.Instructions.Addressing (AddressingMode (..))
+import Nes.CPU.Instructions.Addressing
+import Nes.CPU.Instructions.CL
 import Nes.CPU.Instructions.IN
 import Nes.CPU.Instructions.LD
 import Nes.CPU.Instructions.ST
@@ -32,7 +33,11 @@ opcodeMap =
         , (0xa1, ("LDA", lda, IndirectX))
         , (0xb1, ("LDA", lda, IndirectY))
         , -- W/o addressing
-          (0xaa, ("TAX", const tax, None))
+          (0x18, ("CLC", const clc, None))
+        , (0xd8, ("CLD", const cld, None))
+        , (0x58, ("CLD", const cli, None))
+        , (0xB8, ("CLD", const clv, None))
+        , (0xaa, ("TAX", const tax, None))
         , (0xe8, ("INX", const inx, None))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None))

@@ -39,7 +39,8 @@ newCPUState =
         { registerA = 0
         , registerX = 0
         , registerY = 0
-        , status = 0
+        , -- see https://www.nesdev.org/wiki/Status_flags
+          status = setBit 0 5
         , programCounter = 0
         }
 
@@ -54,6 +55,7 @@ data Flag
     | BreakCommand
     | Overflow
     | Negative
+    deriving (Eq, Show)
 
 setStatusFlagPure :: Flag -> CPUState -> CPUState
 setStatusFlagPure flag st = st{status = setBit (status st) (unsafeFlagToBitOffset flag)}
@@ -66,6 +68,12 @@ getStatusFlagPure flag st = testBit (status st) (unsafeFlagToBitOffset flag)
 
 unsafeFlagToBitOffset :: Flag -> Int
 unsafeFlagToBitOffset = \case
+    Carry -> 0
     Zero -> 1
+    InteruptDisable -> 2
+    DecimalMode -> 3
+    BreakCommand -> 4
+    -- Note: No Bit 5
+    -- https://www.nesdev.org/wiki/Status_flags
+    Overflow -> 6
     Negative -> 7
-    _ -> error "TODO"
