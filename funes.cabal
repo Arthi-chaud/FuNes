@@ -31,6 +31,7 @@ library
       Nes.CPU.Instructions.IN
       Nes.CPU.Instructions.LD
       Nes.CPU.Instructions.Map
+      Nes.CPU.Instructions.SE
       Nes.CPU.Instructions.ST
       Nes.CPU.Instructions.TA
       Nes.CPU.Interpreter
@@ -87,6 +88,7 @@ test-suite funes-test
       CPU.Instructions.INSpec
       CPU.Instructions.LDSpec
       CPU.Instructions.MiscSpec
+      CPU.Instructions.SESpec
       CPU.Instructions.STSpec
       CPU.Instructions.TASpec
       Internal

@@ -6,6 +6,7 @@ import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.CL
 import Nes.CPU.Instructions.IN
 import Nes.CPU.Instructions.LD
+import Nes.CPU.Instructions.SE
 import Nes.CPU.Instructions.ST
 import Nes.CPU.Instructions.TA
 import Nes.CPU.Monad
@@ -37,6 +38,9 @@ opcodeMap =
         , (0xd8, ("CLD", const cld, None))
         , (0x58, ("CLD", const cli, None))
         , (0xB8, ("CLD", const clv, None))
+        , (0x38, ("SEC", const sec, None))
+        , (0xf8, ("SED", const sed, None))
+        , (0x78, ("SEI", const sei, None))
         , (0xaa, ("TAX", const tax, None))
         , (0xe8, ("INX", const inx, None))
         , -- Note: for this one, the intepreter is responsible for breaking
