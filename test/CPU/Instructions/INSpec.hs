@@ -20,3 +20,11 @@ spec = do
                 registerX cpu `shouldBe` 0x0
                 getStatusFlagPure Zero cpu `shouldBe` True
                 getStatusFlagPure Negative cpu `shouldBe` False
+
+    describe "Register Y" $ do
+        it "Base" $ do
+            let st = newCPUState{registerY = 0xfa}
+            withState [0xc8, 0x00] st $ \cpu -> do
+                registerY cpu `shouldBe` 0xfb
+                getStatusFlagPure Zero cpu `shouldBe` False
+                getStatusFlagPure Negative cpu `shouldBe` True

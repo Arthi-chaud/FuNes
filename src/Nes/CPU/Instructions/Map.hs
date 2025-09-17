@@ -46,6 +46,7 @@ opcodeMap =
         , (0x88, ("DEY", const dey, None))
         , (0xaa, ("TAX", const tax, None))
         , (0xe8, ("INX", const inx, None))
+        , (0xc8, ("INY", const iny, None))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None))
         ]
