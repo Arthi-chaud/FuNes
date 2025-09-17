@@ -38,6 +38,10 @@ opcodeMap =
         , (0xf6, ("INC", inc, ZeroPageX))
         , (0xee, ("INC", inc, Absolute))
         , (0xfe, ("INC", inc, AbsoluteX))
+        , (0xc6, ("DEC", dec, ZeroPage))
+        , (0xd6, ("DEC", dec, ZeroPageX))
+        , (0xce, ("DEC", dec, Absolute))
+        , (0xde, ("DEC", dec, AbsoluteX))
         , -- W/o addressing
           (0x18, ("CLC", const clc, None))
         , (0xd8, ("CLD", const cld, None))
