@@ -4,6 +4,7 @@ import Data.ByteString
 import Data.Map (Map, fromList)
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.CL
+import Nes.CPU.Instructions.DE
 import Nes.CPU.Instructions.IN
 import Nes.CPU.Instructions.LD
 import Nes.CPU.Instructions.SE
@@ -41,6 +42,8 @@ opcodeMap =
         , (0x38, ("SEC", const sec, None))
         , (0xf8, ("SED", const sed, None))
         , (0x78, ("SEI", const sei, None))
+        , (0xca, ("DEX", const dex, None))
+        , (0x88, ("DEY", const dey, None))
         , (0xaa, ("TAX", const tax, None))
         , (0xe8, ("INX", const inx, None))
         , -- Note: for this one, the intepreter is responsible for breaking
