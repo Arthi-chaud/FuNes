@@ -3,7 +3,7 @@ module Nes.CPU.Instructions.Map (opcodeMap) where
 import Data.ByteString
 import Data.Map (Map, fromList)
 import Nes.CPU.Instructions.Addressing
-import Nes.CPU.Instructions.BV
+import Nes.CPU.Instructions.B
 import Nes.CPU.Instructions.CL
 import Nes.CPU.Instructions.CMP
 import Nes.CPU.Instructions.DE
@@ -63,6 +63,12 @@ opcodeMap =
         , (0xde, ("DEC", dec, AbsoluteX))
         , (0x50, ("BVC", bvc, Relative))
         , (0x70, ("BVS", bvs, Relative))
+        , (0x90, ("BCC", bcc, Relative))
+        , (0xb0, ("BCS", bcs, Relative))
+        , (0xf0, ("BEQ", beq, Relative))
+        , (0xd0, ("BNE", bne, Relative))
+        , (0x30, ("BMI", bmi, Relative))
+        , (0x10, ("BPL", bpl, Relative))
         , (0xc9, ("CMP", cmp, Immediate))
         , (0xc5, ("CMP", cmp, ZeroPage))
         , (0xd5, ("CMP", cmp, ZeroPageX))
