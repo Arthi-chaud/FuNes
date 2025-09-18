@@ -36,6 +36,7 @@ library
       Nes.CPU.Instructions.LD
       Nes.CPU.Instructions.Logic
       Nes.CPU.Instructions.Map
+      Nes.CPU.Instructions.Return
       Nes.CPU.Instructions.SE
       Nes.CPU.Instructions.ST
       Nes.CPU.Instructions.T

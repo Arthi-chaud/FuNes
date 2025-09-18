@@ -3,6 +3,7 @@
 module Nes.CPU.Monad where
 
 import Control.Monad.IO.Class
+import Data.Bits (Bits (shiftR))
 import Nes.Bus
 import Nes.CPU.State
 import Nes.Memory
@@ -70,6 +71,28 @@ clearStatusFlag flag = modifyCPUState (clearStatusFlagPure flag)
 
 getStatusFlag :: Flag -> CPU r Bool
 getStatusFlag flag = withCPUState (getStatusFlagPure flag)
+
+popStackByte :: CPU r Byte
+popStackByte = do
+    newRegS <- (+ 1) <$> getRegister S
+    setRegister S newRegS
+    withBus $ readByte (stackAddr + byteToAddr newRegS)
+
+popStackAddr :: CPU r Addr
+popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
+
+pushByteStack :: Byte -> CPU r ()
+pushByteStack byte = do
+    regS <- getRegister S
+    withBus $ writeByte byte (stackAddr + byteToAddr regS)
+    setRegister S (regS - 1)
+
+pushAddrStack :: Addr -> CPU r ()
+pushAddrStack addr = do
+    let high = unsafeAddrToByte (shiftR addr 8)
+        low = unsafeAddrToByte addr
+    pushByteStack high
+    pushByteStack low
 
 -- | Run a memory access operation
 withBus :: (Bus -> IO a) -> CPU r a

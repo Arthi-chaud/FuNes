@@ -11,6 +11,7 @@ import Nes.CPU.Instructions.IN
 import Nes.CPU.Instructions.JMP
 import Nes.CPU.Instructions.LD
 import Nes.CPU.Instructions.Logic
+import Nes.CPU.Instructions.Return
 import Nes.CPU.Instructions.SE
 import Nes.CPU.Instructions.ST
 import Nes.CPU.Instructions.T
@@ -141,6 +142,8 @@ opcodeMap =
         , (0xba, ("TSX", const tsx, None))
         , (0xe8, ("INX", const inx, None))
         , (0xc8, ("INY", const iny, None))
+        , (0x60, ("RTS", const rts, None))
+        , (0x40, ("RTI", const rti, None))
         , (0xea, ("NOP", const $ pure (), None))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None))

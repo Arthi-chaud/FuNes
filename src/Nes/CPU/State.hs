@@ -20,6 +20,7 @@ module Nes.CPU.State (
 ) where
 
 import Foreign
+import Nes.Bus (stackReset)
 import Nes.Memory
 
 -- | Offset in the vram of the next instruction to execute
@@ -63,7 +64,7 @@ newCPUState =
         { registerA = 0
         , registerX = 0
         , registerY = 0
-        , registerS = 0
+        , registerS = stackReset
         , -- see https://www.nesdev.org/wiki/Status_flags
           status = setBit 0 5
         , programCounter = 0

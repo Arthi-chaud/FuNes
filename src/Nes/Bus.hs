@@ -8,6 +8,12 @@ import Nes.Memory.Unsafe ()
 ramRange :: (Addr, Addr)
 ramRange = (0x0000, 0x1fff)
 
+stackAddr :: Addr
+stackAddr = 0x0100
+
+stackReset :: Byte
+stackReset = 0xfd
+
 ppuRegisters :: (Addr, Addr)
 ppuRegisters = (0x2000, 0x3fff)
 

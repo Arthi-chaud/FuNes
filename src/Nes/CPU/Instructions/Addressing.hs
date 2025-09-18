@@ -1,6 +1,5 @@
 module Nes.CPU.Instructions.Addressing (AddressingMode (..), getOperandAddr) where
 
-import Data.Bits (Bits (shiftL, (.|.)))
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.Memory
@@ -77,5 +76,5 @@ indirectAddressing getter = do
     incrementPC
     ptr <- withCPUState $ (+ base) . getter
     low <- withBus (readByte (byteToAddr ptr))
-    high <- byteToAddr <$> withBus (readByte (byteToAddr (ptr + 1)))
-    return $ shiftL high 8 .|. byteToAddr low
+    high <- withBus (readByte (byteToAddr (ptr + 1)))
+    return $ bytesToAddr low high

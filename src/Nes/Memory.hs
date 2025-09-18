@@ -4,8 +4,10 @@ module Nes.Memory (
     Byte (..),
     Addr (..),
     byteToAddr,
+    bytesToAddr,
     byteToInt,
     addrToInt,
+    unsafeAddrToByte,
     MemoryPointer,
     MemoryInterface (..),
 ) where
@@ -25,6 +27,14 @@ byteToInt = fromIntegral . unByte
 
 addrToInt :: Addr -> Int
 addrToInt = fromIntegral . unAddr
+
+-- | Unsafe: Casts a Word16 to Word8
+unsafeAddrToByte :: Addr -> Byte
+unsafeAddrToByte (Addr a) = Byte $ fromIntegral a
+
+-- | First byte is low-end, second is high-end
+bytesToAddr :: Byte -> Byte -> Addr
+bytesToAddr low high = shiftL (byteToAddr high) 8 .|. byteToAddr low
 
 -- | The pointer used to interact with memory
 type MemoryPointer = ForeignPtr ()
