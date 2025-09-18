@@ -1,8 +1,8 @@
-module Nes.CPU.Instructions.Logic (and, ora, eor) where
+module Nes.CPU.Instructions.Logic (and, ora, eor, rol, ror) where
 
-import Data.Bits (Bits ((.|.)), (.&.), (.^.))
-import Nes.CPU.Instructions.Addressing (AddressingMode, getOperandAddr)
-import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
+import Data.Bits (Bits (setBit, shiftL, (.|.)), shiftR, (.&.), (.^.))
+import Nes.CPU.Instructions.Addressing
+import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.Memory
@@ -33,3 +33,32 @@ applyLogicOnRegisterA op mode = do
     let res = regA `op` value
     setZeroAndNegativeFlags res
     setRegister A res
+
+-- | Rotate left
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#ROL
+rol :: AddressingMode -> CPU r ()
+rol =
+    rotate $ \value carry ->
+        let shifted = shiftL value 1
+         in if carry then setBit shifted 0 else shifted
+
+-- | Rotate right
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#ROR
+ror :: AddressingMode -> CPU r ()
+ror =
+    rotate $ \value carry ->
+        let shifted = shiftR value 1
+         in if carry then setBit shifted 7 else shifted
+
+rotate :: (Byte -> Bool -> Byte) -> AddressingMode -> CPU r ()
+rotate f mode = do
+    value <- case mode of
+        Accumulator -> getRegister A
+        _ -> getOperandAddr mode >>= withBus . readByte
+    res <- f value <$> getStatusFlag Carry
+    setZeroAndNegativeFlags res
+    if mode == Accumulator
+        then setRegister A res
+        else getOperandAddr mode >>= withBus . writeByte res

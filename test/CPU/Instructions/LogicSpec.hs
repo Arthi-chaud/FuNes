@@ -24,3 +24,14 @@ spec = describe "Logic" $ do
         withState program st $ \st' -> do
             registerA st' `shouldBe` 0
             getStatusFlagPure Zero st' `shouldBe` True
+    it "Rotate Left" $ do
+        let program = [0x2a, 0x00]
+            st = setStatusFlagPure Carry (newCPUState{registerA = 0b00010000})
+        withState program st $ \st' -> do
+            registerA st' `shouldBe` 0b00100001
+
+    it "Rotate Right" $ do
+        let program = [0x6a, 0x00]
+            st = setStatusFlagPure Carry (newCPUState{registerA = 0b00010000})
+        withState program st $ \st' -> do
+            registerA st' `shouldBe` 0b10001000

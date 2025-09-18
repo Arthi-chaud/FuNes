@@ -11,6 +11,7 @@ import Text.Printf (printf)
 -- https://www.nesdev.org/obelisk-6502-guide/addressing.html#IMM
 data AddressingMode
     = Immediate
+    | Accumulator
     | Relative
     | ZeroPage
     | ZeroPageX
@@ -31,12 +32,12 @@ data AddressingMode
 -- Source: https://bugzmanov.github.io/nes_ebook/chapter_3_2.html
 getOperandAddr :: AddressingMode -> CPU r Addr
 getOperandAddr = \case
+    Accumulator -> fail "Do not use this function when the mode is Accumulator"
     Immediate -> do
         arg <- getPC
         incrementPC
         return arg
     Relative -> do
-        -- TODO Not sure
         addr <- getPC
         arg <- withBus $ readByte addr
         return $ addr + byteToAddr arg
