@@ -13,7 +13,7 @@ import Nes.CPU.Instructions.LD
 import Nes.CPU.Instructions.Logic
 import Nes.CPU.Instructions.SE
 import Nes.CPU.Instructions.ST
-import Nes.CPU.Instructions.TA
+import Nes.CPU.Instructions.T
 import Nes.CPU.Monad
 import Nes.Memory (Byte)
 import Prelude hiding (and)
@@ -123,6 +123,8 @@ opcodeMap =
         , (0x88, ("DEY", const dey, None))
         , (0xaa, ("TAX", const tax, None))
         , (0xa8, ("TAY", const tay, None))
+        , (0x8a, ("TXA", const txa, None))
+        , (0x98, ("TYA", const tya, None))
         , (0xe8, ("INX", const inx, None))
         , (0xc8, ("INY", const iny, None))
         , (0xea, ("NOP", const $ pure (), None))

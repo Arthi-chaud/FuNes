@@ -38,7 +38,7 @@ library
       Nes.CPU.Instructions.Map
       Nes.CPU.Instructions.SE
       Nes.CPU.Instructions.ST
-      Nes.CPU.Instructions.TA
+      Nes.CPU.Instructions.T
       Nes.CPU.Interpreter
       Nes.CPU.Monad
       Nes.CPU.State
@@ -100,7 +100,7 @@ test-suite funes-test
       CPU.Instructions.MiscSpec
       CPU.Instructions.SESpec
       CPU.Instructions.STSpec
-      CPU.Instructions.TASpec
+      CPU.Instructions.TSpec
       Internal
       Paths_funes
   autogen-modules:
