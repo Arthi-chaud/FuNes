@@ -13,6 +13,7 @@ module Nes.CPU.State (
     getStatusFlagPure,
     setStatusFlagPure,
     clearStatusFlagPure,
+    setStatusFlagPure',
 
     -- * Internal
     unsafeFlagToBitOffset,
@@ -82,10 +83,13 @@ data Flag
     deriving (Eq, Show)
 
 setStatusFlagPure :: Flag -> CPUState -> CPUState
-setStatusFlagPure flag st = st{status = setBit (status st) (unsafeFlagToBitOffset flag)}
+setStatusFlagPure flag = setStatusFlagPure' flag True
+
+setStatusFlagPure' :: Flag -> Bool -> CPUState -> CPUState
+setStatusFlagPure' flag bool st = st{status = (if bool then setBit else clearBit) (status st) (unsafeFlagToBitOffset flag)}
 
 clearStatusFlagPure :: Flag -> CPUState -> CPUState
-clearStatusFlagPure flag st = st{status = clearBit (status st) (unsafeFlagToBitOffset flag)}
+clearStatusFlagPure flag = setStatusFlagPure' flag False
 
 getStatusFlagPure :: Flag -> CPUState -> Bool
 getStatusFlagPure flag st = testBit (status st) (unsafeFlagToBitOffset flag)

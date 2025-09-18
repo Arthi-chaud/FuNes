@@ -52,26 +52,33 @@ applyLogicOnRegisterA op mode = do
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ROL
 rol :: AddressingMode -> CPU r ()
 rol =
-    rotate $ \value carry ->
-        let shifted = shiftL value 1
-         in if carry then setBit shifted 0 else shifted
+    rotate
+        ( \value carry ->
+            let shifted = shiftL value 1
+             in if carry then setBit shifted 0 else shifted
+        )
+        (\byte -> setStatusFlagPure' Carry (testBit byte 7))
 
 -- | Rotate right
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ROR
 ror :: AddressingMode -> CPU r ()
 ror =
-    rotate $ \value carry ->
-        let shifted = shiftR value 1
-         in if carry then setBit shifted 7 else shifted
+    rotate
+        ( \value carry ->
+            let shifted = shiftR value 1
+             in if carry then setBit shifted 7 else shifted
+        )
+        (\byte -> setStatusFlagPure' Carry (testBit byte 0))
 
-rotate :: (Byte -> Bool -> Byte) -> AddressingMode -> CPU r ()
-rotate f mode = do
+rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r ()
+rotate f setCarry mode = do
     value <- case mode of
         Accumulator -> getRegister A
         _ -> getOperandAddr mode >>= withBus . readByte
     res <- f value <$> getStatusFlag Carry
     setZeroAndNegativeFlags res
+    modifyCPUState $ setCarry value
     if mode == Accumulator
         then setRegister A res
         else getOperandAddr mode >>= withBus . writeByte res

@@ -47,9 +47,10 @@ spec = describe "Logic" $ do
             st = setStatusFlagPure Carry (newCPUState{registerA = 0b00010000})
         withState program st $ \st' -> do
             registerA st' `shouldBe` 0b00100001
-
+            getStatusFlagPure Carry st' `shouldBe` False
     it "Rotate Right" $ do
         let program = [0x6a, 0x00]
             st = setStatusFlagPure Carry (newCPUState{registerA = 0b00010000})
         withState program st $ \st' -> do
             registerA st' `shouldBe` 0b10001000
+            getStatusFlagPure Carry st' `shouldBe` False
