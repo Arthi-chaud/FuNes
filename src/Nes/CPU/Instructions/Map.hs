@@ -10,11 +10,13 @@ import Nes.CPU.Instructions.DE
 import Nes.CPU.Instructions.IN
 import Nes.CPU.Instructions.JMP
 import Nes.CPU.Instructions.LD
+import Nes.CPU.Instructions.Logic
 import Nes.CPU.Instructions.SE
 import Nes.CPU.Instructions.ST
 import Nes.CPU.Instructions.TA
 import Nes.CPU.Monad
 import Nes.Memory (Byte)
+import Prelude hiding (and)
 
 type OpCodeEntry r = (ByteString, AddressingMode -> CPU r (), AddressingMode)
 
@@ -85,6 +87,30 @@ opcodeMap =
         , (0xcc, ("CPY", cpy, Absolute))
         , (0x4c, ("JMP", jmp, Absolute))
         , (0x6c, ("JMP", jmp, Indirect))
+        , (0x29, ("AND", and, Immediate))
+        , (0x25, ("AND", and, ZeroPage))
+        , (0x35, ("AND", and, ZeroPageX))
+        , (0x2d, ("AND", and, Absolute))
+        , (0x3d, ("AND", and, AbsoluteX))
+        , (0x39, ("AND", and, AbsoluteY))
+        , (0x21, ("AND", and, IndirectX))
+        , (0x31, ("AND", and, IndirectY))
+        , (0x09, ("ORA", ora, Immediate))
+        , (0x05, ("ORA", ora, ZeroPage))
+        , (0x15, ("ORA", ora, ZeroPageX))
+        , (0x0d, ("ORA", ora, Absolute))
+        , (0x1d, ("ORA", ora, AbsoluteX))
+        , (0x19, ("ORA", ora, AbsoluteY))
+        , (0x01, ("ORA", ora, IndirectX))
+        , (0x11, ("ORA", ora, IndirectY))
+        , (0x49, ("EOR", eor, Immediate))
+        , (0x45, ("EOR", eor, ZeroPage))
+        , (0x55, ("EOR", eor, ZeroPageX))
+        , (0x4d, ("EOR", eor, Absolute))
+        , (0x5d, ("EOR", eor, AbsoluteX))
+        , (0x59, ("EOR", eor, AbsoluteY))
+        , (0x41, ("EOR", eor, IndirectX))
+        , (0x51, ("EOR", eor, IndirectY))
         , -- W/o addressing
           (0x18, ("CLC", const clc, None))
         , (0xd8, ("CLD", const cld, None))
