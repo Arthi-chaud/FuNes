@@ -8,6 +8,7 @@ import Nes.CPU.Instructions.CL
 import Nes.CPU.Instructions.CMP (cmp)
 import Nes.CPU.Instructions.DE
 import Nes.CPU.Instructions.IN
+import Nes.CPU.Instructions.JMP
 import Nes.CPU.Instructions.LD
 import Nes.CPU.Instructions.SE
 import Nes.CPU.Instructions.ST
@@ -70,6 +71,8 @@ opcodeMap =
         , (0xd9, ("CMP", cmp, AbsoluteY))
         , (0xc1, ("CMP", cmp, IndirectX))
         , (0xd1, ("CMP", cmp, IndirectY))
+        , (0x4c, ("JMP", jmp, Absolute))
+        , (0x6c, ("JMP", jmp, Indirect))
         , -- W/o addressing
           (0x18, ("CLC", const clc, None))
         , (0xd8, ("CLD", const cld, None))

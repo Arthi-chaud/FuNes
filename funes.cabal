@@ -32,6 +32,7 @@ library
       Nes.CPU.Instructions.CMP
       Nes.CPU.Instructions.DE
       Nes.CPU.Instructions.IN
+      Nes.CPU.Instructions.JMP
       Nes.CPU.Instructions.LD
       Nes.CPU.Instructions.Map
       Nes.CPU.Instructions.SE
@@ -92,6 +93,7 @@ test-suite funes-test
       CPU.Instructions.CMPSpec
       CPU.Instructions.DESpec
       CPU.Instructions.INSpec
+      CPU.Instructions.JMPSpec
       CPU.Instructions.LDSpec
       CPU.Instructions.MiscSpec
       CPU.Instructions.SESpec
