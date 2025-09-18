@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.T (tax, tay, txa, tya) where
+module Nes.CPU.Instructions.T (tax, tay, txa, tya, txs, tsx) where
 
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
@@ -28,8 +28,20 @@ txa = transferToRegister X A
 tya :: CPU r ()
 tya = transferToRegister Y A
 
+-- | Transfer Register X to S
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#TXS
+txs :: CPU r ()
+txs = transferToRegister X S
+
+-- | Transfer Register S to X
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#TSX
+tsx :: CPU r ()
+tsx = transferToRegister S X
+
 transferToRegister :: Register -> Register -> CPU r ()
 transferToRegister src dest = do
-    regA <- getRegister src
-    setRegister dest regA
-    setZeroAndNegativeFlags regA
+    value <- getRegister src
+    setRegister dest value
+    setZeroAndNegativeFlags value

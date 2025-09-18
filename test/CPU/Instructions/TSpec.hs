@@ -29,8 +29,17 @@ spec = do
             let st = newCPUState{registerX = 10}
             withState [0x8a, 0x00] st $ \cpu -> do
                 registerA cpu `shouldBe` 10
+        it "Register S" $ do
+            let st = newCPUState{registerX = 10}
+            withState [0x9a, 0x00] st $ \cpu -> do
+                registerS cpu `shouldBe` 10
     describe "From Register Y" $ do
         it "Register A" $ do
             let st = newCPUState{registerY = 10}
             withState [0x98, 0x00] st $ \cpu -> do
                 registerA cpu `shouldBe` 10
+    describe "From Register S" $ do
+        it "Register X" $ do
+            let st = newCPUState{registerS = 10}
+            withState [0xba, 0x00] st $ \cpu -> do
+                registerX cpu `shouldBe` 10

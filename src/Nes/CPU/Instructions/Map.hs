@@ -125,6 +125,8 @@ opcodeMap =
         , (0xa8, ("TAY", const tay, None))
         , (0x8a, ("TXA", const txa, None))
         , (0x98, ("TYA", const tya, None))
+        , (0x9a, ("TXS", const txs, None))
+        , (0xba, ("TSX", const tsx, None))
         , (0xe8, ("INX", const inx, None))
         , (0xc8, ("INY", const iny, None))
         , (0xea, ("NOP", const $ pure (), None))
