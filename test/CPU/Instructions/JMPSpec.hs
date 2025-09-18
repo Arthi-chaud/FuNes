@@ -11,7 +11,7 @@ spec = describe "Jump" $ do
         let setup ptr = do
                 writeWord8OffPtr ptr 0x05 0xe8
                 writeWord8OffPtr ptr 0x06 0x00
-        withStateAndMemorySetup [0x4c, 0x05, 0x00] newCPUState setup $
+        withStateAndMemorySetup [0x4c, 0x05, 0x00, 0x00] newCPUState setup $
             \cpu _ -> getRegisterPure X cpu `shouldBe` 1
 
     it "Indirect" $ do

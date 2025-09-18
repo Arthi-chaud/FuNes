@@ -42,19 +42,19 @@ getOperandAddr = \case
         arg <- withBus $ readByte addr
         return $ addr + byteToAddr arg
     ZeroPage -> do
-        addr <- getPC
-        arg <- withBus $ readByte addr
+        arg <- getPC >>= withBus . readByte
         incrementPC
         return $ byteToAddr arg
     ZeroPageX -> zeroPageAddressing registerX
     ZeroPageY -> zeroPageAddressing registerY
     Absolute -> do
-        addr <- getPC
+        addr <- getPC >>= (withBus . readAddr)
         incrementPC >> incrementPC
         return addr
     AbsoluteX -> absoluteAddressing registerX
     AbsoluteY -> absoluteAddressing registerY
-    Indirect -> getPC >>= withBus . readAddr
+    -- No need to increment PC here. Mode is only used by jmp
+    Indirect -> getPC >>= withBus . readAddr >>= withBus . readAddr
     IndirectX -> indirectAddressing registerX
     IndirectY -> indirectAddressing registerY
     None -> fail $ printf "Mode not supported: %s" $ show None
