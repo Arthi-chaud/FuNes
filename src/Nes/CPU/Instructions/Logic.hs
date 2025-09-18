@@ -1,12 +1,25 @@
-module Nes.CPU.Instructions.Logic (and, ora, eor, rol, ror) where
+module Nes.CPU.Instructions.Logic (bit, and, ora, eor, rol, ror) where
 
-import Data.Bits (Bits (setBit, shiftL, (.|.)), shiftR, (.&.), (.^.))
+import Control.Monad
+import Control.Monad.IO.Class
+import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.Memory
 import Prelude hiding (and)
+
+bit :: AddressingMode -> CPU r ()
+bit mode = do
+    value <- getOperandAddr mode >>= withBus . readByte
+    regA <- getRegister A
+    let res = regA .&. value
+    setStatusFlag' Zero $ res == 0
+    liftIO $ print value
+    liftIO $ print $ testBit value 6
+    setStatusFlag' Overflow $ testBit value 6
+    setStatusFlag' Negative $ testBit value 7
 
 -- | Register A = Register A & _value in memory_
 --

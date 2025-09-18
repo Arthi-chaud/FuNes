@@ -121,6 +121,8 @@ opcodeMap =
         , (0x76, ("ROR", ror, ZeroPageX))
         , (0x6e, ("ROR", ror, Absolute))
         , (0x7e, ("ROR", ror, AbsoluteX))
+        , (0x24, ("BIT", bit, ZeroPage))
+        , (0x2c, ("BIT", bit, Absolute))
         , -- W/o addressing
           (0x18, ("CLC", const clc, None))
         , (0xd8, ("CLD", const cld, None))
