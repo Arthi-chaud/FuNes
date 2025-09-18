@@ -62,6 +62,9 @@ getRegister = withCPUState . getRegisterPure
 setStatusFlag :: Flag -> CPU r ()
 setStatusFlag flag = modifyCPUState (setStatusFlagPure flag)
 
+setStatusFlag' :: Flag -> Bool -> CPU r ()
+setStatusFlag' flag bool = modifyCPUState $ if bool then setStatusFlagPure flag else clearStatusFlagPure flag
+
 clearStatusFlag :: Flag -> CPU r ()
 clearStatusFlag flag = modifyCPUState (clearStatusFlagPure flag)
 

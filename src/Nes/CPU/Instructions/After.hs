@@ -8,5 +8,5 @@ import Nes.Memory
 
 setZeroAndNegativeFlags :: Byte -> CPU r ()
 setZeroAndNegativeFlags res = do
-    if res == 0 then setStatusFlag Zero else clearStatusFlag Zero
-    if testBit res 7 then setStatusFlag Negative else clearStatusFlag Negative
+    setStatusFlag' Zero $ res == 0
+    setStatusFlag' Negative $ testBit res 7
