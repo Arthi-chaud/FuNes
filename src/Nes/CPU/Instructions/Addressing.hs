@@ -18,6 +18,7 @@ data AddressingMode
     | Absolute
     | AbsoluteX
     | AbsoluteY
+    | Indirect
     | IndirectX
     | IndirectY
     | None
@@ -48,11 +49,11 @@ getOperandAddr = \case
     ZeroPageY -> zeroPageAddressing registerY
     Absolute -> do
         addr <- getPC
-        arg <- withBus $ readAddr addr
         incrementPC >> incrementPC
-        return arg
+        return addr
     AbsoluteX -> absoluteAddressing registerX
     AbsoluteY -> absoluteAddressing registerY
+    Indirect -> getPC >>= withBus . readAddr
     IndirectX -> indirectAddressing registerX
     IndirectY -> indirectAddressing registerY
     None -> fail $ printf "Mode not supported: %s" $ show None
