@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.CMP (cmp) where
+module Nes.CPU.Instructions.CMP (cmp, cpx, cpy) where
 
 import Control.Monad
 import Nes.CPU.Instructions.Addressing
@@ -11,9 +11,24 @@ import Nes.Memory
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#CMP
 cmp :: AddressingMode -> CPU r ()
-cmp mode = do
+cmp = compareWithRegister A
+
+-- | Computes (Register X - _value in memory_)
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#CPX
+cpx :: AddressingMode -> CPU r ()
+cpx = compareWithRegister X
+
+-- | Computes (Register Y - _value in memory_)
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#CPY
+cpy :: AddressingMode -> CPU r ()
+cpy = compareWithRegister Y
+
+compareWithRegister :: Register -> AddressingMode -> CPU r ()
+compareWithRegister reg mode = do
     value <- getOperandAddr mode >>= withBus . readByte
-    regA <- getRegister A
-    let diff = regA - value
+    regValue <- getRegister reg
+    let diff = regValue - value
     setZeroAndNegativeFlags diff
-    when (regA >= value) $ setStatusFlag Carry
+    when (regValue >= value) $ setStatusFlag Carry

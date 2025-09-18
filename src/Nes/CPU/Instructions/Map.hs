@@ -5,7 +5,7 @@ import Data.Map (Map, fromList)
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.BV
 import Nes.CPU.Instructions.CL
-import Nes.CPU.Instructions.CMP (cmp)
+import Nes.CPU.Instructions.CMP
 import Nes.CPU.Instructions.DE
 import Nes.CPU.Instructions.IN
 import Nes.CPU.Instructions.JMP
@@ -71,6 +71,12 @@ opcodeMap =
         , (0xd9, ("CMP", cmp, AbsoluteY))
         , (0xc1, ("CMP", cmp, IndirectX))
         , (0xd1, ("CMP", cmp, IndirectY))
+        , (0xe0, ("CPX", cpx, Immediate))
+        , (0xe4, ("CPX", cpx, ZeroPage))
+        , (0xec, ("CPX", cpx, Absolute))
+        , (0xc0, ("CPY", cpy, Immediate))
+        , (0xc4, ("CPY", cpy, ZeroPage))
+        , (0xcc, ("CPY", cpy, Absolute))
         , (0x4c, ("JMP", jmp, Absolute))
         , (0x6c, ("JMP", jmp, Indirect))
         , -- W/o addressing
