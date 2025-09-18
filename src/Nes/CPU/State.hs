@@ -1,4 +1,22 @@
-module Nes.CPU.State where
+module Nes.CPU.State (
+    -- * State
+    CPUState (..),
+    newCPUState,
+
+    -- * Accessing registers
+    Register (..),
+    getRegisterPure,
+    setRegisterPure,
+
+    -- * Accessing status flags
+    Flag (..),
+    getStatusFlagPure,
+    setStatusFlagPure,
+    clearStatusFlagPure,
+
+    -- * Internal
+    unsafeFlagToBitOffset,
+) where
 
 import Foreign
 import Nes.Memory
@@ -8,27 +26,32 @@ import Nes.Memory
 -- | State of the CPU
 data CPUState = MkCPUState
     { registerA :: {-# UNPACK #-} !Byte
+    -- ^ Aka Accumulator
     , registerX :: {-# UNPACK #-} !Byte
     , registerY :: {-# UNPACK #-} !Byte
+    , registerS :: {-# UNPACK #-} !Byte
+    -- ^ Aka Stack pointer
     , status :: {-# UNPACK #-} !Byte
     , programCounter :: {-# UNPACK #-} !Addr
     }
     deriving (Eq, Show)
 
--- | Enumeration of the CPU's register
-data Register = A | X | Y deriving (Eq, Show)
+-- | Enumeration of the CPU's registers
+data Register = A | X | Y | S deriving (Eq, Show)
 
 getRegisterPure :: Register -> CPUState -> Byte
 getRegisterPure = \case
     A -> registerA
     X -> registerX
     Y -> registerY
+    S -> registerS
 
 setRegisterPure :: Register -> Byte -> CPUState -> CPUState
 setRegisterPure reg byte st = case reg of
     A -> st{registerA = byte}
     X -> st{registerX = byte}
     Y -> st{registerY = byte}
+    S -> st{registerS = byte}
 
 -- | Get a brand new, clear CPU
 --
@@ -39,6 +62,7 @@ newCPUState =
         { registerA = 0
         , registerX = 0
         , registerY = 0
+        , registerS = 0
         , -- see https://www.nesdev.org/wiki/Status_flags
           status = setBit 0 5
         , programCounter = 0
