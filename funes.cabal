@@ -27,6 +27,7 @@ library
       Nes.Bus
       Nes.CPU.Instructions.Addressing
       Nes.CPU.Instructions.After
+      Nes.CPU.Instructions.BV
       Nes.CPU.Instructions.CL
       Nes.CPU.Instructions.DE
       Nes.CPU.Instructions.IN
@@ -85,6 +86,7 @@ test-suite funes-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      CPU.Instructions.BVSpec
       CPU.Instructions.CLSpec
       CPU.Instructions.DESpec
       CPU.Instructions.INSpec

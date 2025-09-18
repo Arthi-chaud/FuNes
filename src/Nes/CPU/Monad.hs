@@ -43,6 +43,9 @@ withCPUState f = MkCPU $ \st prog cont -> cont st prog (f st)
 getPC :: CPU r Addr
 getPC = withCPUState programCounter
 
+setPC :: Addr -> CPU r ()
+setPC addr = modifyCPUState $ \st -> st{programCounter = addr}
+
 incrementPC :: CPU r ()
 incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
 

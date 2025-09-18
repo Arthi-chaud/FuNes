@@ -11,6 +11,7 @@ import Text.Printf (printf)
 -- https://www.nesdev.org/obelisk-6502-guide/addressing.html#IMM
 data AddressingMode
     = Immediate
+    | Relative
     | ZeroPage
     | ZeroPageX
     | ZeroPageY
@@ -33,6 +34,11 @@ getOperandAddr = \case
         arg <- getPC
         incrementPC
         return arg
+    Relative -> do
+        -- TODO Not sure
+        addr <- getPC
+        arg <- withBus $ readByte addr
+        return $ addr + byteToAddr arg
     ZeroPage -> do
         addr <- getPC
         arg <- withBus $ readByte addr
