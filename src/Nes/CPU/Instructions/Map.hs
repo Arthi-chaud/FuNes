@@ -3,6 +3,7 @@ module Nes.CPU.Instructions.Map (opcodeMap) where
 import Data.ByteString
 import Data.Map (Map, fromList)
 import Nes.CPU.Instructions.Addressing
+import Nes.CPU.Instructions.Arith
 import Nes.CPU.Instructions.B
 import Nes.CPU.Instructions.CL
 import Nes.CPU.Instructions.CMP
@@ -124,6 +125,22 @@ opcodeMap =
         , (0x7e, ("ROR", ror, AbsoluteX))
         , (0x24, ("BIT", bit, ZeroPage))
         , (0x2c, ("BIT", bit, Absolute))
+        , (0xe9, ("SBC", sbc, Immediate))
+        , (0xe5, ("SBC", sbc, ZeroPage))
+        , (0xf5, ("SBC", sbc, ZeroPageX))
+        , (0xed, ("SBC", sbc, Absolute))
+        , (0xfd, ("SBC", sbc, AbsoluteX))
+        , (0xf9, ("SBC", sbc, AbsoluteY))
+        , (0xe1, ("SBC", sbc, IndirectX))
+        , (0xf1, ("SBC", sbc, IndirectY))
+        , (0x69, ("ADC", adc, Immediate))
+        , (0x65, ("ADC", adc, ZeroPage))
+        , (0x75, ("ADC", adc, ZeroPageX))
+        , (0x6d, ("ADC", adc, Absolute))
+        , (0x7d, ("ADC", adc, AbsoluteX))
+        , (0x79, ("ADC", adc, AbsoluteY))
+        , (0x61, ("ADC", adc, IndirectX))
+        , (0x71, ("ADC", adc, IndirectY))
         , -- W/o addressing
           (0x18, ("CLC", const clc, None))
         , (0xd8, ("CLD", const cld, None))
