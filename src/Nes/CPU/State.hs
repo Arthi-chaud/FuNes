@@ -66,7 +66,8 @@ newCPUState =
         , registerY = 0
         , registerS = stackReset
         , -- see https://www.nesdev.org/wiki/Status_flags
-          status = setBit 0 5
+          -- and https://bugzmanov.github.io/nes_ebook/chapter_4.html
+          status = 0b00100100
         , programCounter = 0
         }
 
