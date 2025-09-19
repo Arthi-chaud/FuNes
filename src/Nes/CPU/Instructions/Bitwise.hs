@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror) where
+module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, asl, lsr) where
 
 import Control.Monad
 import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
@@ -69,13 +69,38 @@ ror =
         (\byte -> setStatusFlagPure' Carry (testBit byte 0))
 
 rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r ()
-rotate f setCarry mode = do
-    value <- case mode of
-        Accumulator -> getRegister A
-        _ -> getOperandAddr mode >>= withBus . readByte
+rotate f setCarry mode = withOperand mode $ \value -> do
     res <- f value <$> getStatusFlag Carry
     setZeroAndNegativeFlags res
     modifyCPUState $ setCarry value
-    if mode == Accumulator
-        then setRegister A res
-        else getOperandAddr mode >>= withBus . writeByte res
+    return res
+
+-- | Arithmetic Shift Left
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#ASL
+asl :: AddressingMode -> CPU r ()
+asl mode = withOperand mode $ \value -> do
+    let carry = testBit value 7
+        res = shiftL value 1
+    setStatusFlag' Carry carry
+    setZeroAndNegativeFlags res
+    return res
+
+-- | Logical Shift Right
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#LSR
+lsr :: AddressingMode -> CPU r ()
+lsr mode = withOperand mode $ \value -> do
+    let carry = testBit value 0
+        res = shiftR value 1
+    setStatusFlag' Carry carry
+    setZeroAndNegativeFlags res
+    return res
+
+withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r ()
+withOperand Accumulator f = getRegister A >>= f >>= setRegister A
+withOperand mode f = do
+    addr <- getOperandAddr mode
+    value <- withBus $ readByte addr
+    res <- f value
+    withBus $ writeByte res addr

@@ -54,3 +54,38 @@ spec = do
         withState program st $ \st' -> do
             registerA st' `shouldBe` 0b10001000
             getStatusFlagPure Carry st' `shouldBe` False
+    describe "Shift Left" $ do
+        it "Overflow, res is zero" $ do
+            let program = [0x0A, 0x00]
+                st = newCPUState{registerA = 0b10000000}
+            withState program st $ \st' -> do
+                registerA st' `shouldBe` 0
+                getStatusFlagPure Carry st' `shouldBe` True
+                getStatusFlagPure Zero st' `shouldBe` True
+                getStatusFlagPure Negative st' `shouldBe` False
+        it "Negative" $ do
+            let program = [0x0A, 0x00]
+                st = newCPUState{registerA = 0b01000100}
+            withState program st $ \st' -> do
+                registerA st' `shouldBe` 0b10001000
+                getStatusFlagPure Carry st' `shouldBe` False
+                getStatusFlagPure Zero st' `shouldBe` False
+                getStatusFlagPure Negative st' `shouldBe` True
+
+    describe "Shift Right" $ do
+        it "Set Carry" $ do
+            let program = [0x4A, 0x00]
+                st = newCPUState{registerA = 0b1000001}
+            withState program st $ \st' -> do
+                registerA st' `shouldBe` 0b0100000
+                getStatusFlagPure Carry st' `shouldBe` True
+                getStatusFlagPure Zero st' `shouldBe` False
+                getStatusFlagPure Negative st' `shouldBe` False
+        it "Zero" $ do
+            let program = [0x4A, 0x00]
+                st = newCPUState{registerA = 0b000001}
+            withState program st $ \st' -> do
+                registerA st' `shouldBe` 0
+                getStatusFlagPure Carry st' `shouldBe` True
+                getStatusFlagPure Zero st' `shouldBe` True
+                getStatusFlagPure Negative st' `shouldBe` False
