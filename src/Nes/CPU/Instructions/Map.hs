@@ -10,6 +10,7 @@ import Nes.CPU.Instructions.Branch
 import Nes.CPU.Instructions.Compare
 import Nes.CPU.Instructions.Flags
 import Nes.CPU.Instructions.Jump
+import Nes.CPU.Instructions.Stack
 import Nes.CPU.Instructions.Transfer
 import Nes.CPU.Monad
 import Nes.Memory (Byte)
@@ -167,6 +168,10 @@ opcodeMap =
         , (0xc8, ("INY", const iny, None))
         , (0x60, ("RTS", const rts, None))
         , (0x40, ("RTI", const rti, None))
+        , (0x48, ("PHA", const pha, None))
+        , (0x08, ("PHP", const php, None))
+        , (0x68, ("PHP", const pla, None))
+        , (0x28, ("PLP", const plp, None))
         , (0xea, ("NOP", const $ pure (), None))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None))

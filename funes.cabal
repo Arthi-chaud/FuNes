@@ -35,6 +35,7 @@ library
       Nes.CPU.Instructions.Flags
       Nes.CPU.Instructions.Jump
       Nes.CPU.Instructions.Map
+      Nes.CPU.Instructions.Stack
       Nes.CPU.Instructions.Transfer
       Nes.CPU.Interpreter
       Nes.CPU.Monad
@@ -94,6 +95,7 @@ test-suite funes-test
       CPU.Instructions.FlagsSpec
       CPU.Instructions.JumpSpec
       CPU.Instructions.MiscSpec
+      CPU.Instructions.StackSpec
       CPU.Instructions.TransferSpec
       Internal
       Paths_funes
