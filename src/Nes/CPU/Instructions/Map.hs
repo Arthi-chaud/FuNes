@@ -84,6 +84,7 @@ opcodeMap =
         , (0xcc, ("CPY", cpy, Absolute))
         , (0x4c, ("JMP", jmp, Absolute))
         , (0x6c, ("JMP", jmp, Indirect))
+        , (0x20, ("JSR", const jsr, None))
         , (0x29, ("AND", and, Immediate))
         , (0x25, ("AND", and, ZeroPage))
         , (0x35, ("AND", and, ZeroPageX))
