@@ -79,6 +79,7 @@ data Flag
     | InteruptDisable
     | DecimalMode
     | BreakCommand
+    | BreakCommand2
     | Overflow
     | Negative
     deriving (Eq, Show)
@@ -102,7 +103,6 @@ unsafeFlagToBitOffset = \case
     InteruptDisable -> 2
     DecimalMode -> 3
     BreakCommand -> 4
-    -- Note: No Bit 5
-    -- https://www.nesdev.org/wiki/Status_flags
+    BreakCommand2 -> 5
     Overflow -> 6
     Negative -> 7

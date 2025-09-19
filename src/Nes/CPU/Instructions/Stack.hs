@@ -13,8 +13,17 @@ pha = getRegister A >>= pushByteStack
 -- | Pushes a copy of the status flags on to the stack.
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#PHP
+--
+-- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L486
 php :: CPU r ()
-php = withCPUState status >>= pushByteStack
+php = do
+    st <-
+        withCPUState
+            ( status
+                . setStatusFlagPure BreakCommand2
+                . setStatusFlagPure BreakCommand
+            )
+    pushByteStack st
 
 -- | Pulls an 8 bit value from the stack and into the accumulator.
 --
@@ -28,7 +37,11 @@ pla = do
 -- | Pulls an 8 bit value from the stack and into the accumulator.
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#PLP
+--
+-- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L478
 plp :: CPU r ()
 plp = do
     value <- popStackByte
     modifyCPUState $ \st -> st{status = value}
+    clearStatusFlag BreakCommand
+    setStatusFlag BreakCommand2

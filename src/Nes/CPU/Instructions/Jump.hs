@@ -36,6 +36,7 @@ rti = do
     newStatus <- popStackByte
     modifyCPUState (\st -> st{status = newStatus})
     clearStatusFlag BreakCommand
+    setStatusFlag BreakCommand2
     setPC =<< popStackAddr
 
 -- Note: Source for both: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L703

@@ -16,9 +16,9 @@ spec = do
             registerS st' `shouldBe` stackReset
 
     it "Push and Pull Status Flag" $ do
-        -- Puush Status, clear 2 bits and restore
-        let program = [0x08, 0x18, 0xd8, 0x28, 0x00]
-            st = newCPUState{status = 0b11111111}
+        -- Push Status, clear carry bit and restore
+        let program = [0x08, 0x18, 0x28, 0x00]
+            st = setStatusFlagPure Carry newCPUState
         withState program st $ \st' -> do
-            status st' `shouldBe` 0b11111111
+            getStatusFlagPure Carry st' `shouldBe` True
             registerS st' `shouldBe` stackReset
