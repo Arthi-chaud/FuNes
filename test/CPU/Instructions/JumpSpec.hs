@@ -1,4 +1,4 @@
-module CPU.Instructions.JMPSpec (spec) where
+module CPU.Instructions.JumpSpec (spec) where
 
 import GHC.Storable
 import Internal

@@ -1,11 +1,11 @@
-module CPU.Instructions.CMPSpec (spec) where
+module CPU.Instructions.CompareSpec (spec) where
 
 import Internal
 import Nes.CPU.State
 import Test.Hspec
 
 spec :: Spec
-spec = describe "Compare" $ do
+spec = do
     it "Register A (Immediate, Equal)" $ do
         let st = newCPUState{registerA = 1}
         withState [0xc9, 0x01, 0x00] st $ \st' -> do

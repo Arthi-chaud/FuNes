@@ -1,4 +1,4 @@
-module CPU.Instructions.BSpec (spec) where
+module CPU.Instructions.BranchSpec (spec) where
 
 import Internal
 import Nes.CPU.State

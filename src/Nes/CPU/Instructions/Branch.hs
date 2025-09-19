@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.B (bvc, bvs, bcc, bcs, beq, bne, bmi, bpl) where
+module Nes.CPU.Instructions.Branch (bvc, bvs, bcc, bcs, beq, bne, bmi, bpl) where
 
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Monad

@@ -2,20 +2,15 @@ module Nes.CPU.Instructions.Map (opcodeMap) where
 
 import Data.ByteString
 import Data.Map (Map, fromList)
+import Nes.CPU.Instructions.Access
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Arith
-import Nes.CPU.Instructions.B
-import Nes.CPU.Instructions.CL
-import Nes.CPU.Instructions.CMP
-import Nes.CPU.Instructions.DE
-import Nes.CPU.Instructions.IN
-import Nes.CPU.Instructions.JMP
-import Nes.CPU.Instructions.LD
-import Nes.CPU.Instructions.Logic
-import Nes.CPU.Instructions.Return
-import Nes.CPU.Instructions.SE
-import Nes.CPU.Instructions.ST
-import Nes.CPU.Instructions.T
+import Nes.CPU.Instructions.Bitwise
+import Nes.CPU.Instructions.Branch
+import Nes.CPU.Instructions.Compare
+import Nes.CPU.Instructions.Flags
+import Nes.CPU.Instructions.Jump
+import Nes.CPU.Instructions.Transfer
 import Nes.CPU.Monad
 import Nes.Memory (Byte)
 import Prelude hiding (and)

@@ -1,4 +1,4 @@
-module CPU.Instructions.TSpec (spec) where
+module CPU.Instructions.TransferSpec (spec) where
 
 import Internal
 import Nes.CPU.State

@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.CMP (cmp, cpx, cpy) where
+module Nes.CPU.Instructions.Compare (cmp, cpx, cpy) where
 
 import Control.Monad
 import Nes.CPU.Instructions.Addressing

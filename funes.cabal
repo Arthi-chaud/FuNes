@@ -25,22 +25,17 @@ source-repository head
 library
   exposed-modules:
       Nes.Bus
+      Nes.CPU.Instructions.Access
       Nes.CPU.Instructions.Addressing
       Nes.CPU.Instructions.After
       Nes.CPU.Instructions.Arith
-      Nes.CPU.Instructions.B
-      Nes.CPU.Instructions.CL
-      Nes.CPU.Instructions.CMP
-      Nes.CPU.Instructions.DE
-      Nes.CPU.Instructions.IN
-      Nes.CPU.Instructions.JMP
-      Nes.CPU.Instructions.LD
-      Nes.CPU.Instructions.Logic
+      Nes.CPU.Instructions.Bitwise
+      Nes.CPU.Instructions.Branch
+      Nes.CPU.Instructions.Compare
+      Nes.CPU.Instructions.Flags
+      Nes.CPU.Instructions.Jump
       Nes.CPU.Instructions.Map
-      Nes.CPU.Instructions.Return
-      Nes.CPU.Instructions.SE
-      Nes.CPU.Instructions.ST
-      Nes.CPU.Instructions.T
+      Nes.CPU.Instructions.Transfer
       Nes.CPU.Interpreter
       Nes.CPU.Monad
       Nes.CPU.State
@@ -91,19 +86,15 @@ test-suite funes-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      CPU.Instructions.AccessSpec
       CPU.Instructions.ArithSpec
-      CPU.Instructions.BSpec
-      CPU.Instructions.CLSpec
-      CPU.Instructions.CMPSpec
-      CPU.Instructions.DESpec
-      CPU.Instructions.INSpec
-      CPU.Instructions.JMPSpec
-      CPU.Instructions.LDSpec
-      CPU.Instructions.LogicSpec
+      CPU.Instructions.BitwiseSpec
+      CPU.Instructions.BranchSpec
+      CPU.Instructions.CompareSpec
+      CPU.Instructions.FlagsSpec
+      CPU.Instructions.JumpSpec
       CPU.Instructions.MiscSpec
-      CPU.Instructions.SESpec
-      CPU.Instructions.STSpec
-      CPU.Instructions.TSpec
+      CPU.Instructions.TransferSpec
       Internal
       Paths_funes
   autogen-modules:

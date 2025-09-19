@@ -1,7 +1,6 @@
-module Nes.CPU.Instructions.Logic (bit, and, ora, eor, rol, ror) where
+module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror) where
 
 import Control.Monad
-import Control.Monad.IO.Class
 import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After

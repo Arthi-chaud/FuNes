@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.T (tax, tay, txa, tya, txs, tsx) where
+module Nes.CPU.Instructions.Transfer (tax, tay, txa, tya, txs, tsx) where
 
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
