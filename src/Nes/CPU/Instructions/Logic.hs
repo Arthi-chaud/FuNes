@@ -16,8 +16,6 @@ bit mode = do
     regA <- getRegister A
     let res = regA .&. value
     setStatusFlag' Zero $ res == 0
-    liftIO $ print value
-    liftIO $ print $ testBit value 6
     setStatusFlag' Overflow $ testBit value 6
     setStatusFlag' Negative $ testBit value 7
 
