@@ -1,8 +1,8 @@
 module CPU.Instructions.BitwiseSpec (spec) where
 
-import GHC.Storable (writeWord8OffPtr)
 import Internal
 import Nes.CPU.State
+import Nes.Memory
 import Test.Hspec
 
 spec :: Spec
@@ -10,7 +10,7 @@ spec = do
     describe "Bit Test" $ do
         it "sets carry" $ do
             let program = [0x24, 0x06, 0x00]
-                setup ptr = writeWord8OffPtr ptr 0x06 0b0001000
+                setup = writeByte 0b0001000 0x06
                 st = newCPUState{registerA = 0b0010000}
             withStateAndMemorySetup program st setup $ \st' _ -> do
                 getStatusFlagPure Zero st' `shouldBe` True
@@ -18,7 +18,7 @@ spec = do
                 getStatusFlagPure Negative st' `shouldBe` False
         it "sets overflow" $ do
             let program = [0x24, 0x06, 0x00]
-                setup ptr = writeWord8OffPtr ptr 0x06 0b01100000
+                setup = writeByte 0b01100000 0x06
                 st = newCPUState{registerA = 0b00100000}
             withStateAndMemorySetup program st setup $ \st' _ -> do
                 getStatusFlagPure Zero st' `shouldBe` False

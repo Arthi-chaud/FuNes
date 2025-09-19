@@ -1,8 +1,7 @@
 module Internal (withProgram, withState, withMemorySetup, withStateAndMemorySetup) where
 
+import Control.Monad
 import Data.Word
-import Foreign
-import GHC.ForeignPtr (unsafeWithForeignPtr)
 import Nes.Bus
 import Nes.CPU.Interpreter (runProgramWithState)
 import Nes.CPU.State
@@ -15,17 +14,17 @@ withStateAndMemorySetup ::
     -- | Initial CPU State
     CPUState ->
     -- | Function that write to memory
-    (Ptr a -> IO ()) ->
+    (Bus -> IO ()) ->
     -- | Continuation, run at the end of the program
-    (CPUState -> Ptr a -> IO ()) ->
+    (CPUState -> Bus -> IO ()) ->
     IO ()
 withStateAndMemorySetup program st memSetup post = do
-    fptr <- newMemory
-    loadProgramToMemory program fptr
-    unsafeWithForeignPtr fptr $ memSetup . castPtr
-    st' <- resetPC fptr st
-    st'' <- runProgramWithState st' $ Bus fptr
-    unsafeWithForeignPtr fptr $ post st'' . castPtr
+    bus <- newBus
+    loadProgramToMemory program bus
+    memSetup bus
+    -- Not we do not read 0xfffc because it's out of the bus read
+    st'' <- runProgramWithState st bus
+    post st'' bus
 
 -- | Runs a program and returns the state of the CPU at the end of the execution
 withProgram :: [Word8] -> (CPUState -> IO ()) -> IO ()
@@ -34,28 +33,11 @@ withProgram program cont = withStateAndMemorySetup program newCPUState (\_ -> re
 withState :: [Word8] -> CPUState -> (CPUState -> IO ()) -> IO ()
 withState program st cont = withStateAndMemorySetup program st (\_ -> return ()) (\st' _ -> cont st')
 
-withMemorySetup :: [Word8] -> (Ptr () -> IO ()) -> (CPUState -> Ptr () -> IO ()) -> IO ()
+withMemorySetup :: [Word8] -> (Bus -> IO ()) -> (CPUState -> Bus -> IO ()) -> IO ()
 withMemorySetup program = withStateAndMemorySetup program newCPUState
 
-resetPC :: MemoryPointer -> CPUState -> IO CPUState
-resetPC fptr st = do
-    pc <- readAddr 0xfffc fptr
-    return $ st{programCounter = pc}
-
--- | Writes the given list of bytes at the given pointer
---
--- WARNING: The pointer should be allocated to 'memorySize'
-loadProgramToMemory :: [Word8] -> MemoryPointer -> IO ()
-loadProgramToMemory program fptr =
-    unsafeWithForeignPtr
-        fptr
-        ( \ptr -> do
-            loop program $ (`plusPtr` 0x8000) ptr
-            writeAddr 0x8000 0xfffc ptr
-        )
-  where
-    loop :: [Word8] -> Ptr Word8 -> IO ()
-    loop [] _ = return ()
-    loop (b : bs) ptr = do
-        poke ptr b
-        loop bs (ptr `plusPtr` 1)
+-- | Writes the given program into memory using the Bus
+loadProgramToMemory :: [Word8] -> Bus -> IO ()
+loadProgramToMemory program bus = do
+    forM_ (zip program [0 ..]) $
+        \(byte, idx) -> writeByte (Byte byte) (Addr idx) bus

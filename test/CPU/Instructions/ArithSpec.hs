@@ -1,8 +1,8 @@
 module CPU.Instructions.ArithSpec (spec) where
 
-import GHC.Storable (readWord8OffPtr, writeWord8OffPtr)
 import Internal
 import Nes.CPU.State
+import Nes.Memory
 import Test.Hspec
 
 spec :: Spec
@@ -18,7 +18,7 @@ spec = do
                 getStatusFlagPure Overflow st' `shouldBe` False
         it "Zero Page, set Negative" $ do
             let st = newCPUState{registerA = 10}
-                setup ptr = writeWord8OffPtr ptr 0x10 11
+                setup = writeByte 11 0x10
             withStateAndMemorySetup [0xe5, 0x10, 0x00] st setup $ \st' _ -> do
                 registerA st' `shouldBe` 10 - 11 - 1
                 getStatusFlagPure Negative st' `shouldBe` True
@@ -37,9 +37,9 @@ spec = do
                 getStatusFlagPure Overflow st' `shouldBe` True
     describe "Decrement Register" $ do
         it "In memory (w/ Neg Flag)" $ do
-            let setup ptr = writeWord8OffPtr ptr 0x05 0x00
-            withStateAndMemorySetup [0xc6, 0x05, 0x00] newCPUState setup $ \cpu ptr -> do
-                readWord8OffPtr ptr 0x05 `shouldReturn` 0xff
+            let setup = writeByte 0x00 0x05
+            withStateAndMemorySetup [0xc6, 0x05, 0x00] newCPUState setup $ \cpu bus -> do
+                readByte 0x05 bus `shouldReturn` 0xff
                 getStatusFlagPure Negative cpu `shouldBe` True
         it "Register X (w/ Zero flag)" $ do
             let st = newCPUState{registerX = 1}
@@ -57,9 +57,9 @@ spec = do
     describe "Increment Register" $ do
         describe "In memory" $ do
             it "Base (Overflow)" $ do
-                let setup ptr = writeWord8OffPtr ptr 0x05 0xff
-                withStateAndMemorySetup [0xe6, 0x05, 0x00] newCPUState setup $ \cpu ptr -> do
-                    readWord8OffPtr ptr 0x05 `shouldReturn` 0x00
+                let setup = writeByte 0xff 0x05
+                withStateAndMemorySetup [0xe6, 0x05, 0x00] newCPUState setup $ \cpu bus -> do
+                    readByte 0x05 bus `shouldReturn` 0x00
                     getStatusFlagPure Zero cpu `shouldBe` True
         describe "Register X" $ do
             it "Base" $ do

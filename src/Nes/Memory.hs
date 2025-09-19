@@ -13,11 +13,12 @@ module Nes.Memory (
 ) where
 
 import Control.Monad.IO.Class
+import Data.Ix (Ix)
 import Foreign
 
 newtype Byte = Byte {unByte :: Word8} deriving (Eq, Show, Num, Bits, Ord)
 
-newtype Addr = Addr {unAddr :: Word16} deriving (Eq, Show, Num, Bits, Ord)
+newtype Addr = Addr {unAddr :: Word16} deriving (Eq, Show, Num, Bits, Ord, Ix)
 
 byteToAddr :: Byte -> Addr
 byteToAddr = Addr . fromIntegral . unByte
@@ -62,8 +63,6 @@ class MemoryInterface a where
 
     -- | Writes two bytes packed in little endian
     --
-    -- the first argument is the address to writeAddr
+    -- the first argument is the address to write
     -- the second is the destination
     writeAddr :: (MonadIO m, MonadFail m) => Addr -> Addr -> a -> m ()
-
--- TODO Write

@@ -1,7 +1,12 @@
 module Nes.Bus where
 
+import Control.Monad
+import Control.Monad.IO.Class
+import Data.Ix
+import Foreign
 import Nes.Memory
 import Nes.Memory.Unsafe ()
+import Text.Printf
 
 -- Constants
 
@@ -28,23 +33,49 @@ programEnd = memorySize
 -- | Interface for the CPU that allows it to read/write to RAM
 newtype Bus = Bus {memory :: MemoryPointer}
 
+newBus :: IO Bus
+newBus = Bus <$> mallocForeignPtrBytes 2048
+
 instance MemoryInterface Bus where
-    readByte idx (Bus fptr)
-        | idx >= memorySize = fail "Out-of-bounds memory access"
-        | otherwise = readByte idx fptr
-    readAddr idx (Bus fptr) = readAddr idx fptr
-    writeByte byte idx (Bus fptr) = writeByte byte idx fptr
-    writeAddr addr idx (Bus fptr) = writeAddr addr idx fptr
+    readByte idx (Bus fptr) = do
+        checkBound idx
+        addr <- translateReadAddr idx
+        readByte addr fptr
+    readAddr idx (Bus fptr) = do
+        checkBound idx
+        addr <- translateReadAddr idx
+        readAddr addr fptr
+    writeByte byte idx (Bus fptr) = do
+        checkBound idx
+        translateWriteAddr idx $ \dest ->
+            writeByte byte dest fptr
+    writeAddr addr idx (Bus fptr) = do
+        checkBound idx
+        translateWriteAddr idx $ \dest ->
+            writeAddr addr dest fptr
 
--- | Translate a memory adress from vram to actual memory
-translateAddr :: (MonadFail m) => Addr -> m Addr
-translateAddr idx = return idx
+checkBound :: (MonadFail m) => Addr -> m ()
+checkBound idx = when (idx >= memorySize) $ fail "Out-of-bounds memory access"
 
--- TODO
--- \| inRange ramRange idx = return $ idx .&. 0b0000011111111111
--- \| inRange ppuRegisters idx =
---     let
---         _ = idx .&. 0b0010000000000111
---      in
---         fail "PPU is not supported yet" -- TODO
--- \| otherwise = fail $ printf "Invalid virtual memory access at 0x%x" idx
+translateReadAddr :: (MonadIO m) => Addr -> m Addr
+translateReadAddr idx = case translateAddr idx of
+    Just addr -> return addr
+    _ -> do
+        liftIO $ printf "Invalid virtual memory read at 0x%x" $ unAddr idx
+        return 0
+
+-- | Using CPS because in some case we noop
+translateWriteAddr :: (MonadIO m) => Addr -> (Addr -> m ()) -> m ()
+translateWriteAddr idx cont = case translateAddr idx of
+    Just addr -> cont addr
+    _ -> liftIO $ printf "Invalid virtual memory write at 0x%x" $ unAddr idx
+
+translateAddr :: Addr -> Maybe Addr
+translateAddr idx
+    | inRange ramRange idx = Just $ idx .&. 0b11111111111
+    | inRange ppuRegisters idx =
+        let
+            _ = idx .&. 0b0010000000000111
+         in
+            error "PPU is not supported yet" -- TODO
+    | otherwise = Nothing

@@ -1,9 +1,8 @@
 module CPU.Instructions.AccessSpec (spec) where
 
-import Foreign
-import GHC.Storable
 import Internal
 import Nes.CPU.State
+import Nes.Memory
 import Test.Hspec
 
 spec :: Spec
@@ -23,7 +22,7 @@ spec = do
                     getStatusFlagPure Negative cpu `shouldBe` False
 
             it "Load from memory (Zero Page)" $ do
-                let setup ptr = writeWord8OffPtr (castPtr ptr) 0x10 0x55
+                let setup = writeByte 0x55 0x10
                 withMemorySetup [0xa5, 0x10, 0x00] setup $ \cpu _ -> do
                     registerA cpu `shouldBe` 0x55
         describe "Register X" $ do
@@ -49,7 +48,6 @@ spec = do
             testStore st 0x84
   where
     testStore st opcode = do
-        let setup _ = return ()
-        withStateAndMemorySetup [opcode, 0x05, 0x00] st setup $ \_ ptr -> do
-            byte <- readWord8OffPtr ptr 0x05
+        withStateAndMemorySetup [opcode, 0x05, 0x00] st (const $ pure ()) $ \_ bus -> do
+            byte <- readByte 0x05 bus
             byte `shouldBe` 0x10
