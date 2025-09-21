@@ -31,8 +31,8 @@ interpretWithCallback callback = do
     incrementPC
     if opCode == 0x00
         then return ()
-        else go opCode >> interpret
+        else go opCode >> interpretWithCallback callback
   where
     go opcode = case Data.Map.lookup opcode opcodeMap of
         Just (_, f, mode) -> f mode
-        Nothing -> fail $ printf "OP Code not implemented: 0x%x\n" (unByte opcode)
+        Nothing -> fail $ printf "OP Code not implemented: 0x%x" (unByte opcode)
