@@ -61,14 +61,14 @@ library
     , mtl
   default-language: Haskell2010
 
-executable funes
-  main-is: Main.hs
+executable fake-snake
+  main-is: Snake.hs
   other-modules:
       Paths_funes
   autogen-modules:
       Paths_funes
   hs-source-dirs:
-      app
+      examples
   default-extensions:
       BinaryLiterals
       LambdaCase
@@ -76,11 +76,14 @@ executable funes
       OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , bytestring
     , containers
     , funes
     , mtl
+    , random
+    , sdl2
   default-language: Haskell2010
 
 test-suite funes-test

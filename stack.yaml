@@ -2,3 +2,5 @@ snapshot: lts-23.28
 packages:
   - .
 system-ghc: true
+extra-deps:
+  - sdl2-2.5.5.1
