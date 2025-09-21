@@ -4,6 +4,8 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.Ix
 import Foreign
+import GHC.ForeignPtr (unsafeWithForeignPtr)
+import GHC.Storable (writeWord8OffPtr)
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Text.Printf
@@ -34,7 +36,12 @@ programEnd = memorySize
 newtype Bus = Bus {memory :: MemoryPointer}
 
 newBus :: IO Bus
-newBus = Bus <$> mallocForeignPtrBytes 2048
+newBus = do
+    let vramSize = 2048
+    fptr <- mallocForeignPtrBytes vramSize
+    unsafeWithForeignPtr fptr $
+        \ptr -> forM_ [0 .. vramSize] $ \idx -> writeWord8OffPtr ptr idx 0
+    return $ Bus (castForeignPtr fptr)
 
 instance MemoryInterface Bus where
     readByte idx (Bus fptr) = do
