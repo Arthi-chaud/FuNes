@@ -104,12 +104,4 @@ withBus f = MkCPU $ \st bus cont -> do
 reset :: CPU r ()
 reset = do
     pc <- withBus $ readAddr 0xfffc
-    modifyCPUState
-        ( \st ->
-            st
-                { registerA = 0
-                , registerX = 0
-                , status = 0
-                , programCounter = pc
-                }
-        )
+    modifyCPUState (const $ newCPUState{programCounter = pc})

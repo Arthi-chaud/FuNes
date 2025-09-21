@@ -1,4 +1,8 @@
-module Nes.CPU.Interpreter (runProgram, runProgramWithState, interpret) where
+module Nes.CPU.Interpreter (
+    runProgram,
+    interpret,
+    interpretWithCallback,
+) where
 
 import Data.Map
 import Nes.Bus
@@ -8,21 +12,21 @@ import Nes.CPU.State
 import Nes.Memory
 import Text.Printf
 
--- TODO rename these 2 functions
-
--- | Runs the program that's on the memory (interfaced by the given 'Bus').
+-- | Runs the program that's on the memory (interfaced by the given 'Bus') usingthe given CPU state.
+--
+-- The thrid argument is a callback run at each loop
 --
 -- Returns the state of the CPU
-runProgram :: Bus -> IO CPUState
-runProgram = runProgramWithState newCPUState
+runProgram :: CPUState -> Bus -> CPU CPUState () -> IO CPUState
+runProgram state prog callback = unCPU (interpretWithCallback callback) state prog $ \state' _ _ -> return state'
 
--- | Same as 'runProgram', but using a given initial state
-runProgramWithState :: CPUState -> Bus -> IO CPUState
-runProgramWithState state prog = unCPU interpret state prog $ \state' _ _ -> return state'
+interpret :: CPU r ()
+interpret = interpretWithCallback $ pure ()
 
 -- | Interpretation loop of the program
-interpret :: CPU r ()
-interpret = do
+interpretWithCallback :: CPU r () -> CPU r ()
+interpretWithCallback callback = do
+    callback
     opCode <- readAtPC
     incrementPC
     if opCode == 0x00
@@ -31,4 +35,4 @@ interpret = do
   where
     go opcode = case Data.Map.lookup opcode opcodeMap of
         Just (_, f, mode) -> f mode
-        Nothing -> fail $ printf "OP Code not implemented: 0x%x" (unByte opcode)
+        Nothing -> fail $ printf "OP Code not implemented: 0x%x\n" (unByte opcode)

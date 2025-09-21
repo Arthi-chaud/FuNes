@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.Map (opcodeMap) where
+module Nes.CPU.Instructions.Map (opcodeMap, OpCodeEntry) where
 
 import Data.ByteString
 import Data.Map (Map, fromList)
