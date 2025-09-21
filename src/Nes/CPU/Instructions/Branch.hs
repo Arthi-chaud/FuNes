@@ -1,6 +1,7 @@
 module Nes.CPU.Instructions.Branch (bvc, bvs, bcc, bcs, beq, bne, bmi, bpl) where
 
-import Nes.CPU.Instructions.Addressing
+import Control.Monad
+import Nes.CPU.Instructions.Addressing (AddressingMode, getOperandAddr)
 import Nes.CPU.Monad
 import Nes.CPU.State
 
@@ -55,6 +56,5 @@ bpl = branchOverIf (not . getStatusFlagPure Negative)
 branchOverIf :: (CPUState -> Bool) -> AddressingMode -> CPU r ()
 branchOverIf check mode = do
     doBranch <- withCPUState check
-    if doBranch
-        then getOperandAddr mode >>= setPC
-        else incrementPC
+    addr <- getOperandAddr mode
+    when doBranch $ setPC addr

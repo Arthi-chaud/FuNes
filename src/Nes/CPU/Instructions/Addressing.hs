@@ -1,5 +1,6 @@
 module Nes.CPU.Instructions.Addressing (AddressingMode (..), getOperandAddr) where
 
+import Data.Int (Int8)
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.Memory
@@ -37,9 +38,14 @@ getOperandAddr = \case
         incrementPC
         return arg
     Relative -> do
-        addr <- getPC
-        arg <- withBus $ readByte addr
-        return $ addr + byteToAddr arg
+        pc <- getPC
+        offset <- withBus $ readByte pc
+        incrementPC
+        let intPC = fromIntegral $ unAddr pc :: Int
+            -- Note we need to wrap the unsinged word into a signed value
+            -- See https://www.nesdev.org/wiki/Instruction_reference#BPL
+            signedOffset = fromIntegral (fromIntegral (unByte offset) :: Int8)
+        return $ Addr $ fromIntegral $ intPC + 1 + signedOffset
     ZeroPage -> do
         arg <- getPC >>= withBus . readByte
         incrementPC
@@ -60,9 +66,10 @@ getOperandAddr = \case
 
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r Addr
 zeroPageAddressing getter = do
-    pos <- getPC >>= (withBus . readByte)
+    pos <- byteToAddr <$> (getPC >>= (withBus . readByte))
     incrementPC
-    withCPUState $ byteToAddr . (+ pos) . getter
+    regVal <- byteToAddr <$> withCPUState getter
+    return $ pos + regVal
 
 absoluteAddressing :: (CPUState -> Byte) -> CPU r Addr
 absoluteAddressing getter = do
