@@ -8,6 +8,7 @@ import GHC.ForeignPtr (unsafeWithForeignPtr)
 import GHC.Storable (writeWord8OffPtr)
 import Nes.Memory
 import Nes.Memory.Unsafe ()
+import Nes.Rom (Rom)
 import Text.Printf
 
 -- Constants
@@ -33,30 +34,30 @@ programEnd :: Addr
 programEnd = memorySize
 
 -- | Interface for the CPU that allows it to read/write to RAM
-newtype Bus = Bus {memory :: MemoryPointer}
+data Bus = Bus {memory :: MemoryPointer, rom :: Rom}
 
-newBus :: IO Bus
-newBus = do
+newBus :: Rom -> IO Bus
+newBus rom_ = do
     let vramSize = 2048
     fptr <- mallocForeignPtrBytes vramSize
     unsafeWithForeignPtr fptr $
         \ptr -> forM_ [0 .. vramSize] $ \idx -> writeWord8OffPtr ptr idx 0
-    return $ Bus (castForeignPtr fptr)
+    return $ Bus (castForeignPtr fptr) rom_
 
 instance MemoryInterface Bus where
-    readByte idx (Bus fptr) = do
+    readByte idx (Bus fptr _) = do
         checkBound idx
         addr <- translateReadAddr idx
         readByte addr fptr
-    readAddr idx (Bus fptr) = do
+    readAddr idx (Bus fptr _) = do
         checkBound idx
         addr <- translateReadAddr idx
         readAddr addr fptr
-    writeByte byte idx (Bus fptr) = do
+    writeByte byte idx (Bus fptr _) = do
         checkBound idx
         translateWriteAddr idx $ \dest ->
             writeByte byte dest fptr
-    writeAddr addr idx (Bus fptr) = do
+    writeAddr addr idx (Bus fptr _) = do
         checkBound idx
         translateWriteAddr idx $ \dest ->
             writeAddr addr dest fptr

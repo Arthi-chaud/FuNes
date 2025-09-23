@@ -7,6 +7,7 @@ import Nes.CPU.Interpreter (runProgram)
 import Nes.CPU.State
 import Nes.Memory
 import Nes.Memory.Unsafe ()
+import Nes.Rom
 
 withStateAndMemorySetup ::
     -- | Program
@@ -19,7 +20,7 @@ withStateAndMemorySetup ::
     (CPUState -> Bus -> IO ()) ->
     IO ()
 withStateAndMemorySetup program st memSetup post = do
-    bus <- newBus
+    bus <- newBus unsafeEmptyRom
     loadProgramToMemory program bus
     memSetup bus
     -- Not we do not read 0xfffc because it's out of the bus read

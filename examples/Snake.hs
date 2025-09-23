@@ -2,7 +2,6 @@
 
 module Main (main) where
 
-import Control.Concurrent
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Array.Base (MArray (unsafeRead, unsafeWrite))
@@ -17,6 +16,7 @@ import Nes.CPU.Interpreter
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.Memory
+import Nes.Rom
 import SDL
 import SDL.Internal.Types
 import SDL.Raw (Color (Color), renderSetScale)
@@ -47,7 +47,7 @@ main = do
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 32 32)
     frame <- newArray @IOUArray (0, frameSize) (0 :: Word8)
     let cpuState = newCPUState{programCounter = programOffset}
-    bus <- newBus
+    bus <- newBus unsafeEmptyRom
     loadProgramToMemory gameCode bus
     _ <- runProgram cpuState bus (callback frame texture renderer)
     destroyRenderer renderer
