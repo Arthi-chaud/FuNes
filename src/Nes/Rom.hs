@@ -9,6 +9,7 @@ module Nes.Rom (
     chrRom,
     mapper,
     mirroring,
+    Mirroring (..),
 
     -- * Parsing a Rom
     fromFile,
@@ -46,13 +47,11 @@ fromByteString :: ByteString -> (Either RomParsingError Rom)
 fromByteString bs = do
     guardHeader
     guardINesVersion
-    prgRomSize <- (* prgRomPageSize) . fromIntegral <$> getByte 4
-    chrRomSize <- (* chrRomPageSize) . fromIntegral <$> getByte 5
     mapper <- Byte <$> getMapper
     mirroring <- getScreenMirroring
-    (prgRomStart, chrRomStart) <- getRomsStarts prgRomSize
+    ((prgRomStart, prgRomSize), (chrRomStart, chrRomSize)) <- getRomsRanges
     let prgRom = BS.take prgRomSize $ BS.drop prgRomStart bs
-        chrRom = BS.drop chrRomSize $ BS.drop chrRomStart bs
+        chrRom = BS.take chrRomSize $ BS.drop chrRomStart bs
     return $ Rom{..}
   where
     guardHeader =
@@ -75,12 +74,14 @@ fromByteString bs = do
             (True, _) -> FourScreen
             (False, True) -> Vertical
             (False, False) -> Horizontal
-    getRomsStarts prgRomSize = do
+    getRomsRanges = do
+        prgRomSize <- (* prgRomPageSize) . fromIntegral <$> getByte 4
+        chrRomSize <- (* chrRomPageSize) . fromIntegral <$> getByte 5
         b6 <- getByte 6
         let skipTrainer = testBit b6 2
             prgRomStart = 16 + (if skipTrainer then 512 else 0)
             chrRomStart = prgRomStart + prgRomSize
-        return (prgRomStart, chrRomStart)
+        return ((prgRomStart, prgRomSize), (chrRomStart, chrRomSize))
     getByte n = case BS.indexMaybe bs n of
         Nothing -> Left "Truncated file"
         Just b -> return b
