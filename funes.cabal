@@ -102,6 +102,7 @@ test-suite funes-test
       CPU.Instructions.StackSpec
       CPU.Instructions.TransferSpec
       Internal
+      RomSpec
       Paths_funes
   autogen-modules:
       Paths_funes
