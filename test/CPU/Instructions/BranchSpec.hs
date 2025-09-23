@@ -26,10 +26,10 @@ spec = describe "Branch when" $ do
         describe "Is Set" $ testBranch (Just Carry) 0xb0
   where
     testBranch Nothing opcode = it "should branch" $ do
-        let program = [opcode, 0x02, 0x00, 0xe8, 0x00]
+        let program = [opcode, 0x01, 0x00, 0xe8, 0x00]
         withState program newCPUState $ \st' -> do
             registerX st' `shouldBe` 1
     testBranch (Just flag) opcode = it "should branch" $ do
-        let program = [opcode, 0x02, 0x00, 0xe8, 0x00]
+        let program = [opcode, 0x01, 0x00, 0xe8, 0x00]
         withState program (setStatusFlagPure flag newCPUState) $ \st' -> do
             registerX st' `shouldBe` 1
