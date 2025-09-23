@@ -2,13 +2,15 @@ module Nes.Bus where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Internal as BS
 import Data.Ix
 import Foreign
 import GHC.ForeignPtr (unsafeWithForeignPtr)
 import GHC.Storable (writeWord8OffPtr)
 import Nes.Memory
 import Nes.Memory.Unsafe ()
-import Nes.Rom (Rom)
+import Nes.Rom (Rom (prgRom))
 import Text.Printf
 
 -- Constants
@@ -33,26 +35,37 @@ programLocation = 0xfffc
 programEnd :: Addr
 programEnd = memorySize
 
+prgRomRange :: (Addr, Addr)
+prgRomRange = (0x8000, 0xffff)
+
 -- | Interface for the CPU that allows it to read/write to RAM
-data Bus = Bus {memory :: MemoryPointer, rom :: Rom}
+data Bus = Bus {memory :: MemoryPointer, cartidge :: Rom}
 
 newBus :: Rom -> IO Bus
 newBus rom_ = do
-    let vramSize = 2048
-    fptr <- mallocForeignPtrBytes vramSize
-    unsafeWithForeignPtr fptr $
-        \ptr -> forM_ [0 .. vramSize] $ \idx -> writeWord8OffPtr ptr idx 0
+    fptr <- callocVram
     return $ Bus (castForeignPtr fptr) rom_
+  where
+    vramSize = 2048
+    callocVram = do
+        fptr <- mallocForeignPtrBytes vramSize
+        unsafeWithForeignPtr fptr $
+            \ptr -> forM_ [0 .. vramSize] $ \idx -> writeWord8OffPtr ptr idx 0
+        return fptr
 
 instance MemoryInterface Bus where
-    readByte idx (Bus fptr _) = do
+    readByte idx (Bus fptr rom) = do
         checkBound idx
-        addr <- translateReadAddr idx
-        readByte addr fptr
-    readAddr idx (Bus fptr _) = do
+        translatedAddr <- translateReadAddr idx
+        case translatedAddr of
+            VRamAddr addr -> readByte addr fptr
+            PRGRomAddr addr -> readPrgRomAddr addr rom readByte
+    readAddr idx (Bus fptr rom) = do
         checkBound idx
-        addr <- translateReadAddr idx
-        readAddr addr fptr
+        translatedAddr <- translateReadAddr idx
+        case translatedAddr of
+            VRamAddr addr -> readAddr addr fptr
+            PRGRomAddr addr -> readPrgRomAddr addr rom readAddr
     writeByte byte idx (Bus fptr _) = do
         checkBound idx
         translateWriteAddr idx $ \dest ->
@@ -65,25 +78,42 @@ instance MemoryInterface Bus where
 checkBound :: (MonadFail m) => Addr -> m ()
 checkBound idx = when (idx >= memorySize) $ fail "Out-of-bounds memory access"
 
-translateReadAddr :: (MonadIO m) => Addr -> m Addr
+data TranslatedAddr = VRamAddr Addr | PRGRomAddr Addr
+
+translateReadAddr :: (MonadIO m) => Addr -> m TranslatedAddr
 translateReadAddr idx = case translateAddr idx of
     Just addr -> return addr
     _ -> do
         liftIO $ printf "Invalid virtual memory read at 0x%x" $ unAddr idx
-        return 0
+        return (VRamAddr 0)
 
 -- | Using CPS because in some case we noop
-translateWriteAddr :: (MonadIO m) => Addr -> (Addr -> m ()) -> m ()
+translateWriteAddr :: (MonadIO m, MonadFail m) => Addr -> (Addr -> m ()) -> m ()
 translateWriteAddr idx cont = case translateAddr idx of
-    Just addr -> cont addr
+    Just (VRamAddr addr) -> cont addr
+    Just (PRGRomAddr _) -> fail "Attempt to write to Cartridge ROM space"
     _ -> liftIO $ printf "Invalid virtual memory write at 0x%x" $ unAddr idx
 
-translateAddr :: Addr -> Maybe Addr
+translateAddr :: Addr -> Maybe TranslatedAddr
 translateAddr idx
-    | inRange ramRange idx = Just $ idx .&. 0b11111111111
+    | inRange ramRange idx = Just $ VRamAddr $ idx .&. 0b11111111111
+    | inRange prgRomRange idx = Just $ PRGRomAddr (idx - fst prgRomRange)
     | inRange ppuRegisters idx =
         let
             _ = idx .&. 0b0010000000000111
          in
             error "PPU is not supported yet" -- TODO
     | otherwise = Nothing
+
+-- | The continuation will be called with the translated addr to use on the PRG Rom
+-- No bound check are necessary
+readPrgRomAddr :: (MonadFail m) => Addr -> Rom -> (Addr -> ForeignPtr Word8 -> m a) -> m a
+readPrgRomAddr addr rom cont = do
+    let prgRomSize = BS.length (prgRom rom)
+        translatedAddr =
+            if prgRomSize == 0x4000 && addr >= 0x4000
+                then Addr $ unAddr addr `mod` 0x4000
+                else addr
+    when (addrToInt translatedAddr > prgRomSize) $ fail "Out-of-bound access in ROM"
+    let ptr = let (BS.BS ptr' _) = prgRom rom in ptr'
+    cont translatedAddr ptr
