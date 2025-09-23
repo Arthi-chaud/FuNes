@@ -42,6 +42,7 @@ library
       Nes.CPU.State
       Nes.Memory
       Nes.Memory.Unsafe
+      Nes.Rom
   other-modules:
       Paths_funes
   autogen-modules:
