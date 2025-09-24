@@ -101,6 +101,7 @@ test-suite funes-test
       CPU.Instructions.MiscSpec
       CPU.Instructions.StackSpec
       CPU.Instructions.TransferSpec
+      CPU.TraceSpec
       Internal
       RomSpec
       Paths_funes

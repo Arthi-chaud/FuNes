@@ -3,7 +3,6 @@
 module Nes.Memory.Unsafe () where
 
 import Control.Monad.IO.Class
-import Data.ByteString
 import Foreign
 import GHC.ForeignPtr (unsafeWithForeignPtr)
 import GHC.Storable
