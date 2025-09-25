@@ -39,7 +39,7 @@ spec = it "Trace should match logfile" $ do
     actualTrace <- toRawTrace <$> readIORef traceRef
     BS.writeFile "actual.log" $ BS.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace
-    forM_ [0 .. (length expectedTrace)] $ \i -> do
+    forM_ [0 .. length expectedTrace - 1] $ \i -> do
         let expected = expectedTrace !! i
         let actual = actualTrace !! i
         actual `shouldBe` expected
@@ -81,9 +81,11 @@ getOpCodeTrace = do
     instrArgs <- forM [1 .. (getOperandSize addressing)] $
         \offset -> withBus $ readByte (Addr $ unAddr pc + fromIntegral offset)
     let fmtBytesList = unwords (printf "%02X" . unByte <$> (opcodeByte : instrArgs))
-    incrementPC
-    asm <- getOpCodeAsmArg opcodeByte (pc + 1) addressing
-    modifyCPUState $ \st -> st{programCounter = pc}
+    asm <- do
+        incrementPC
+        asm <- getOpCodeAsmArg opcodeByte (pc + 1) addressing
+        modifyCPUState $ \st -> st{programCounter = pc}
+        return asm
     return $ printf "%-8s  %s %-27s" fmtBytesList (BS.unpack opname) asm
 
 getOpCodeAsmArg :: Byte -> Addr -> AddressingMode -> CPU r String
@@ -95,6 +97,8 @@ getOpCodeAsmArg opcode ptr addressing = do
     x <- getRegister X
     y <- getRegister Y
     case opcode of
+        0x4c -> return $ printf "$%04X" memAddr
+        0x20 -> return $ printf "$%04X" memAddr
         0x6c -> do
             jmpAddr <-
                 if addressAddr .&. 0x00ff == 0x00ff
@@ -104,7 +108,6 @@ getOpCodeAsmArg opcode ptr addressing = do
                         return $ high `shiftL` 8 .|. low
                     else withBus $ readAddr $ Addr addressAddr
             return $ printf "($%04X) = %04X" addressAddr $ unAddr jmpAddr
-        0x4c -> return $ printf "$%04X" memAddr
         _ -> return $ case addressing of
             Accumulator -> "A "
             Immediate -> printf "#$%02X" addressByte
@@ -113,16 +116,16 @@ getOpCodeAsmArg opcode ptr addressing = do
             ZeroPageY -> printf "$%02X,Y @ %02X = %02X" addressByte memAddr storedVal
             IndirectX ->
                 printf
-                    "($%02X,X) @ (%02X) = %04X = %02X"
+                    "($%02X,X) @ %02X = %04X = %02X"
                     addressByte
                     (addressByte + unByte x)
                     memAddr
                     storedVal
             IndirectY ->
                 printf
-                    "($%02X,Y) @ (%02X) = %04X = %02X"
+                    "($%02X),Y = %04X @ %04X = %02X"
                     addressByte
-                    (addrToInt $ fromIntegral addressByte - byteToAddr y)
+                    (unAddr $ Addr memAddr - byteToAddr y)
                     memAddr
                     storedVal
             Relative -> printf "$%04X" $ (addrToInt ptr + 1) + fromIntegral addressByte
