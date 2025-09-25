@@ -22,13 +22,12 @@ import Nes.Rom (fromFile)
 import Test.Hspec
 import Text.Printf (printf)
 
--- TODO Full test
 -- TODO 2 tests from guide
 
 spec :: Spec
 spec = it "Trace should match logfile" $ do
     expectedTrace <- loadExpectedRawTrace
-    BS.writeFile "expected.log" $ BS.unlines expectedTrace
+    -- BS.writeFile "expected.log" $ BS.unlines expectedTrace
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
@@ -37,7 +36,7 @@ spec = it "Trace should match logfile" $ do
     let st = newCPUState{programCounter = 0xc000}
     _ <- try @IOException $ runProgram st bus (trace traceRef)
     actualTrace <- toRawTrace <$> readIORef traceRef
-    BS.writeFile "actual.log" $ BS.unlines actualTrace
+    -- BS.writeFile "actual.log" $ BS.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace
     forM_ [0 .. length expectedTrace - 1] $ \i -> do
         let expected = expectedTrace !! i
