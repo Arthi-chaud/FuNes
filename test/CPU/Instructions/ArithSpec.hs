@@ -23,7 +23,7 @@ spec = do
                 registerA st' `shouldBe` 10 - 11 - 1
                 getStatusFlagPure Negative st' `shouldBe` True
                 getStatusFlagPure Zero st' `shouldBe` False
-                getStatusFlagPure Carry st' `shouldBe` True
+                getStatusFlagPure Carry st' `shouldBe` False
                 getStatusFlagPure Overflow st' `shouldBe` False
     describe "Add with Carry" $ do
         it "Immediate, set Overflow" $ do

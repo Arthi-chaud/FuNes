@@ -1,4 +1,11 @@
-module Nes.CPU.Instructions.Addressing (AddressingMode (..), getOperandAddr) where
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+module Nes.CPU.Instructions.Addressing (
+    AddressingMode (..),
+    getOperandAddr,
+    getOperandAddr',
+    getOperandSize,
+) where
 
 import Data.Int (Int8)
 import Nes.CPU.Monad
@@ -31,16 +38,22 @@ data AddressingMode
 --
 -- Source: https://bugzmanov.github.io/nes_ebook/chapter_3_2.html
 getOperandAddr :: AddressingMode -> CPU r Addr
-getOperandAddr = \case
+getOperandAddr mode = do
+    addr <- getOperandAddr' mode
+    let offset = Addr $ fromIntegral $ getOperandSize mode
+    modifyCPUState $ \st -> st{programCounter = programCounter st + offset}
+    return addr
+
+-- | Gives the address of the current op code's parameter
+--
+-- Does NOT shift PC
+getOperandAddr' :: AddressingMode -> CPU r Addr
+getOperandAddr' = \case
     Accumulator -> fail "Do not use this function when the mode is Accumulator"
-    Immediate -> do
-        arg <- getPC
-        incrementPC
-        return arg
+    Immediate -> getPC
     Relative -> do
         pc <- getPC
         offset <- withBus $ readByte pc
-        incrementPC
         let intPC = fromIntegral $ unAddr pc :: Int
             -- Note we need to wrap the unsinged word into a signed value
             -- See https://www.nesdev.org/wiki/Instruction_reference#BPL
@@ -48,14 +61,10 @@ getOperandAddr = \case
         return $ Addr $ fromIntegral $ intPC + 1 + signedOffset
     ZeroPage -> do
         arg <- getPC >>= withBus . readByte
-        incrementPC
         return $ byteToAddr arg
     ZeroPageX -> zeroPageAddressing registerX
     ZeroPageY -> zeroPageAddressing registerY
-    Absolute -> do
-        addr <- getPC >>= (withBus . readAddr)
-        incrementPC >> incrementPC
-        return addr
+    Absolute -> getPC >>= (withBus . readAddr)
     AbsoluteX -> absoluteAddressing registerX
     AbsoluteY -> absoluteAddressing registerY
     -- No need to increment PC here. Mode is only used by jmp
@@ -67,21 +76,34 @@ getOperandAddr = \case
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r Addr
 zeroPageAddressing getter = do
     pos <- byteToAddr <$> (getPC >>= (withBus . readByte))
-    incrementPC
     regVal <- byteToAddr <$> withCPUState getter
     return $ pos + regVal
 
 absoluteAddressing :: (CPUState -> Byte) -> CPU r Addr
 absoluteAddressing getter = do
     base <- getPC >>= (withBus . readAddr)
-    incrementPC >> incrementPC
     withCPUState $ (+ base) . byteToAddr . getter
 
 indirectAddressing :: (CPUState -> Byte) -> CPU r Addr
 indirectAddressing getter = do
     base <- getPC >>= (withBus . readByte)
-    incrementPC
     ptr <- withCPUState $ (+ base) . getter
     low <- withBus (readByte (byteToAddr ptr))
     high <- withBus (readByte (byteToAddr (ptr + 1)))
     return $ bytesToAddr low high
+
+getOperandSize :: AddressingMode -> Int
+getOperandSize = \case
+    Immediate -> 1
+    Accumulator -> 0
+    Relative -> 1
+    ZeroPage -> 1
+    ZeroPageX -> 1
+    ZeroPageY -> 1
+    Absolute -> 2
+    AbsoluteX -> 2
+    AbsoluteY -> 2
+    Indirect -> 1
+    IndirectX -> 1
+    IndirectY -> 1
+    None -> 0

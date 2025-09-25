@@ -102,7 +102,9 @@ translateAddr idx
         let
             _ = idx .&. 0b0010000000000111
          in
-            error "PPU is not supported yet" -- TODO
+            -- TODO
+            -- error "PPU is not supported yet"
+            return $ VRamAddr 0
     | otherwise = Nothing
 
 -- | The continuation will be called with the translated addr to use on the PRG Rom

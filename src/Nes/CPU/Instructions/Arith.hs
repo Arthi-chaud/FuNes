@@ -1,6 +1,10 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny) where
 
 import Data.Bits
+import Data.Int (Int8)
+import Data.Word
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
@@ -12,9 +16,8 @@ import Nes.Memory
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ADC
 adc :: AddressingMode -> CPU r ()
 adc mode = do
-    value <- getOperandAddr mode >>= withBus . readByte
-    carry <- fromIntegral . fromEnum <$> getStatusFlag Carry
-    res <- addToRegisterA value carry
+    value <- getOperandAddr mode >>= (withBus . readByte)
+    res <- addToRegisterA value
     setRegister A res
     setZeroAndNegativeFlags res
 
@@ -23,20 +26,25 @@ adc mode = do
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SBC
 sbc :: AddressingMode -> CPU r ()
 sbc mode = do
-    value <- getOperandAddr mode >>= withBus . readByte
-    carry <- fromIntegral . fromEnum <$> getStatusFlag Carry
-    res <- addToRegisterA (-value) (-(1 - carry))
+    Byte value <- getOperandAddr mode >>= (withBus . readByte)
+    res <-
+        addToRegisterA $
+            Byte (fromIntegral (-(fromIntegral value :: Int8) - 1) :: Word8)
     setRegister A res
     setZeroAndNegativeFlags res
 
 -- | Does the computation and sets Carry and Overflow accordingly
 --
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L261
-addToRegisterA :: Byte -> Byte -> CPU r Byte
-addToRegisterA value carry = do
-    regA <- byteToInt <$> getRegister A
-    let sumInt = regA + byteToInt value + byteToInt carry
-    setStatusFlag' Carry $ sumInt > 0xff
+addToRegisterA :: Byte -> CPU r Byte
+addToRegisterA value = do
+    carry <- getStatusFlag Carry
+    regA :: Word16 <- fromIntegral . unByte <$> getRegister A
+    let sumInt =
+            regA
+                + (fromIntegral . unByte $ value)
+                + (if carry then 1 else 0)
+    setStatusFlag' Carry $ sumInt > 0x00ff
     let sumByte = fromIntegral sumInt :: Byte
     setStatusFlag' Overflow $ (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
     setRegister A sumByte
