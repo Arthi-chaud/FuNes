@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Nes.Memory.Unsafe () where
@@ -11,7 +13,7 @@ import Nes.Memory
 -- | Highly unsafe instance that uses pointers directly.
 --
 -- No bound checks are done.
-instance MemoryInterface (Ptr a) where
+instance (MonadIO m) => MemoryInterface (Ptr a) m where
     readByte idx ptr = Byte <$> liftIO (readWord8OffPtr (castPtr ptr) (fromIntegral $ unAddr idx))
     readAddr idx ptr = liftIO $ do
         let castedPtr = castPtr ptr
@@ -26,7 +28,7 @@ instance MemoryInterface (Ptr a) where
         writeWord8OffPtr (castPtr ptr) intIdx (fromIntegral $ unAddr addr)
         writeWord8OffPtr (castPtr ptr) (intIdx + 1) (fromIntegral $ unAddr $ shiftR addr 8)
 
-instance MemoryInterface (ForeignPtr a) where
+instance (MonadIO m) => MemoryInterface (ForeignPtr a) m where
     readByte idx fptr = liftIO $ unsafeWithForeignPtr fptr (readByte idx)
     readAddr idx fptr = liftIO $ unsafeWithForeignPtr fptr (readAddr idx)
     writeByte byte idx fptr = liftIO $ unsafeWithForeignPtr fptr (writeByte byte idx)
