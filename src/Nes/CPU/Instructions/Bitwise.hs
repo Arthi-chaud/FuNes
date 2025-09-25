@@ -11,7 +11,7 @@ import Prelude hiding (and)
 
 bit :: AddressingMode -> CPU r ()
 bit mode = do
-    value <- getOperandAddr mode >>= withBus . readByte
+    value <- getOperandAddr mode >>= flip readByte ()
     regA <- getRegister A
     let res = regA .&. value
     setStatusFlag' Zero $ res == 0
@@ -38,7 +38,7 @@ eor = applyLogicOnRegisterA (.^.)
 
 applyLogicOnRegisterA :: (Byte -> Byte -> Byte) -> AddressingMode -> CPU r ()
 applyLogicOnRegisterA op mode = do
-    value <- getOperandAddr mode >>= withBus . readByte
+    value <- getOperandAddr mode >>= flip readByte ()
     regA <- getRegister A
     let res = regA `op` value
     setZeroAndNegativeFlags res
@@ -101,6 +101,6 @@ withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r ()
 withOperand Accumulator f = getRegister A >>= f >>= setRegister A
 withOperand mode f = do
     addr <- getOperandAddr mode
-    value <- withBus $ readByte addr
+    value <- readByte addr ()
     res <- f value
-    withBus $ writeByte res addr
+    writeByte res addr ()

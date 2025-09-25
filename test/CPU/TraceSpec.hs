@@ -71,14 +71,14 @@ getPCTrace = printf "%04X " . unAddr <$> getPC
 getOpCodeTrace :: CPU r String
 getOpCodeTrace = do
     pc <- getPC
-    opcodeByte <- withBus $ readByte pc
+    opcodeByte <- unsafeWithBus $ readByte pc
     (opname, _, addressing) <-
         maybe
             (fail $ printf "Unknown opcode: %02X" $ unByte opcodeByte)
             return
             (Map.lookup opcodeByte opcodeMap)
     instrArgs <- forM [1 .. (getOperandSize addressing)] $
-        \offset -> withBus $ readByte (Addr $ unAddr pc + fromIntegral offset)
+        \offset -> unsafeWithBus $ readByte (Addr $ unAddr pc + fromIntegral offset)
     let fmtBytesList = unwords (printf "%02X" . unByte <$> (opcodeByte : instrArgs))
     asm <- do
         incrementPC
@@ -90,8 +90,8 @@ getOpCodeTrace = do
 getOpCodeAsmArg :: Byte -> Addr -> AddressingMode -> CPU r String
 getOpCodeAsmArg opcode ptr addressing = do
     (memAddr, storedVal) <- getMemAddrAndStoredValue
-    addressByte <- unByte <$> withBus (readByte ptr)
-    addressAddr <- unAddr <$> withBus (readAddr ptr)
+    addressByte <- unByte <$> unsafeWithBus (readByte ptr)
+    addressAddr <- unAddr <$> unsafeWithBus (readAddr ptr)
 
     x <- getRegister X
     y <- getRegister Y
@@ -102,10 +102,10 @@ getOpCodeAsmArg opcode ptr addressing = do
             jmpAddr <-
                 if addressAddr .&. 0x00ff == 0x00ff
                     then do
-                        low <- fromIntegral . unByte <$> withBus (readByte $ Addr addressAddr)
-                        high <- fromIntegral . unByte <$> withBus (readByte $ Addr addressAddr .&. 0xff00)
+                        low <- fromIntegral . unByte <$> unsafeWithBus (readByte $ Addr addressAddr)
+                        high <- fromIntegral . unByte <$> unsafeWithBus (readByte $ Addr addressAddr .&. 0xff00)
                         return $ high `shiftL` 8 .|. low
-                    else withBus $ readAddr $ Addr addressAddr
+                    else unsafeWithBus $ readAddr $ Addr addressAddr
             return $ printf "($%04X) = %04X" addressAddr $ unAddr jmpAddr
         _ -> return $ case addressing of
             Accumulator -> "A "
@@ -139,7 +139,7 @@ getOpCodeAsmArg opcode ptr addressing = do
         Accumulator -> return (0, 0)
         _ -> do
             addr <- getOperandAddr' addressing
-            byte <- withBus $ readByte addr
+            byte <- unsafeWithBus $ readByte addr
             return (unAddr addr, unByte byte)
 
 getCPUStateTrace :: CPU r String

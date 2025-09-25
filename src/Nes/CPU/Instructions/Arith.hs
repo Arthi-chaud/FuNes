@@ -16,7 +16,7 @@ import Nes.Memory
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ADC
 adc :: AddressingMode -> CPU r ()
 adc mode = do
-    value <- getOperandAddr mode >>= (withBus . readByte)
+    value <- getOperandAddr mode >>= flip readByte ()
     res <- addToRegisterA value
     setRegister A res
     setZeroAndNegativeFlags res
@@ -26,7 +26,7 @@ adc mode = do
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SBC
 sbc :: AddressingMode -> CPU r ()
 sbc mode = do
-    Byte value <- getOperandAddr mode >>= (withBus . readByte)
+    Byte value <- getOperandAddr mode >>= flip readByte ()
     res <-
         addToRegisterA $
             Byte (fromIntegral (-(fromIntegral value :: Int8) - 1) :: Word8)
@@ -56,8 +56,8 @@ addToRegisterA value = do
 dec :: AddressingMode -> CPU r ()
 dec mode = do
     addr <- getOperandAddr mode
-    res <- (+ (-1)) <$> withBus (readByte addr)
-    withBus $ writeByte res addr
+    res <- (+ (-1)) <$> readByte addr ()
+    writeByte res addr ()
     setZeroAndNegativeFlags res
 
 -- | Decrement X register
@@ -84,8 +84,8 @@ decrementRegister reg = do
 inc :: AddressingMode -> CPU r ()
 inc mode = do
     addr <- getOperandAddr mode
-    res <- (+ 1) <$> withBus (readByte addr)
-    withBus $ writeByte res addr
+    res <- (+ 1) <$> readByte addr ()
+    writeByte res addr ()
     setZeroAndNegativeFlags res
 
 -- | Increment the value of the X register

@@ -55,14 +55,14 @@ main = do
 callback :: IOUArray Int Word8 -> Texture -> Renderer -> CPU CPUState ()
 callback frame texture renderer = do
     pc <- getPC
-    opCode <- withBus $ readByte pc
-    b1 <- withBus $ readByte (pc + 1)
-    b2 <- withBus $ readByte (pc + 2)
+    opCode <- unsafeWithBus $ readByte pc
+    b1 <- unsafeWithBus $ readByte (pc + 1)
+    b2 <- unsafeWithBus $ readByte (pc + 2)
     (a, x, y, stack, statusFlags) <- withCPUState $ \st -> (registerA st, registerX st, registerY st, registerS st, status st)
     liftIO $ printf "OP: 0x%02x (0x%02x 0x%02x), A: %d, X: %d, Y: %d, PC: 0x%02x, Stack: 0x%02x, Flag: 0b%08b\n" (unByte opCode) (unByte b1) (unByte b2) (unByte a) (unByte x) (unByte y) (unAddr pc) (unByte stack) (unByte statusFlags)
     handleEvents
     randomByte <- Byte <$> getStdRandom (randomR (1, 16))
-    withBus $ writeByte randomByte 0xfe
+    unsafeWithBus $ writeByte randomByte 0xfe
     frameHasChanged <- readScreenState frame
     when frameHasChanged $ liftIO $ do
         bs <- create frameSize $ \ptr -> void $ foldlMArrayM' (\idx e -> writeWord8OffPtr ptr idx e $> idx + 1) 0 frame
@@ -76,7 +76,7 @@ readScreenState frame = updatePixel False 0x200 0
     updatePixel :: Bool -> Addr -> Int -> CPU r Bool
     updatePixel acc addr _ | addr >= 0x600 = return acc
     updatePixel acc memAddr frameByte = do
-        colorByte <- withBus $ readByte memAddr
+        colorByte <- unsafeWithBus $ readByte memAddr
         let Color b1 b2 b3 _ = toColor $ unByte colorByte
         currentB1 <- liftIO $ unsafeRead frame frameByte
         currentB2 <- liftIO $ unsafeRead frame (frameByte + 1)
@@ -116,10 +116,10 @@ handleEvents = do
         KeyboardEvent (KeyboardEventData _ _ _ sym) -> case SDL.keysymScancode sym of
             ScancodeQ -> exit
             ScancodeEscape -> exit
-            ScancodeUp -> withBus $ writeByte 0x77 0xff
-            ScancodeDown -> withBus $ writeByte 0x73 0xff
-            ScancodeLeft -> withBus $ writeByte 0x61 0xff
-            ScancodeRight -> withBus $ writeByte 0x64 0xff
+            ScancodeUp -> unsafeWithBus $ writeByte 0x77 0xff
+            ScancodeDown -> unsafeWithBus $ writeByte 0x73 0xff
+            ScancodeLeft -> unsafeWithBus $ writeByte 0x61 0xff
+            ScancodeRight -> unsafeWithBus $ writeByte 0x64 0xff
             _ -> pure ()
         _ -> pure ()
 
