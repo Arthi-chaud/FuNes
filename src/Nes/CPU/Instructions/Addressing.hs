@@ -69,8 +69,18 @@ getOperandAddr' = \case
     AbsoluteY -> absoluteAddressing registerY
     -- No need to increment PC here. Mode is only used by jmp
     Indirect -> getPC >>= withBus . readAddr >>= withBus . readAddr
-    IndirectX -> indirectAddressing registerX
-    IndirectY -> indirectAddressing registerY
+    IndirectX -> do
+        base <- getPC >>= (withBus . readByte)
+        ptr <- withCPUState $ (+ base) . registerX
+        low <- withBus (readByte (byteToAddr ptr))
+        high <- withBus (readByte (byteToAddr (ptr + 1)))
+        return $ bytesToAddr low high
+    IndirectY -> do
+        ptr <- getPC >>= (withBus . readByte)
+        low <- withBus (readByte (byteToAddr ptr))
+        high <- withBus (readByte (byteToAddr (ptr + 1)))
+        y <- getRegister Y
+        return $ byteToAddr y + bytesToAddr low high
     None -> fail $ printf "Mode not supported: %s" $ show None
 
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r Addr
@@ -84,14 +94,6 @@ absoluteAddressing getter = do
     base <- getPC >>= (withBus . readAddr)
     withCPUState $ (+ base) . byteToAddr . getter
 
-indirectAddressing :: (CPUState -> Byte) -> CPU r Addr
-indirectAddressing getter = do
-    base <- getPC >>= (withBus . readByte)
-    ptr <- withCPUState $ (+ base) . getter
-    low <- withBus (readByte (byteToAddr ptr))
-    high <- withBus (readByte (byteToAddr (ptr + 1)))
-    return $ bytesToAddr low high
-
 getOperandSize :: AddressingMode -> Int
 getOperandSize = \case
     Immediate -> 1
@@ -103,7 +105,7 @@ getOperandSize = \case
     Absolute -> 2
     AbsoluteX -> 2
     AbsoluteY -> 2
-    Indirect -> 1
+    Indirect -> 2
     IndirectX -> 1
     IndirectY -> 1
     None -> 0
