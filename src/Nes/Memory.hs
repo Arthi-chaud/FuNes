@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Nes.Memory (
     newMemory,
     memorySize,
@@ -51,18 +53,18 @@ newMemory :: IO MemoryPointer
 newMemory = mallocForeignPtrBytes $ fromIntegral $ unAddr memorySize
 
 -- | Methods for interfaces that exposes memory
-class MemoryInterface a where
+class MemoryInterface a m where
     -- | Reads a single byte
-    readByte :: (MonadIO m, MonadFail m) => Addr -> a -> m Byte
+    readByte :: Addr -> a -> m Byte
 
     -- | Reads two bytes packed in little endian
-    readAddr :: (MonadIO m, MonadFail m) => Addr -> a -> m Addr
+    readAddr :: Addr -> a -> m Addr
 
     -- | Writes a single byte
-    writeByte :: (MonadIO m, MonadFail m) => Byte -> Addr -> a -> m ()
+    writeByte :: Byte -> Addr -> a -> m ()
 
     -- | Writes two bytes packed in little endian
     --
     -- the first argument is the address to write
     -- the second is the destination
-    writeAddr :: (MonadIO m, MonadFail m) => Addr -> Addr -> a -> m ()
+    writeAddr :: Addr -> Addr -> a -> m ()
