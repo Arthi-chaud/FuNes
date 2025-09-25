@@ -1,9 +1,16 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Nes.Bus where
 
 import Control.Monad
 import Control.Monad.IO.Class
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
+import Data.Functor (($>))
 import Data.Ix
 import Foreign
 import GHC.ForeignPtr (unsafeWithForeignPtr)
@@ -39,12 +46,21 @@ prgRomRange :: (Addr, Addr)
 prgRomRange = (0x8000, 0xffff)
 
 -- | Interface for the CPU that allows it to read/write to RAM
-data Bus = Bus {memory :: MemoryPointer, cartidge :: Rom}
+data Bus = Bus
+    { memory :: MemoryPointer
+    -- ^ Pointer to writeable memory
+    , cartidge :: Rom
+    -- ^ Read-only memory, see 'Rom'
+    , cycles :: Integer
+    -- ^ The number of ellapsed cycles
+    , cycleCallback :: IO ()
+    -- ^ The function executed on every tick (e.g. sleep)
+    }
 
 newBus :: Rom -> IO Bus
 newBus rom_ = do
     fptr <- callocVram
-    return $ Bus (castForeignPtr fptr) rom_
+    return $ Bus (castForeignPtr fptr) rom_ 0 (pure ()) -- TODO take arg
   where
     vramSize = 2048
     callocVram = do
@@ -53,24 +69,30 @@ newBus rom_ = do
             \ptr -> forM_ [0 .. vramSize] $ \idx -> writeWord8OffPtr ptr idx 0
         return fptr
 
-instance MemoryInterface Bus where
-    readByte idx (Bus fptr rom) = do
+tickOnce :: Bus -> IO Bus
+tickOnce = tick 1
+
+tick :: Int -> Bus -> IO Bus
+tick n bus = replicateM_ n (cycleCallback bus) $> bus{cycles = cycles bus + fromIntegral n}
+
+instance (MonadFail m, MonadIO m, MemoryInterface MemoryPointer m) => MemoryInterface Bus m where
+    readByte idx (Bus fptr rom _ _) = do
         checkBound idx
         translatedAddr <- translateReadAddr idx
         case translatedAddr of
             VRamAddr addr -> readByte addr fptr
             PRGRomAddr addr -> readPrgRomAddr addr rom readByte
-    readAddr idx (Bus fptr rom) = do
+    readAddr idx (Bus fptr rom _ _) = do
         checkBound idx
         translatedAddr <- translateReadAddr idx
         case translatedAddr of
             VRamAddr addr -> readAddr addr fptr
             PRGRomAddr addr -> readPrgRomAddr addr rom readAddr
-    writeByte byte idx (Bus fptr _) = do
+    writeByte byte idx (Bus fptr _ _ _) = do
         checkBound idx
         translateWriteAddr idx $ \dest ->
             writeByte byte dest fptr
-    writeAddr addr idx (Bus fptr _) = do
+    writeAddr addr idx (Bus fptr _ _ _) = do
         checkBound idx
         translateWriteAddr idx $ \dest ->
             writeAddr addr dest fptr
