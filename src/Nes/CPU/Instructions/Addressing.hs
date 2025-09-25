@@ -85,9 +85,9 @@ getOperandAddr' = \case
 
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r Addr
 zeroPageAddressing getter = do
-    pos <- byteToAddr <$> (getPC >>= (withBus . readByte))
-    regVal <- byteToAddr <$> withCPUState getter
-    return $ pos + regVal
+    pos <- getPC >>= (withBus . readByte)
+    regVal <- withCPUState getter
+    return $ byteToAddr $ pos + regVal
 
 absoluteAddressing :: (CPUState -> Byte) -> CPU r Addr
 absoluteAddressing getter = do
