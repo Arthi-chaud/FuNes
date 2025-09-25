@@ -1,6 +1,5 @@
 module Nes.CPU.Instructions.Compare (cmp, cpx, cpy) where
 
-import Control.Monad
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
@@ -31,4 +30,4 @@ compareWithRegister reg mode = do
     regValue <- getRegister reg
     let diff = regValue - value
     setZeroAndNegativeFlags diff
-    when (regValue >= value) $ setStatusFlag Carry
+    setStatusFlag' Carry (regValue >= value)
