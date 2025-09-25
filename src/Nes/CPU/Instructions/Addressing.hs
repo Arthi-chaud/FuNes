@@ -53,45 +53,45 @@ getOperandAddr' = \case
     Immediate -> getPC
     Relative -> do
         pc <- getPC
-        offset <- withBus $ readByte pc
+        offset <- readByte pc ()
         let intPC = fromIntegral $ unAddr pc :: Int
             -- Note we need to wrap the unsinged word into a signed value
             -- See https://www.nesdev.org/wiki/Instruction_reference#BPL
             signedOffset = fromIntegral (fromIntegral (unByte offset) :: Int8)
         return $ Addr $ fromIntegral $ intPC + 1 + signedOffset
     ZeroPage -> do
-        arg <- getPC >>= withBus . readByte
+        arg <- getPC >>= flip readByte ()
         return $ byteToAddr arg
     ZeroPageX -> zeroPageAddressing registerX
     ZeroPageY -> zeroPageAddressing registerY
-    Absolute -> getPC >>= (withBus . readAddr)
+    Absolute -> getPC >>= flip readAddr ()
     AbsoluteX -> absoluteAddressing registerX
     AbsoluteY -> absoluteAddressing registerY
     -- No need to increment PC here. Mode is only used by jmp
-    Indirect -> getPC >>= withBus . readAddr >>= withBus . readAddr
+    Indirect -> getPC >>= flip readAddr () >>= flip readAddr ()
     IndirectX -> do
-        base <- getPC >>= (withBus . readByte)
+        base <- getPC >>= flip readByte ()
         ptr <- withCPUState $ (+ base) . registerX
-        low <- withBus (readByte (byteToAddr ptr))
-        high <- withBus (readByte (byteToAddr (ptr + 1)))
+        low <- readByte (byteToAddr ptr) ()
+        high <- readByte (byteToAddr (ptr + 1)) ()
         return $ bytesToAddr low high
     IndirectY -> do
-        ptr <- getPC >>= (withBus . readByte)
-        low <- withBus (readByte (byteToAddr ptr))
-        high <- withBus (readByte (byteToAddr (ptr + 1)))
+        ptr <- getPC >>= flip readByte ()
+        low <- readByte (byteToAddr ptr) ()
+        high <- readByte (byteToAddr (ptr + 1)) ()
         y <- getRegister Y
         return $ byteToAddr y + bytesToAddr low high
     None -> fail $ printf "Mode not supported: %s" $ show None
 
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r Addr
 zeroPageAddressing getter = do
-    pos <- getPC >>= (withBus . readByte)
+    pos <- getPC >>= flip readByte ()
     regVal <- withCPUState getter
     return $ byteToAddr $ pos + regVal
 
 absoluteAddressing :: (CPUState -> Byte) -> CPU r Addr
 absoluteAddressing getter = do
-    base <- getPC >>= (withBus . readAddr)
+    base <- getPC >>= flip readAddr ()
     withCPUState $ (+ base) . byteToAddr . getter
 
 getOperandSize :: AddressingMode -> Int

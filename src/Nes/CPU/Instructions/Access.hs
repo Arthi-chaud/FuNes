@@ -27,7 +27,7 @@ ldy = loadRegisterFromMemory Y
 loadRegisterFromMemory :: Register -> AddressingMode -> CPU r ()
 loadRegisterFromMemory register mode = do
     argAddr <- getOperandAddr mode
-    param <- withBus $ readByte argAddr
+    param <- readByte argAddr ()
     setRegister register param
     setZeroAndNegativeFlags param
 
@@ -53,4 +53,4 @@ storeRegisterInMemory :: Register -> AddressingMode -> CPU r ()
 storeRegisterInMemory reg mode = do
     addr <- getOperandAddr mode
     value <- getRegister reg
-    withBus $ writeByte value addr
+    writeByte value addr ()

@@ -14,7 +14,6 @@ module Nes.Memory (
     MemoryInterface (..),
 ) where
 
-import Control.Monad.IO.Class
 import Data.Ix (Ix)
 import Foreign
 

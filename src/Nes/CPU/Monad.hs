@@ -95,18 +95,14 @@ pushAddrStack addr = do
     pushByteStack high
     pushByteStack low
 
--- | Run a memory access operation
-withBus :: (Bus -> IO a) -> CPU r a
-withBus f = MkCPU $ \st bus cont -> do
-    res <- f bus
-    cont st bus res
-
 -- | Unsafe action that provides access to Bus
 --
 -- When using it, ticks ARE NOT taken into account.
 -- For testing purposes
 unsafeWithBus :: (Bus -> IO a) -> CPU r a
-unsafeWithBus = withBus
+unsafeWithBus f = MkCPU $ \st bus cont -> do
+    res <- f bus
+    cont st bus res
 
 -- | Resets the state of the CPU
 reset :: CPU r ()
