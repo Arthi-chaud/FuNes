@@ -16,9 +16,9 @@ import Text.Printf
 --
 -- The thrid argument is a callback run at each loop
 --
--- Returns the state of the CPU
-runProgram :: CPUState -> Bus -> CPU CPUState () -> IO CPUState
-runProgram state prog callback = unCPU (interpretWithCallback callback) state prog $ \state' _ _ -> return state'
+-- Returns the state of the CPU with the number of ellapsed ticks
+runProgram :: CPUState -> Bus -> CPU (CPUState, Integer) () -> IO (CPUState, Integer)
+runProgram state prog callback = unCPU (interpretWithCallback callback) state prog $ \state' bus _ -> return (state', cycles bus)
 
 interpret :: CPU r ()
 interpret = interpretWithCallback $ pure ()
