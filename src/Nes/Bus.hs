@@ -69,9 +69,6 @@ newBus rom_ = do
             \ptr -> forM_ [0 .. vramSize] $ \idx -> writeWord8OffPtr ptr idx 0
         return fptr
 
-tickOnce :: Bus -> IO Bus
-tickOnce = tick 1
-
 tick :: Int -> Bus -> IO Bus
 tick n bus = replicateM_ n (cycleCallback bus) $> bus{cycles = cycles bus + fromIntegral n}
 

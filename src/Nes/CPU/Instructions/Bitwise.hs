@@ -98,9 +98,13 @@ lsr mode = withOperand mode $ \value -> do
     return res
 
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r ()
-withOperand Accumulator f = getRegister A >>= f >>= setRegister A
+withOperand Accumulator f = getRegister A >>= f >>= setRegister A >> tickOnce
 withOperand mode f = do
     addr <- getOperandAddr mode
     value <- readByte addr ()
     res <- f value
+    -- https://www.nesdev.org/wiki/Cycle_counting
+    --  it takes 1 extra cycle to modify the value
+    tickOnce
+    when (mode == AbsoluteX) tickOnce
     writeByte res addr ()

@@ -1,7 +1,7 @@
 module Nes.CPU.Instructions.Branch (bvc, bvs, bcc, bcs, beq, bne, bmi, bpl) where
 
 import Control.Monad
-import Nes.CPU.Instructions.Addressing (AddressingMode, getOperandAddr)
+import Nes.CPU.Instructions.Addressing (AddressingMode, getOperandAddr')
 import Nes.CPU.Monad
 import Nes.CPU.State
 
@@ -56,5 +56,7 @@ bpl = branchOverIf (not . getStatusFlagPure Negative)
 branchOverIf :: (CPUState -> Bool) -> AddressingMode -> CPU r ()
 branchOverIf check mode = do
     doBranch <- withCPUState check
-    addr <- getOperandAddr mode
-    when doBranch $ setPC addr
+    (addr, crosses) <- getOperandAddr' mode
+    when doBranch $ do
+        when crosses $ tick 2 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
+        tickOnce >> setPC addr

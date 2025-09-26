@@ -4,6 +4,7 @@ module Nes.CPU.Interpreter (
     interpretWithCallback,
 ) where
 
+import Control.Monad
 import Data.Map
 import Nes.Bus
 import Nes.CPU.Instructions.Map
@@ -27,11 +28,20 @@ interpret = interpretWithCallback $ pure ()
 interpretWithCallback :: CPU r () -> CPU r ()
 interpretWithCallback callback = do
     callback
+    oldCycleCount <- getCycles
     opCode <- readAtPC
     incrementPC
     if opCode == 0x00
         then return ()
-        else go opCode >> interpretWithCallback callback
+        else do
+            go opCode
+            newCycleCount <- getCycles
+            -- Each opcode should take at least 2 ticks
+            -- We cannot just check that addressing is none,
+            -- because some opcode w/o addressing take more that 1 cycle
+            -- e.g. php
+            when (newCycleCount - 1 == oldCycleCount) tickOnce
+            interpretWithCallback callback
   where
     go opcode = case Data.Map.lookup opcode opcodeMap of
         Just (_, f, mode) -> f mode
