@@ -21,6 +21,7 @@ default-extensions:
   - LambdaCase
   - GeneralizedNewtypeDeriving
   - OverloadedStrings
+  - TupleSections
 
 ghc-options:
   - -Wall

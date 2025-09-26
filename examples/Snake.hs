@@ -52,7 +52,7 @@ main = do
     _ <- runProgram cpuState bus (callback frame texture renderer)
     destroyRenderer renderer
 
-callback :: IOUArray Int Word8 -> Texture -> Renderer -> CPU CPUState ()
+callback :: IOUArray Int Word8 -> Texture -> Renderer -> CPU r ()
 callback frame texture renderer = do
     pc <- getPC
     opCode <- unsafeWithBus $ readByte pc
