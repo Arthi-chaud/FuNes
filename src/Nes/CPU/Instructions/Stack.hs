@@ -8,7 +8,7 @@ import Nes.CPU.State
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#PHA
 pha :: CPU r ()
-pha = getRegister A >>= pushByteStack
+pha = tickOnce >> getRegister A >>= pushByteStack
 
 -- | Pushes a copy of the status flags on to the stack.
 --
@@ -24,6 +24,7 @@ php = do
                 . setStatusFlagPure BreakCommand
             )
     pushByteStack st
+    tickOnce
 
 -- | Pulls an 8 bit value from the stack and into the accumulator.
 --
@@ -31,6 +32,7 @@ php = do
 pla :: CPU r ()
 pla = do
     value <- popStackByte
+    tick 2
     setRegister A value
     setZeroAndNegativeFlags value
 
@@ -42,6 +44,7 @@ pla = do
 plp :: CPU r ()
 plp = do
     value <- popStackByte
+    tick 2
     modifyCPUState $ \st -> st{status = value}
     clearStatusFlag BreakCommand
     setStatusFlag BreakCommand2

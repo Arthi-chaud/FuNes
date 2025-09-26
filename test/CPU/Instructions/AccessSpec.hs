@@ -1,6 +1,7 @@
 module CPU.Instructions.AccessSpec (spec) where
 
 import Internal
+import Nes.Bus (Bus (cycles))
 import Nes.CPU.State
 import Nes.Memory
 import Test.Hspec
@@ -9,9 +10,12 @@ spec :: Spec
 spec = do
     describe "Load Value to Register" $ do
         describe "Register A" $ do
-            it "Base" $
-                withProgram [0xa9, 0x05, 0x00] $ \cpu -> do
+            it "Base" $ do
+                let setup _ = pure ()
+                withStateAndMemorySetup [0xa9, 0x05, 0x00] newCPUState setup $ \cpu bus -> do
+                    cycles bus `shouldBe` 2 + 1
                     registerA cpu `shouldBe` 0x05
+
                     getStatusFlagPure Zero cpu `shouldBe` False
                     getStatusFlagPure Negative cpu `shouldBe` False
 

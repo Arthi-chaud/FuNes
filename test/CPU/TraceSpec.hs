@@ -7,11 +7,13 @@ import Control.Monad (forM, forM_)
 import Control.Monad.IO.Class
 import Data.Bits
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Data.ByteString.Char8 (pack)
-import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Char8 as BSC
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
 import qualified Data.Map as Map
-import Nes.Bus (newBus)
+import Internal (withoutTick)
+import Nes.Bus (Bus (..), newBus)
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Interpreter (runProgram)
@@ -27,16 +29,17 @@ import Text.Printf (printf)
 spec :: Spec
 spec = it "Trace should match logfile" $ do
     expectedTrace <- loadExpectedRawTrace
-    -- BS.writeFile "expected.log" $ BS.unlines expectedTrace
+    BS.writeFile "expected.log" $ BSC.unlines expectedTrace
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
     bus <- newBus rom
     traceRef <- newIORef (T [] 0)
     let st = newCPUState{programCounter = 0xc000}
-    _ <- try @IOException $ runProgram st bus (trace traceRef)
+    -- TODO why is the tick count set to 7 ? Reset?
+    _ <- try @IOException $ runProgram st (bus{cycles = 7}) (trace traceRef)
     actualTrace <- toRawTrace <$> readIORef traceRef
-    -- BS.writeFile "actual.log" $ BS.unlines actualTrace
+    BS.writeFile "actual.log" $ BSC.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace
     forM_ [0 .. length expectedTrace - 1] $ \i -> do
         let expected = expectedTrace !! i
@@ -63,7 +66,8 @@ getTrace = do
     pc <- getPCTrace
     opcode <- getOpCodeTrace
     st <- getCPUStateTrace
-    return $ unwords [pc, opcode, st]
+    cycl <- getCycleTrace
+    return $ unwords [pc, opcode, st, cycl]
 
 getPCTrace :: CPU r String
 getPCTrace = printf "%04X " . unAddr <$> getPC
@@ -85,7 +89,7 @@ getOpCodeTrace = do
         asm <- getOpCodeAsmArg opcodeByte (pc + 1) addressing
         modifyCPUState $ \st -> st{programCounter = pc}
         return asm
-    return $ printf "%-8s  %s %-27s" fmtBytesList (BS.unpack opname) asm
+    return $ printf "%-8s  %s %-27s" fmtBytesList (BSC.unpack opname) asm
 
 getOpCodeAsmArg :: Byte -> Addr -> AddressingMode -> CPU r String
 getOpCodeAsmArg opcode ptr addressing = do
@@ -138,9 +142,13 @@ getOpCodeAsmArg opcode ptr addressing = do
         None -> return (0, 0)
         Accumulator -> return (0, 0)
         _ -> do
-            addr <- getOperandAddr' addressing
+            addr <- fst <$> withoutTick (getOperandAddr' addressing)
+
             byte <- unsafeWithBus $ readByte addr
             return (unAddr addr, unByte byte)
+
+getCycleTrace :: CPU r String
+getCycleTrace = printf "CYC:%d" <$> unsafeWithBus (return . cycles)
 
 getCPUStateTrace :: CPU r String
 getCPUStateTrace = withCPUState $ \st ->
@@ -155,11 +163,14 @@ getCPUStateTrace = withCPUState $ \st ->
 loadExpectedRawTrace :: IO RawTrace
 loadExpectedRawTrace = do
     fileContent <- BS.readFile "test/assets/rom_trace.log"
-    let rawTrace = BS.lines fileContent
+    let rawTrace = BSC.lines fileContent
     -- TODO When project is finished, we shouldn't have to do the following filters
-    return $ withoutCycles $ beforeUnofficialInstr rawTrace
+    return $ withoutPPUCycles <$> beforeUnofficialInstr rawTrace
   where
     beforeUnofficialInstr =
         takeWhile
             (\line -> not $ "C6BD" `BS.isPrefixOf` line)
-    withoutCycles = fmap (fst . BS.breakSubstring " PPU:")
+    withoutPPUCycles bs =
+        let beforePPU = fst . BS.breakSubstring " PPU:" $ bs
+            afterPPU = snd . BS.breakSubstring " CYC:" $ bs
+         in BS.concat [beforePPU, afterPPU]

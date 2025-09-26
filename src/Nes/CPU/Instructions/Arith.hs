@@ -2,6 +2,7 @@
 
 module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny) where
 
+import Control.Monad
 import Data.Bits
 import Data.Int (Int8)
 import Data.Word
@@ -50,13 +51,24 @@ addToRegisterA value = do
     setRegister A sumByte
     return sumByte
 
+-- | Increment value in memory
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#INC
+inc :: AddressingMode -> CPU r ()
+inc = modifyValueInMemory (+ 1)
+
 -- | Decrement value in memory
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#DEC
 dec :: AddressingMode -> CPU r ()
-dec mode = do
+dec = modifyValueInMemory (+ (-1))
+
+modifyValueInMemory :: (Byte -> Byte) -> AddressingMode -> CPU r ()
+modifyValueInMemory f mode = do
     addr <- getOperandAddr mode
-    res <- (+ (-1)) <$> readByte addr ()
+    res <- f <$> readByte addr ()
+    when (mode == AbsoluteX) tickOnce
+    tickOnce -- Is a Read-modify-write operation, we add one tick
     writeByte res addr ()
     setZeroAndNegativeFlags res
 
@@ -76,16 +88,6 @@ decrementRegister :: Register -> CPU r ()
 decrementRegister reg = do
     res <- (\y -> y - 1) <$> getRegister reg
     setRegister reg res
-    setZeroAndNegativeFlags res
-
--- | Increment value in memory
---
--- https://www.nesdev.org/obelisk-6502-guide/reference.html#INC
-inc :: AddressingMode -> CPU r ()
-inc mode = do
-    addr <- getOperandAddr mode
-    res <- (+ 1) <$> readByte addr ()
-    writeByte res addr ()
     setZeroAndNegativeFlags res
 
 -- | Increment the value of the X register

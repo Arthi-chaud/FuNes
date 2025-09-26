@@ -32,6 +32,7 @@ jsr :: CPU r ()
 jsr = do
     pc <- getPC
     pushAddrStack (pc + 2 - 1)
+    tickOnce
     readAddr pc () >>= setPC
 
 -- | Return from Subroutine
@@ -39,17 +40,25 @@ jsr = do
 -- Pulls the PC from the stack
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#RTS
 rts :: CPU r ()
-rts = setPC . (+ 1) =<< popStackAddr
+rts = do
+    tick 2
+    res <- popStackAddr
+    -- https://www.nesdev.org/wiki/Cycle_counting
+    --  plus 1 cycle to post-increment the program counter
+    tickOnce
+    setPC (res + 1)
 
 -- | Return from interrupt
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#RTI
 rti :: CPU r ()
 rti = do
+    -- Note: When one opcode does multiple stack pops, the max
     newStatus <- popStackByte
     modifyCPUState (\st -> st{status = newStatus})
     clearStatusFlag BreakCommand
     setStatusFlag BreakCommand2
     setPC =<< popStackAddr
+    tick 2
 
 -- Note: Source for both: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L703

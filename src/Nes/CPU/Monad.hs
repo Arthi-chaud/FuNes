@@ -5,7 +5,8 @@ module Nes.CPU.Monad where
 
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR))
-import Nes.Bus
+import Nes.Bus (Bus (..))
+import qualified Nes.Bus as Bus
 import Nes.CPU.State
 import Nes.Memory
 
@@ -40,6 +41,9 @@ modifyCPUState f = MkCPU $ \st prog cont -> cont (f st) prog ()
 
 withCPUState :: (CPUState -> a) -> CPU r a
 withCPUState f = MkCPU $ \st prog cont -> cont st prog (f st)
+
+getCycles :: CPU r Integer
+getCycles = MkCPU $ \st bus cont -> cont st bus (cycles bus)
 
 -- | Returns the value of the Program counter as an Addr
 getPC :: CPU r Addr
@@ -77,7 +81,7 @@ popStackByte :: CPU r Byte
 popStackByte = do
     newRegS <- (+ 1) <$> getRegister S
     setRegister S newRegS
-    readByte (stackAddr + byteToAddr newRegS) ()
+    readByte (Bus.stackAddr + byteToAddr newRegS) ()
 
 popStackAddr :: CPU r Addr
 popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
@@ -85,7 +89,7 @@ popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
 pushByteStack :: Byte -> CPU r ()
 pushByteStack byte = do
     regS <- getRegister S
-    writeByte byte (stackAddr + byteToAddr regS) ()
+    writeByte byte (Bus.stackAddr + byteToAddr regS) ()
     setRegister S (regS - 1)
 
 pushAddrStack :: Addr -> CPU r ()
@@ -113,26 +117,26 @@ reset = do
 instance MemoryInterface () (CPU r) where
     readByte n () = do
         res <- unsafeWithBus $ Nes.Memory.readByte n
-        _tickOnce
+        tickOnce
         return res
 
     readAddr n () = do
         res <- unsafeWithBus $ Nes.Memory.readAddr n
-        _tick 2
+        tick 2
         return res
 
     writeByte byte dest () = do
         unsafeWithBus $ Nes.Memory.writeByte byte dest
-        _tickOnce
+        tickOnce
 
     writeAddr byte dest () = do
         unsafeWithBus $ Nes.Memory.writeAddr byte dest
-        _tick 2
+        tick 2
 
-_tick :: Int -> CPU r ()
-_tick n = MkCPU $ \st bus cont -> do
-    newbus <- tick n bus
+tick :: Int -> CPU r ()
+tick n = MkCPU $ \st bus cont -> do
+    newbus <- Bus.tick n bus
     cont st newbus ()
 
-_tickOnce :: CPU r ()
-_tickOnce = _tick 0
+tickOnce :: CPU r ()
+tickOnce = Nes.CPU.Monad.tick 1

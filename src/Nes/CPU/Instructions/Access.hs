@@ -1,5 +1,6 @@
 module Nes.CPU.Instructions.Access (lda, ldx, ldy, sta, stx, sty) where
 
+import Control.Monad
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
@@ -51,6 +52,10 @@ sty = storeRegisterInMemory Y
 
 storeRegisterInMemory :: Register -> AddressingMode -> CPU r ()
 storeRegisterInMemory reg mode = do
-    addr <- getOperandAddr mode
+    (addr, crosses) <- getOperandAddr' mode
     value <- getRegister reg
+    -- https://www.nesdev.org/wiki/Cycle_counting
+    -- assumes the worst case of page crossing and always spends 1 extra read cycle.
+    when (crosses || mode == AbsoluteX) tickOnce
+    when (mode == IndirectY || mode == AbsoluteY) tickOnce
     writeByte value addr ()

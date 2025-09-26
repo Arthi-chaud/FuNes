@@ -46,4 +46,4 @@ loadProgramToMemory program bus = do
 
 withoutTick :: CPU r a -> CPU r a
 withoutTick (MkCPU f) = MkCPU $ \st bus cont -> do
-    f st bus $ \st' _ -> cont st' bus
+    f st bus{cycleCallback = pure ()} $ \st' _ -> cont st' bus
