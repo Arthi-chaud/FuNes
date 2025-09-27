@@ -35,6 +35,7 @@ library
       Nes.CPU.Instructions.Flags
       Nes.CPU.Instructions.Jump
       Nes.CPU.Instructions.Map
+      Nes.CPU.Instructions.Noop
       Nes.CPU.Instructions.Stack
       Nes.CPU.Instructions.Transfer
       Nes.CPU.Interpreter
