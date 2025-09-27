@@ -1,10 +1,9 @@
-module Internal (withProgram, withState, withMemorySetup, withStateAndMemorySetup, withoutTick) where
+module Internal (withProgram, withState, withMemorySetup, withStateAndMemorySetup) where
 
 import Control.Monad
 import Data.Word
 import Nes.Bus
 import Nes.CPU.Interpreter (runProgram)
-import Nes.CPU.Monad (CPU (MkCPU))
 import Nes.CPU.State
 import Nes.Memory
 import Nes.Memory.Unsafe ()
@@ -43,7 +42,3 @@ loadProgramToMemory :: [Word8] -> Bus -> IO ()
 loadProgramToMemory program bus = do
     forM_ (zip program [0 ..]) $
         \(byte, idx) -> writeByte (Byte byte) (Addr idx) bus
-
-withoutTick :: CPU r a -> CPU r a
-withoutTick (MkCPU f) = MkCPU $ \st bus cont -> do
-    f st bus{cycleCallback = pure ()} $ \st' _ -> cont st' bus
