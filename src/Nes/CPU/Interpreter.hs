@@ -44,5 +44,5 @@ interpretWithCallback callback = do
             interpretWithCallback callback
   where
     go opcode = case Data.Map.lookup opcode opcodeMap of
-        Just (_, f, mode) -> f mode
+        Just (_, f, mode, _) -> f mode
         Nothing -> fail $ printf "OP Code not implemented: 0x%x" (unByte opcode)

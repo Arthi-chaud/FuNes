@@ -26,6 +26,9 @@ import Text.Printf (printf)
 
 -- TODO 2 tests from guide
 
+-- Source:
+-- https://www.qmtpro.com/~nes/misc/nestest.txt
+
 spec :: Spec
 spec = it "Trace should match logfile" $ do
     expectedTrace <- loadExpectedRawTrace
@@ -76,7 +79,7 @@ getOpCodeTrace :: CPU r String
 getOpCodeTrace = do
     pc <- getPC
     opcodeByte <- unsafeWithBus $ readByte pc
-    (opname, _, addressing) <-
+    (opname, _, addressing, type_) <-
         maybe
             (fail $ printf "Unknown opcode: %02X" $ unByte opcodeByte)
             return
@@ -84,12 +87,13 @@ getOpCodeTrace = do
     instrArgs <- forM [1 .. (getOperandSize addressing)] $
         \offset -> unsafeWithBus $ readByte (Addr $ unAddr pc + fromIntegral offset)
     let fmtBytesList = unwords (printf "%02X" . unByte <$> (opcodeByte : instrArgs))
+        fmtOpname = (if type_ == Unofficial then '*' else ' ') : BSC.unpack opname
     asm <- do
         incrementPC
         asm <- getOpCodeAsmArg opcodeByte (pc + 1) addressing
         modifyCPUState $ \st -> st{programCounter = pc}
         return asm
-    return $ printf "%-8s  %s %-27s" fmtBytesList (BSC.unpack opname) asm
+    return $ printf "%-8s %s %-27s" fmtBytesList fmtOpname asm
 
 getOpCodeAsmArg :: Byte -> Addr -> AddressingMode -> CPU r String
 getOpCodeAsmArg opcode ptr addressing = do
@@ -131,7 +135,7 @@ getOpCodeAsmArg opcode ptr addressing = do
                     (unAddr $ Addr memAddr - byteToAddr y)
                     memAddr
                     storedVal
-            Relative -> printf "$%04X" $ (addrToInt ptr + 1) + fromIntegral addressByte
+            Relative -> printf "$%04X" $ addrToInt ptr + 1 + fromIntegral addressByte
             Absolute -> printf "$%04X = %02X" memAddr storedVal
             AbsoluteX -> printf "$%04X,X @ %04X = %02X" addressAddr memAddr storedVal
             AbsoluteY -> printf "$%04X,Y @ %04X = %02X" addressAddr memAddr storedVal
@@ -169,7 +173,7 @@ loadExpectedRawTrace = do
   where
     beforeUnofficialInstr =
         takeWhile
-            (\line -> not $ "C6BD" `BS.isPrefixOf` line)
+            (\line -> not $ "C6BF" `BS.isPrefixOf` line)
     withoutPPUCycles bs =
         let beforePPU = fst . BS.breakSubstring " PPU:" $ bs
             afterPPU = snd . BS.breakSubstring " CYC:" $ bs
