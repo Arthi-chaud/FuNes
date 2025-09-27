@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 
-module CPU.TraceSpec (spec) where
+module Main (main) where
 
 import Control.Exception
 import Control.Monad (forM, forM_)
@@ -12,7 +12,6 @@ import Data.ByteString.Char8 (pack)
 import qualified Data.ByteString.Char8 as BSC
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
 import qualified Data.Map as Map
-import Internal (withoutTick)
 import Nes.Bus (Bus (..), newBus)
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Map
@@ -28,6 +27,9 @@ import Text.Printf (printf)
 
 -- Source:
 -- https://www.qmtpro.com/~nes/misc/nestest.txt
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = it "Trace should match logfile" $ do
@@ -178,3 +180,7 @@ loadExpectedRawTrace = do
         let beforePPU = fst . BS.breakSubstring " PPU:" $ bs
             afterPPU = snd . BS.breakSubstring " CYC:" $ bs
          in BS.concat [beforePPU, afterPPU]
+
+withoutTick :: CPU r a -> CPU r a
+withoutTick (MkCPU f) = MkCPU $ \st bus cont -> do
+    f st bus{cycleCallback = pure ()} $ \st' _ -> cont st' bus
