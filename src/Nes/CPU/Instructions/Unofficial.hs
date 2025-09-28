@@ -1,10 +1,11 @@
-module Nes.CPU.Instructions.Unofficial (lax, sax) where
+module Nes.CPU.Instructions.Unofficial (lax, sax, dcp) where
 
+import Control.Monad
 import Data.Bits
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
-import Nes.CPU.State (Register (..))
+import Nes.CPU.State (Flag (..), Register (..))
 import Nes.Memory
 
 -- Source: https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes
@@ -26,3 +27,14 @@ sax mode = do
     x <- getRegister X
     let res = a .&. x
     writeByte res dest ()
+
+-- | Equivalent to DEC value then CMP value, except supporting more addressing modes
+dcp :: AddressingMode -> CPU r ()
+dcp mode = do
+    addr <- getOperandAddr mode
+    value <- (+ (-1)) <$> readByte addr ()
+    writeByte value addr ()
+    a <- getRegister A
+    tickOnce -- It's a Read-modify-write operation
+    when (value <= a) $ setStatusFlag Carry
+    setZeroAndNegativeFlags (a - value)
