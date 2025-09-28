@@ -176,7 +176,7 @@ loadExpectedRawTrace = do
   where
     beforeUnofficialInstr =
         takeWhile
-            (\line -> not $ "C6BF" `BS.isPrefixOf` line)
+            (\line -> not $ "E545" `BS.isPrefixOf` line)
     withoutPPUCycles bs =
         let beforePPU = fst . BS.breakSubstring " PPU:" $ bs
             afterPPU = snd . BS.breakSubstring " CYC:" $ bs
