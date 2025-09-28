@@ -222,6 +222,14 @@ opcodeMap =
         , (0xd7, ("DCP", dcp, ZeroPageX, Unofficial))
         , (0xdb, ("DCP", dcp, AbsoluteY, Unofficial))
         , (0xdf, ("DCP", dcp, AbsoluteX, Unofficial))
+        , (0xe3, ("ISB", isb, IndirectX, Unofficial))
+        , (0xe7, ("ISB", isb, ZeroPage, Unofficial))
+        , (0xef, ("ISB", isb, Absolute, Unofficial))
+        , (0xf3, ("ISB", isb, IndirectY, Unofficial))
+        , (0xf7, ("ISB", isb, ZeroPageX, Unofficial))
+        , (0xf7, ("ISB", isb, ZeroPageX, Unofficial))
+        , (0xfb, ("ISB", isb, AbsoluteY, Unofficial))
+        , (0xff, ("ISB", isb, AbsoluteX, Unofficial))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None, Official))
         ]
