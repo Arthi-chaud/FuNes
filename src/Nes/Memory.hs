@@ -7,6 +7,7 @@ module Nes.Memory (
     Addr (..),
     byteToAddr,
     bytesToAddr,
+    negateByte,
     byteToInt,
     addrToInt,
     unsafeAddrToByte,
@@ -26,6 +27,10 @@ byteToAddr = Addr . fromIntegral . unByte
 
 byteToInt :: Byte -> Int
 byteToInt = fromIntegral . unByte
+
+-- | Safely negates a byte, handles underflow
+negateByte :: Byte -> Byte
+negateByte (Byte byte) = Byte (fromIntegral (-(fromIntegral byte :: Int8) - 1) :: Word8)
 
 addrToInt :: Addr -> Int
 addrToInt = fromIntegral . unAddr

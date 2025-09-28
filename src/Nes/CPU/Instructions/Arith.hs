@@ -4,7 +4,6 @@ module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny, isb) 
 
 import Control.Monad
 import Data.Bits
-import Data.Int (Int8)
 import Data.Word
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
@@ -27,10 +26,9 @@ adc mode = do
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SBC
 sbc :: AddressingMode -> CPU r ()
 sbc mode = do
-    Byte value <- getOperandAddr mode >>= flip readByte ()
+    value <- getOperandAddr mode >>= flip readByte ()
     res <-
-        addToRegisterA $
-            Byte (fromIntegral (-(fromIntegral value :: Int8) - 1) :: Word8)
+        addToRegisterA (negateByte value)
     setRegister A res
     setZeroAndNegativeFlags res
 
@@ -64,8 +62,8 @@ inc mode = do
 -- Aka ISC
 isb :: AddressingMode -> CPU r ()
 isb mode = do
-    Byte byte <- modifyValueInMemory (+ 1) mode
-    res <- addToRegisterA $ fromIntegral (-(fromIntegral byte :: Int8) - 1)
+    byte <- modifyValueInMemory (+ 1) mode
+    res <- addToRegisterA (negateByte byte)
     setRegister A res
     setZeroAndNegativeFlags res
 
