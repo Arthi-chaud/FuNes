@@ -58,5 +58,5 @@ branchOverIf check mode = do
     doBranch <- withCPUState check
     (addr, crosses) <- getOperandAddr' mode
     when doBranch $ do
-        when crosses $ tick 2 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
+        when crosses tickOnce -- https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
         tickOnce >> setPC addr
