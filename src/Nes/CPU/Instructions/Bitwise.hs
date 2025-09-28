@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, asl, lsr, slo) where
+module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, rla, asl, lsr, slo) where
 
 import Control.Monad
 import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
@@ -39,16 +39,18 @@ eor = applyLogicOnRegisterA (.^.)
 applyLogicOnRegisterA :: (Byte -> Byte -> Byte) -> AddressingMode -> CPU r ()
 applyLogicOnRegisterA op mode = do
     value <- getOperandAddr mode >>= flip readByte ()
-    regA <- getRegister A
-    let res = regA `op` value
-    setZeroAndNegativeFlags res
-    setRegister A res
+    void $ modifyRegisterA (`op` value)
 
 -- | Rotate left
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ROL
 rol :: AddressingMode -> CPU r ()
-rol =
+rol mode = do
+    _ <- rol_ mode
+    when (mode == AbsoluteX) tickOnce
+
+rol_ :: AddressingMode -> CPU r Byte
+rol_ =
     rotate
         ( \value carry ->
             let shifted = shiftL value 1
@@ -60,15 +62,19 @@ rol =
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ROR
 ror :: AddressingMode -> CPU r ()
-ror =
-    rotate
-        ( \value carry ->
-            let shifted = shiftR value 1
-             in if carry then setBit shifted 7 else shifted
-        )
-        (\byte -> setStatusFlagPure' Carry (testBit byte 0))
+ror mode = do
+    _ <-
+        rotate
+            ( \value carry ->
+                let shifted = shiftR value 1
+                 in if carry then setBit shifted 7 else shifted
+            )
+            (\byte -> setStatusFlagPure' Carry (testBit byte 0))
+            mode
 
-rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r ()
+    when (mode == AbsoluteX) tickOnce
+
+rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r Byte
 rotate f setCarry mode =
     withOperand
         mode
@@ -78,7 +84,11 @@ rotate f setCarry mode =
             modifyCPUState $ setCarry value
             return res
         )
-        >> when (mode == AbsoluteX) tickOnce
+
+rla :: AddressingMode -> CPU r ()
+rla mode = do
+    value <- rol_ mode
+    void $ modifyRegisterA (value .&.)
 
 -- | Arithmetic Shift Left
 --
@@ -114,10 +124,7 @@ lsr mode =
 slo :: AddressingMode -> CPU r ()
 slo mode = do
     value <- asl_ mode
-    regA <- getRegister A
-    let res = regA .|. value
-    setZeroAndNegativeFlags res
-    setRegister A res
+    void $ modifyRegisterA (value .|.)
 
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
 withOperand Accumulator f = do
@@ -134,4 +141,12 @@ withOperand mode f = do
     --  it takes 1 extra cycle to modify the value
     tickOnce
     writeByte res addr ()
+    return res
+
+modifyRegisterA :: (Byte -> Byte) -> CPU r Byte
+modifyRegisterA f = do
+    regA <- getRegister A
+    let res = f regA
+    setZeroAndNegativeFlags res
+    setRegister A res
     return res
