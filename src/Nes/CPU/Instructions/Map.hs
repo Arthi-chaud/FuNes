@@ -251,6 +251,13 @@ opcodeMap =
         , (0x57, ("SRE", sre, ZeroPageX, Unofficial))
         , (0x5b, ("SRE", sre, AbsoluteY, Unofficial))
         , (0x5f, ("SRE", sre, AbsoluteX, Unofficial))
+        , (0x63, ("RRA", rra, IndirectX, Unofficial))
+        , (0x67, ("RRA", rra, ZeroPage, Unofficial))
+        , (0x6f, ("RRA", rra, Absolute, Unofficial))
+        , (0x73, ("RRA", rra, IndirectY, Unofficial))
+        , (0x77, ("RRA", rra, ZeroPageX, Unofficial))
+        , (0x7b, ("RRA", rra, AbsoluteY, Unofficial))
+        , (0x7f, ("RRA", rra, AbsoluteX, Unofficial))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None, Official))
         ]
