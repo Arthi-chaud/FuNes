@@ -11,6 +11,7 @@ import qualified Data.ByteString as BS
 import Data.ByteString.Char8 (pack)
 import qualified Data.ByteString.Char8 as BSC
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
+import Data.Int
 import qualified Data.Map as Map
 import Nes.Bus (Bus (..), newBus)
 import Nes.CPU.Instructions.Addressing
@@ -137,7 +138,7 @@ getOpCodeAsmArg opcode ptr addressing = do
                     (unAddr $ Addr memAddr - byteToAddr y)
                     memAddr
                     storedVal
-            Relative -> printf "$%04X" $ addrToInt ptr + 1 + fromIntegral addressByte
+            Relative -> printf "$%04X" $ (addrToInt ptr + 1) + fromIntegral (fromIntegral addressByte :: Int8)
             Absolute -> printf "$%04X = %02X" memAddr storedVal
             AbsoluteX -> printf "$%04X,X @ %04X = %02X" addressAddr memAddr storedVal
             AbsoluteY -> printf "$%04X,Y @ %04X = %02X" addressAddr memAddr storedVal
