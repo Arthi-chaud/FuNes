@@ -13,6 +13,7 @@ import Nes.CPU.Instructions.Jump
 import Nes.CPU.Instructions.Noop (noop)
 import Nes.CPU.Instructions.Stack
 import Nes.CPU.Instructions.Transfer
+import Nes.CPU.Instructions.Unofficial
 import Nes.CPU.Monad
 import Nes.Memory (Byte)
 import Prelude hiding (and)
@@ -203,6 +204,12 @@ opcodeMap =
         , (0x7c, ("NOP", noop, AbsoluteX, Unofficial))
         , (0xdc, ("NOP", noop, AbsoluteX, Unofficial))
         , (0xfc, ("NOP", noop, AbsoluteX, Unofficial))
+        , (0xa3, ("LAX", lax, IndirectX, Unofficial))
+        , (0xa7, ("LAX", lax, ZeroPage, Unofficial))
+        , (0xaf, ("LAX", lax, Absolute, Unofficial))
+        , (0xb3, ("LAX", lax, IndirectY, Unofficial))
+        , (0xb7, ("LAX", lax, ZeroPageY, Unofficial))
+        , (0xbf, ("LAX", lax, AbsoluteY, Unofficial))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None, Official))
         ]

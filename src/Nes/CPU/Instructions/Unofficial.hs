@@ -1,6 +1,7 @@
 module Nes.CPU.Instructions.Unofficial (lax) where
 
 import Nes.CPU.Instructions.Addressing
+import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
 import Nes.CPU.State (Register (..))
 import Nes.Memory
@@ -14,3 +15,4 @@ lax mode = do
     byte <- readByte addr ()
     setRegister A byte
     setRegister X byte
+    setZeroAndNegativeFlags byte
