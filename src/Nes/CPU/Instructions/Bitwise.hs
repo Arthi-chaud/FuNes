@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, asl, lsr) where
+module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, asl, lsr, slo) where
 
 import Control.Monad
 import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
@@ -69,17 +69,25 @@ ror =
         (\byte -> setStatusFlagPure' Carry (testBit byte 0))
 
 rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r ()
-rotate f setCarry mode = withOperand mode $ \value -> do
-    res <- f value <$> getStatusFlag Carry
-    setZeroAndNegativeFlags res
-    modifyCPUState $ setCarry value
-    return res
+rotate f setCarry mode =
+    withOperand
+        mode
+        ( \value -> do
+            res <- f value <$> getStatusFlag Carry
+            setZeroAndNegativeFlags res
+            modifyCPUState $ setCarry value
+            return res
+        )
+        >> when (mode == AbsoluteX) tickOnce
 
 -- | Arithmetic Shift Left
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ASL
 asl :: AddressingMode -> CPU r ()
-asl mode = withOperand mode $ \value -> do
+asl mode = asl_ mode >> when (mode == AbsoluteX) tickOnce
+
+asl_ :: AddressingMode -> CPU r Byte
+asl_ mode = withOperand mode $ \value -> do
     let carry = testBit value 7
         res = shiftL value 1
     setStatusFlag' Carry carry
@@ -90,15 +98,34 @@ asl mode = withOperand mode $ \value -> do
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#LSR
 lsr :: AddressingMode -> CPU r ()
-lsr mode = withOperand mode $ \value -> do
-    let carry = testBit value 0
-        res = shiftR value 1
-    setStatusFlag' Carry carry
-    setZeroAndNegativeFlags res
-    return res
+lsr mode =
+    withOperand
+        mode
+        ( \value -> do
+            let carry = testBit value 0
+                res = shiftR value 1
+            setStatusFlag' Carry carry
+            setZeroAndNegativeFlags res
+            return res
+        )
+        >> when (mode == AbsoluteX) tickOnce
 
-withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r ()
-withOperand Accumulator f = getRegister A >>= f >>= setRegister A >> tickOnce
+-- | (Unofficial) Equivalent to ASL value then ORA value, except supporting more addressing modes
+slo :: AddressingMode -> CPU r ()
+slo mode = do
+    value <- asl_ mode
+    regA <- getRegister A
+    let res = regA .|. value
+    setZeroAndNegativeFlags res
+    setRegister A res
+
+withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
+withOperand Accumulator f = do
+    a <- getRegister A
+    res <- f a
+    setRegister A res
+    tickOnce
+    return res
 withOperand mode f = do
     addr <- getOperandAddr mode
     value <- readByte addr ()
@@ -106,5 +133,5 @@ withOperand mode f = do
     -- https://www.nesdev.org/wiki/Cycle_counting
     --  it takes 1 extra cycle to modify the value
     tickOnce
-    when (mode == AbsoluteX) tickOnce
     writeByte res addr ()
+    return res
