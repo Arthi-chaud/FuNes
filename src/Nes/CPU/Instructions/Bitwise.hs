@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, rla, asl, lsr, slo) where
+module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, rla, asl, lsr, sre, slo) where
 
 import Control.Monad
 import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
@@ -108,7 +108,10 @@ asl_ mode = withOperand mode $ \value -> do
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#LSR
 lsr :: AddressingMode -> CPU r ()
-lsr mode =
+lsr mode = lsr_ mode >> when (mode == AbsoluteX) tickOnce
+
+lsr_ :: AddressingMode -> CPU r Byte
+lsr_ mode =
     withOperand
         mode
         ( \value -> do
@@ -118,7 +121,12 @@ lsr mode =
             setZeroAndNegativeFlags res
             return res
         )
-        >> when (mode == AbsoluteX) tickOnce
+
+-- | (Unofficial) Equivalent to LSR and XOR
+sre :: AddressingMode -> CPU r ()
+sre mode = do
+    value <- lsr_ mode
+    void $ modifyRegisterA (.^. value)
 
 -- | (Unofficial) Equivalent to ASL value then ORA value, except supporting more addressing modes
 slo :: AddressingMode -> CPU r ()
