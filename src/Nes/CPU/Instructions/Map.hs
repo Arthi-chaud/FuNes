@@ -134,6 +134,7 @@ opcodeMap =
         , (0xf9, ("SBC", sbc, AbsoluteY, Official))
         , (0xe1, ("SBC", sbc, IndirectX, Official))
         , (0xf1, ("SBC", sbc, IndirectY, Official))
+        , (0xeb, ("SBC", sbc, Immediate, Unofficial))
         , (0x69, ("ADC", adc, Immediate, Official))
         , (0x65, ("ADC", adc, ZeroPage, Official))
         , (0x75, ("ADC", adc, ZeroPageX, Official))
