@@ -1,4 +1,12 @@
-module Nes.CPU.Instructions.Jump (jmp, jsr, rts, rti) where
+module Nes.CPU.Instructions.Jump (
+    -- * Jump
+    jmp,
+    jsr,
+
+    -- * Return
+    rts,
+    rti,
+) where
 
 import Data.Bits
 import Nes.CPU.Instructions.Addressing

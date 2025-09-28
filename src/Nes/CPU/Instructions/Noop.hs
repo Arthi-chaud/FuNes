@@ -5,6 +5,9 @@ import Nes.CPU.Instructions.Addressing (AddressingMode (..), getOperandAddr)
 import Nes.CPU.Monad
 import Nes.Memory (MemoryInterface (readByte))
 
+-- | No-op
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#NOP
 noop :: AddressingMode -> CPU r ()
 noop = \case
     None -> pure ()

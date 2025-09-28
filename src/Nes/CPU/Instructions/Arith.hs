@@ -1,6 +1,24 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny, isb, addToRegisterA) where
+module Nes.CPU.Instructions.Arith (
+    -- * Operate on register A with carry
+    adc,
+    sbc,
+
+    -- * Increment
+    inc,
+    inx,
+    iny,
+    isb,
+
+    -- * Decrement
+    dec,
+    dex,
+    dey,
+
+    -- * Internal
+    addToRegisterA,
+) where
 
 import Control.Monad
 import Data.Bits

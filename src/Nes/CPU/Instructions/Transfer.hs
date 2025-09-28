@@ -1,4 +1,14 @@
-module Nes.CPU.Instructions.Transfer (tax, tay, txa, tya, txs, tsx) where
+module Nes.CPU.Instructions.Transfer (
+    -- * Transfer to/from register A
+    tax,
+    tay,
+    txa,
+    tya,
+
+    -- * Transfter between register X and Status
+    txs,
+    tsx,
+) where
 
 import Control.Monad
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
