@@ -13,8 +13,7 @@ import qualified Data.ByteString.Internal as BS
 import Data.Functor (($>))
 import Data.Ix
 import Foreign
-import GHC.ForeignPtr (unsafeWithForeignPtr)
-import GHC.Storable (writeWord8OffPtr)
+import Nes.Internal
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Nes.Rom (Rom (prgRom))
@@ -63,11 +62,7 @@ newBus rom_ = do
     return $ Bus (castForeignPtr fptr) rom_ 0 (pure ()) -- TODO take arg
   where
     vramSize = 2048
-    callocVram = do
-        fptr <- mallocForeignPtrBytes vramSize
-        unsafeWithForeignPtr fptr $
-            \ptr -> forM_ [0 .. vramSize] $ \idx -> writeWord8OffPtr ptr idx 0
-        return fptr
+    callocVram = callocForeignPtr vramSize
 
 tick :: Int -> Bus -> IO Bus
 tick n bus = replicateM_ n (cycleCallback bus) $> bus{cycles = cycles bus + fromIntegral n}

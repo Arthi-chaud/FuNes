@@ -42,6 +42,7 @@ library
       Nes.CPU.Interpreter
       Nes.CPU.Monad
       Nes.CPU.State
+      Nes.Internal
       Nes.Memory
       Nes.Memory.Unsafe
       Nes.Rom
