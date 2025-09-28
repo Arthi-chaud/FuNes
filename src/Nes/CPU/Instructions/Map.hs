@@ -210,6 +210,10 @@ opcodeMap =
         , (0xb3, ("LAX", lax, IndirectY, Unofficial))
         , (0xb7, ("LAX", lax, ZeroPageY, Unofficial))
         , (0xbf, ("LAX", lax, AbsoluteY, Unofficial))
+        , (0x83, ("SAX", sax, IndirectX, Unofficial))
+        , (0x87, ("SAX", sax, ZeroPage, Unofficial))
+        , (0x8f, ("SAX", sax, Absolute, Unofficial))
+        , (0x97, ("SAX", sax, ZeroPageY, Unofficial))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None, Official))
         ]
