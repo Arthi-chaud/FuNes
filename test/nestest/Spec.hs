@@ -35,7 +35,7 @@ main = hspec spec
 spec :: Spec
 spec = it "Trace should match logfile" $ do
     expectedTrace <- loadExpectedRawTrace
-    BS.writeFile "expected.log" $ BSC.unlines expectedTrace
+    -- BS.writeFile "expected.log" $ BSC.unlines expectedTrace
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
@@ -44,8 +44,8 @@ spec = it "Trace should match logfile" $ do
     let st = newCPUState{programCounter = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
     _ <- try @IOException $ runProgram st (bus{cycles = 7}) (trace traceRef)
-    actualTrace <- toRawTrace <$> readIORef traceRef
-    BS.writeFile "actual.log" $ BSC.unlines actualTrace
+    actualTrace <- beforeUnhandledOpcode . toRawTrace <$> readIORef traceRef
+    -- BS.writeFile "actual.log" $ BSC.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace
     forM_ [0 .. length expectedTrace - 1] $ \i -> do
         let expected = expectedTrace !! i
@@ -167,16 +167,18 @@ getCPUStateTrace = withCPUState $ \st ->
         (unByte $ status st)
         (unByte $ registerS st)
 
+beforeUnhandledOpcode :: [ByteString] -> [ByteString]
+beforeUnhandledOpcode =
+    takeWhile
+        (\line -> not $ "C68B" `BS.isPrefixOf` line)
+
 loadExpectedRawTrace :: IO RawTrace
 loadExpectedRawTrace = do
     fileContent <- BS.readFile "test/assets/rom_trace.log"
     let rawTrace = BSC.lines fileContent
     -- TODO When project is finished, we shouldn't have to do the following filters
-    return $ withoutPPUCycles <$> beforeUnofficialInstr rawTrace
+    return $ withoutPPUCycles <$> beforeUnhandledOpcode rawTrace
   where
-    beforeUnofficialInstr =
-        takeWhile
-            (\line -> not $ "F55E" `BS.isPrefixOf` line)
     withoutPPUCycles bs =
         let beforePPU = fst . BS.breakSubstring " PPU:" $ bs
             afterPPU = snd . BS.breakSubstring " CYC:" $ bs

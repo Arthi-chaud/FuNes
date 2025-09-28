@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny, isb) where
+module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny, isb, addToRegisterA) where
 
 import Control.Monad
 import Data.Bits
@@ -17,9 +17,7 @@ import Nes.Memory
 adc :: AddressingMode -> CPU r ()
 adc mode = do
     value <- getOperandAddr mode >>= flip readByte ()
-    res <- addToRegisterA value
-    setRegister A res
-    setZeroAndNegativeFlags res
+    addToRegisterA value
 
 -- | Regisiter A - (_value in memory_) - (1 - Carry)
 --
@@ -27,15 +25,12 @@ adc mode = do
 sbc :: AddressingMode -> CPU r ()
 sbc mode = do
     value <- getOperandAddr mode >>= flip readByte ()
-    res <-
-        addToRegisterA (negateByte value)
-    setRegister A res
-    setZeroAndNegativeFlags res
+    addToRegisterA (negateByte value)
 
 -- | Does the computation and sets Carry and Overflow accordingly
 --
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L261
-addToRegisterA :: Byte -> CPU r Byte
+addToRegisterA :: Byte -> CPU r ()
 addToRegisterA value = do
     carry <- getStatusFlag Carry
     regA :: Word16 <- fromIntegral . unByte <$> getRegister A
@@ -47,7 +42,7 @@ addToRegisterA value = do
     let sumByte = fromIntegral sumInt :: Byte
     setStatusFlag' Overflow $ (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
     setRegister A sumByte
-    return sumByte
+    setZeroAndNegativeFlags sumByte
 
 -- | Increment value in memory
 --
@@ -63,9 +58,7 @@ inc mode = do
 isb :: AddressingMode -> CPU r ()
 isb mode = do
     byte <- modifyValueInMemory (+ 1) mode
-    res <- addToRegisterA (negateByte byte)
-    setRegister A res
-    setZeroAndNegativeFlags res
+    addToRegisterA (negateByte byte)
 
 -- | Decrement value in memory
 --

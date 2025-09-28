@@ -70,7 +70,6 @@ getOperandAddr'' = \case
             -- See https://www.nesdev.org/wiki/Instruction_reference#BPL
             signedOffset = fromIntegral (fromIntegral (unByte offset) :: Int8)
             res = Addr $ fromIntegral $ intPC + 1 + signedOffset
-        -- TODO notsure about page cross
         return (res, crossesPage (fromIntegral $ intPC + 1) res)
     ZeroPage -> do
         arg <- getPC >>= flip readByte ()

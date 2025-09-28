@@ -1,9 +1,11 @@
-module Nes.CPU.Instructions.Unofficial (lax, sax, dcp) where
+module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra) where
 
 import Control.Monad
 import Data.Bits
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
+import Nes.CPU.Instructions.Arith (addToRegisterA)
+import Nes.CPU.Instructions.Bitwise (ror_)
 import Nes.CPU.Monad
 import Nes.CPU.State (Flag (..), Register (..))
 import Nes.Memory
@@ -38,3 +40,9 @@ dcp mode = do
     tickOnce -- It's a Read-modify-write operation
     when (value <= a) $ setStatusFlag Carry
     setZeroAndNegativeFlags (a - value)
+
+-- | (Unofficial) ROR and ADC
+rra :: AddressingMode -> CPU r ()
+rra mode = do
+    value <- ror_ mode
+    addToRegisterA value

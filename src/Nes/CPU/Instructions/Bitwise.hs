@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, rla, asl, lsr, sre, slo) where
+module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, rla, asl, lsr, sre, slo, rol_, ror_) where
 
 import Control.Monad
 import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
@@ -63,16 +63,17 @@ rol_ =
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ROR
 ror :: AddressingMode -> CPU r ()
 ror mode = do
-    _ <-
-        rotate
-            ( \value carry ->
-                let shifted = shiftR value 1
-                 in if carry then setBit shifted 7 else shifted
-            )
-            (\byte -> setStatusFlagPure' Carry (testBit byte 0))
-            mode
-
+    _ <- ror_ mode
     when (mode == AbsoluteX) tickOnce
+
+ror_ :: AddressingMode -> CPU r Byte
+ror_ =
+    rotate
+        ( \value carry ->
+            let shifted = shiftR value 1
+             in if carry then setBit shifted 7 else shifted
+        )
+        (\byte -> setStatusFlagPure' Carry (testBit byte 0))
 
 rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r Byte
 rotate f setCarry mode =
