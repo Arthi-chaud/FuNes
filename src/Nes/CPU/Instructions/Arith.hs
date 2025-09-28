@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny) where
+module Nes.CPU.Instructions.Arith (adc, sbc, dec, dex, dey, inc, inx, iny, isb) where
 
 import Control.Monad
 import Data.Bits
@@ -55,22 +55,36 @@ addToRegisterA value = do
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#INC
 inc :: AddressingMode -> CPU r ()
-inc = modifyValueInMemory (+ 1)
+inc mode = do
+    void $ modifyValueInMemory (+ 1) mode
+    when (mode == AbsoluteX) tickOnce
+
+-- | (Unofficial) Equivalent to INC value then SBC value
+--
+-- Aka ISC
+isb :: AddressingMode -> CPU r ()
+isb mode = do
+    Byte byte <- modifyValueInMemory (+ 1) mode
+    res <- addToRegisterA $ fromIntegral (-(fromIntegral byte :: Int8) - 1)
+    setRegister A res
+    setZeroAndNegativeFlags res
 
 -- | Decrement value in memory
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#DEC
 dec :: AddressingMode -> CPU r ()
-dec = modifyValueInMemory (+ (-1))
+dec mode = do
+    void $ modifyValueInMemory (+ (-1)) mode
+    when (mode == AbsoluteX) tickOnce
 
-modifyValueInMemory :: (Byte -> Byte) -> AddressingMode -> CPU r ()
+modifyValueInMemory :: (Byte -> Byte) -> AddressingMode -> CPU r Byte
 modifyValueInMemory f mode = do
     addr <- getOperandAddr mode
     res <- f <$> readByte addr ()
-    when (mode == AbsoluteX) tickOnce
     tickOnce -- Is a Read-modify-write operation, we add one tick
     writeByte res addr ()
     setZeroAndNegativeFlags res
+    return res
 
 -- | Decrement X register
 --
