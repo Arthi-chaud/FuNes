@@ -38,6 +38,7 @@ library
       Nes.CPU.Instructions.Noop
       Nes.CPU.Instructions.Stack
       Nes.CPU.Instructions.Transfer
+      Nes.CPU.Instructions.Unofficial
       Nes.CPU.Interpreter
       Nes.CPU.Monad
       Nes.CPU.State

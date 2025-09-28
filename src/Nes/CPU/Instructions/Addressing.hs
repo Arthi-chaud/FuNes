@@ -65,7 +65,7 @@ getOperandAddr'' = \case
     Relative -> do
         pc <- getPC
         offset <- readByte pc ()
-        let intPC = fromIntegral $ unAddr pc :: Int
+        let intPC = addrToInt pc
             -- Note we need to wrap the unsinged word into a signed value
             -- See https://www.nesdev.org/wiki/Instruction_reference#BPL
             signedOffset = fromIntegral (fromIntegral (unByte offset) :: Int8)
