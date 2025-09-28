@@ -237,6 +237,13 @@ opcodeMap =
         , (0x17, ("SLO", slo, ZeroPageX, Unofficial))
         , (0x1b, ("SLO", slo, AbsoluteY, Unofficial))
         , (0x1f, ("SLO", slo, AbsoluteX, Unofficial))
+        , (0x23, ("RLA", rla, IndirectX, Unofficial))
+        , (0x27, ("RLA", rla, ZeroPage, Unofficial))
+        , (0x2f, ("RLA", rla, Absolute, Unofficial))
+        , (0x33, ("RLA", rla, IndirectY, Unofficial))
+        , (0x37, ("RLA", rla, ZeroPageX, Unofficial))
+        , (0x3b, ("RLA", rla, AbsoluteY, Unofficial))
+        , (0x3f, ("RLA", rla, AbsoluteX, Unofficial))
         , -- Note: for this one, the intepreter is responsible for breaking
           (0x00, ("BRK", const $ pure (), None, Official))
         ]
