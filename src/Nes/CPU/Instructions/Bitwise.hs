@@ -1,4 +1,27 @@
-module Nes.CPU.Instructions.Bitwise (bit, and, ora, eor, rol, ror, rla, asl, lsr, sre, slo, rol_, ror_) where
+module Nes.CPU.Instructions.Bitwise (
+    -- * Test bit
+    bit,
+
+    -- * Bit logic
+    and,
+    ora,
+    eor,
+
+    -- * Rotate
+    rol,
+    ror,
+    rla,
+    asl,
+    lsr,
+
+    -- * Unofficial
+    sre,
+    slo,
+
+    -- * Internal
+    rol_,
+    ror_,
+) where
 
 import Control.Monad
 import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
@@ -9,6 +32,9 @@ import Nes.CPU.State
 import Nes.Memory
 import Prelude hiding (and)
 
+-- |  test if one or more bits are set in a target memory location
+--
+-- https://www.nesdev.org/obelisk-6502-guide/reference.html#BIT
 bit :: AddressingMode -> CPU r ()
 bit mode = do
     value <- getOperandAddr mode >>= flip readByte ()

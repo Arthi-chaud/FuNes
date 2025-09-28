@@ -1,3 +1,4 @@
+-- | Unofficial instructions that are combinations of official ones
 module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra) where
 
 import Control.Monad

@@ -1,4 +1,14 @@
-module Nes.CPU.Instructions.Access (lda, ldx, ldy, sta, stx, sty) where
+module Nes.CPU.Instructions.Access (
+    -- * Load register value
+    lda,
+    ldx,
+    ldy,
+
+    -- * Store register value
+    sta,
+    stx,
+    sty,
+) where
 
 import Control.Monad
 import Nes.CPU.Instructions.Addressing
