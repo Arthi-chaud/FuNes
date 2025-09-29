@@ -45,6 +45,7 @@ library
       Nes.Internal
       Nes.Memory
       Nes.Memory.Unsafe
+      Nes.PPU.State
       Nes.Rom
   other-modules:
       Paths_funes
