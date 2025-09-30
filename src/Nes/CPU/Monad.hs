@@ -40,7 +40,9 @@ module Nes.CPU.Monad (
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR))
 import Nes.Bus (Bus (..))
-import qualified Nes.Bus as Bus
+import Nes.Bus.Constants
+import Nes.Bus.Monad (BusM, runBusM)
+import qualified Nes.Bus.Monad as BusM
 import Nes.CPU.State
 import Nes.Memory
 
@@ -115,7 +117,7 @@ popStackByte :: CPU r Byte
 popStackByte = do
     newRegS <- (+ 1) <$> getRegister S
     setRegister S newRegS
-    readByte (Bus.stackAddr + byteToAddr newRegS) ()
+    readByte (stackAddr + byteToAddr newRegS) ()
 
 popStackAddr :: CPU r Addr
 popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
@@ -123,7 +125,7 @@ popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
 pushByteStack :: Byte -> CPU r ()
 pushByteStack byte = do
     regS <- getRegister S
-    writeByte byte (Bus.stackAddr + byteToAddr regS) ()
+    writeByte byte (stackAddr + byteToAddr regS) ()
     setRegister S (regS - 1)
 
 pushAddrStack :: Addr -> CPU r ()
@@ -133,13 +135,18 @@ pushAddrStack addr = do
     pushByteStack high
     pushByteStack low
 
+withBus :: BusM (a, Bus) a -> CPU r a
+withBus f = MkCPU $ \st bus cont -> do
+    (res, bus') <- runBusM bus f
+    cont st bus' res
+
 -- | Unsafe action that provides access to Bus
 --
 -- When using it, ticks ARE NOT taken into account.
 -- For testing purposes
-unsafeWithBus :: (Bus -> IO a) -> CPU r a
+unsafeWithBus :: BusM (a, Bus) a -> CPU r a
 unsafeWithBus f = MkCPU $ \st bus cont -> do
-    res <- f bus
+    (res, _) <- runBusM bus f
     cont st bus res
 
 -- | Resets the state of the CPU
@@ -150,26 +157,26 @@ reset = do
 
 instance MemoryInterface () (CPU r) where
     readByte n () = do
-        res <- unsafeWithBus $ Nes.Memory.readByte n
+        res <- withBus (Nes.Memory.readByte n ())
         tickOnce
         return res
 
     readAddr n () = do
-        res <- unsafeWithBus $ Nes.Memory.readAddr n
+        res <- withBus (Nes.Memory.readAddr n ())
         tick 2
         return res
 
     writeByte byte dest () = do
-        unsafeWithBus $ Nes.Memory.writeByte byte dest
+        withBus (Nes.Memory.writeByte byte dest ())
         tickOnce
 
     writeAddr byte dest () = do
-        unsafeWithBus $ Nes.Memory.writeAddr byte dest
+        withBus (Nes.Memory.writeAddr byte dest ())
         tick 2
 
 tick :: Int -> CPU r ()
 tick n = MkCPU $ \st bus cont -> do
-    newbus <- Bus.tick n bus
+    ((), newbus) <- runBusM bus $ BusM.tick n
     cont st newbus ()
 
 tickOnce :: CPU r ()

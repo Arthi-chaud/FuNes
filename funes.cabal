@@ -25,6 +25,8 @@ source-repository head
 library
   exposed-modules:
       Nes.Bus
+      Nes.Bus.Constants
+      Nes.Bus.Monad
       Nes.CPU.Instructions.Access
       Nes.CPU.Instructions.Addressing
       Nes.CPU.Instructions.After
