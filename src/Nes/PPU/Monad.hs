@@ -1,11 +1,29 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Nes.PPU.Monad where
+module Nes.PPU.Monad (
+    -- * Monad
+    PPU (..),
+    runPPU,
+
+    -- * State
+    withPointers,
+    withPPUState,
+    modifyPPUState,
+
+    -- * Register
+    writeAddressRegister,
+    writeControlRegister,
+
+    -- * Data
+    readData,
+    writeData,
+    mirrorVramAddr,
+    incrementVramAddr,
+) where
 
 import Control.Monad.IO.Class
 import Data.Bits
-import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Functor ((<&>))
 import Data.Ix
@@ -52,17 +70,9 @@ instance (MonadIO (PPU r)) where
 instance (MonadFail (PPU r)) where
     fail s = liftIO $ fail s
 
-getPaletteTable :: PPU r MemoryPointer
-getPaletteTable = MkPPU $ \st ptr cont ->
-    cont st ptr (paletteTable ptr)
-
-getChrRom :: PPU r ByteString
-getChrRom = MkPPU $ \st ptr cont ->
-    cont st ptr (chrRom ptr)
-
-getVram :: PPU r MemoryPointer
-getVram = MkPPU $ \st ptr cont ->
-    cont st ptr (vram ptr)
+withPointers :: (PPUPointers -> a) -> PPU r a
+withPointers f = MkPPU $ \st ptr cont ->
+    cont st ptr (f ptr)
 
 withPPUState :: (PPUState -> a) -> PPU r a
 withPPUState f = MkPPU $ \st ptr cont ->
@@ -98,20 +108,17 @@ readData = do
     go addr
         | inRange chrRomRange addr = do
             res <- withPPUState internalBuffer
-            value <- Byte <$> (getChrRom <&> (`BS.index` byteToInt res))
+            value <- Byte <$> (withPointers chrRom <&> (`BS.index` byteToInt res))
             modifyPPUState $ \st -> st{internalBuffer = value}
             return value
         | inRange vramRange addr = do
             res <- withPPUState internalBuffer
-            value <- getVram >>= liftIO . readByte (byteToAddr res)
+            value <- withPointers vram >>= liftIO . readByte (byteToAddr res)
             modifyPPUState $ \st -> st{internalBuffer = value}
             return res
         | inRange unusedAddrRange addr = fail "Address range should not be accessed"
-        | addr `elem` paletteIndexes = do
-            plt <- getPaletteTable
-            liftIO $ readByte (addr - 0x10 - 0x3f00) plt
         | inRange paletteTableRange addr = do
-            plt <- getPaletteTable
+            plt <- withPointers paletteTable
             -- https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch6.1/src/ppu/mod.rs#L169
             let addr1 =
                     if addr `elem` paletteIndexes
@@ -129,10 +136,10 @@ writeData byte = do
         | inRange chrRomRange addr = fail "Invalid write to CHR Rom"
         | inRange vramRange addr = do
             mirr <- withPPUState mirroring
-            writeByte byte (mirrorVramAddr mirr addr) =<< getVram
+            writeByte byte (mirrorVramAddr mirr addr) =<< withPointers vram
         | inRange unusedAddrRange addr = fail "Invalid write in address space"
         | addr `elem` paletteIndexes = do
-            plt <- getPaletteTable
+            plt <- withPointers paletteTable
             let addr1 =
                     if addr `elem` paletteIndexes
                         then addr - 0x10
