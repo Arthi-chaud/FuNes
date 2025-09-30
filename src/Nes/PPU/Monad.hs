@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Nes.PPU.Monad (PPU (..)) where
+module Nes.PPU.Monad where
 
 import Control.Monad.IO.Class
 import Data.Bits
@@ -12,21 +12,16 @@ import Data.Ix
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Nes.PPU.Constants
+import Nes.PPU.Pointers
 import Nes.PPU.State
 import Nes.Rom (Mirroring (..))
 
 newtype PPU r a = MkPPU
     { unPPU ::
         PPUState ->
-        ByteString -> -- CHR Rom
-        MemoryPointer -> -- Palette Table
-        MemoryPointer -> -- VRAM
-        MemoryPointer -> -- OAM Data
+        PPUPointers ->
         ( PPUState ->
-          ByteString ->
-          MemoryPointer ->
-          MemoryPointer ->
-          MemoryPointer ->
+          PPUPointers ->
           a ->
           IO r
         ) -> -- Continuation
@@ -34,43 +29,48 @@ newtype PPU r a = MkPPU
     }
     deriving (Functor)
 
+runPPU :: PPUState -> PPUPointers -> PPU (a, PPUState) a -> IO (a, PPUState)
+runPPU st ptrs f = unPPU op st ptrs $ \_ _ a -> return a
+  where
+    op = f >>= \a -> withPPUState (a,)
+
 instance Applicative (PPU r) where
-    pure a = MkPPU $ \st chr plt vram oam cont -> cont st chr plt vram oam a
-    liftA2 f (MkPPU a) (MkPPU b) = MkPPU $ \st chr plt vram oam cont ->
-        a st chr plt vram oam $ \st' chr' plt' vram' oam' aRes ->
-            b st' chr' plt' vram' oam' $ \st'' chr'' plt'' vram'' oam'' bRes ->
-                cont st'' chr'' plt'' vram'' oam'' (f aRes bRes)
+    pure a = MkPPU $ \st ptr cont -> cont st ptr a
+    liftA2 f (MkPPU a) (MkPPU b) = MkPPU $ \st ptr cont ->
+        a st ptr $ \st' ptr' aRes ->
+            b st' ptr' $ \st'' ptr'' bRes ->
+                cont st'' ptr'' (f aRes bRes)
 
 instance Monad (PPU r) where
-    (MkPPU a) >>= next = MkPPU $ \st chr plt vram oam cont ->
-        a st chr plt vram oam $ \st' chr' plt' vram' oam' aRes ->
-            unPPU (next aRes) st' chr' plt' vram' oam' cont
+    (MkPPU a) >>= next = MkPPU $ \st ptr cont ->
+        a st ptr $ \st' ptr' aRes ->
+            unPPU (next aRes) st' ptr' cont
 instance (MonadIO (PPU r)) where
-    liftIO io = MkPPU $ \st chr plt vram oam cont ->
-        io >>= cont st chr plt vram oam
+    liftIO io = MkPPU $ \st ptr cont ->
+        io >>= cont st ptr
 
 instance (MonadFail (PPU r)) where
     fail s = liftIO $ fail s
 
 getPaletteTable :: PPU r MemoryPointer
-getPaletteTable = MkPPU $ \st chr plt vram oam cont ->
-    cont st chr plt vram oam plt
+getPaletteTable = MkPPU $ \st ptr cont ->
+    cont st ptr (paletteTable ptr)
 
 getChrRom :: PPU r ByteString
-getChrRom = MkPPU $ \st chr plt vram oam cont ->
-    cont st chr plt vram oam chr
+getChrRom = MkPPU $ \st ptr cont ->
+    cont st ptr (chrRom ptr)
 
 getVram :: PPU r MemoryPointer
-getVram = MkPPU $ \st chr plt vram oam cont ->
-    cont st chr plt vram oam vram
+getVram = MkPPU $ \st ptr cont ->
+    cont st ptr (vram ptr)
 
 withPPUState :: (PPUState -> a) -> PPU r a
-withPPUState f = MkPPU $ \st chr plt vram oam cont ->
-    cont st chr plt vram oam (f st)
+withPPUState f = MkPPU $ \st ptr cont ->
+    cont st ptr (f st)
 
 modifyPPUState :: (PPUState -> PPUState) -> PPU r ()
-modifyPPUState f = MkPPU $ \st chr plt vram oam cont ->
-    cont (f st) chr plt vram oam ()
+modifyPPUState f = MkPPU $ \st ptr cont ->
+    cont (f st) ptr ()
 
 writeAddressRegister :: Byte -> PPU r ()
 writeAddressRegister byte = modifyPPUState $ \st ->
@@ -128,9 +128,8 @@ writeData byte = do
     go addr
         | inRange chrRomRange addr = fail "Invalid write to CHR Rom"
         | inRange vramRange addr = do
-            vram <- getVram
             mirr <- withPPUState mirroring
-            writeByte byte (mirrorVramAddr mirr addr) vram
+            writeByte byte (mirrorVramAddr mirr addr) =<< getVram
         | inRange unusedAddrRange addr = fail "Invalid write in address space"
         | addr `elem` paletteIndexes = do
             plt <- getPaletteTable

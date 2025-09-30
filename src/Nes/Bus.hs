@@ -16,7 +16,9 @@ import Foreign
 import Nes.Internal
 import Nes.Memory
 import Nes.Memory.Unsafe ()
-import Nes.Rom (Rom (prgRom))
+import Nes.PPU.Pointers (PPUPointers, newPPUPointers)
+import Nes.PPU.State (PPUState, newPPUState)
+import Nes.Rom (Rom (..))
 import Text.Printf
 
 -- Constants
@@ -54,12 +56,18 @@ data Bus = Bus
     -- ^ The number of ellapsed cycles
     , cycleCallback :: IO ()
     -- ^ The function executed on every tick (e.g. sleep)
+    , ppuState :: PPUState
+    -- ^ The state of the PPU
+    , ppuPointers :: PPUPointers
+    -- ^ Memory dedicated to PPU
     }
 
 newBus :: Rom -> IO Bus
 newBus rom_ = do
     fptr <- callocVram
-    return $ Bus (castForeignPtr fptr) rom_ 0 (pure ()) -- TODO take arg
+    ppuPtrs <- newPPUPointers (chrRom rom_)
+    let ppuSt = newPPUState (mirroring rom_)
+    return $ Bus (castForeignPtr fptr) rom_ 0 (pure ()) ppuSt ppuPtrs
   where
     vramSize = 2048
     callocVram = callocForeignPtr vramSize
@@ -68,23 +76,23 @@ tick :: Int -> Bus -> IO Bus
 tick n bus = replicateM_ n (cycleCallback bus) $> bus{cycles = cycles bus + fromIntegral n}
 
 instance (MonadFail m, MonadIO m, MemoryInterface MemoryPointer m) => MemoryInterface Bus m where
-    readByte idx (Bus fptr rom _ _) = do
+    readByte idx (Bus fptr rom _ _ _ _) = do
         checkBound idx
         translatedAddr <- translateReadAddr idx
         case translatedAddr of
             VRamAddr addr -> readByte addr fptr
             PRGRomAddr addr -> readPrgRomAddr addr rom readByte
-    readAddr idx (Bus fptr rom _ _) = do
+    readAddr idx (Bus fptr rom _ _ _ _) = do
         checkBound idx
         translatedAddr <- translateReadAddr idx
         case translatedAddr of
             VRamAddr addr -> readAddr addr fptr
             PRGRomAddr addr -> readPrgRomAddr addr rom readAddr
-    writeByte byte idx (Bus fptr _ _ _) = do
+    writeByte byte idx (Bus fptr _ _ _ _ _) = do
         checkBound idx
         translateWriteAddr idx $ \dest ->
             writeByte byte dest fptr
-    writeAddr addr idx (Bus fptr _ _ _) = do
+    writeAddr addr idx (Bus fptr _ _ _ _ _) = do
         checkBound idx
         translateWriteAddr idx $ \dest ->
             writeAddr addr dest fptr
