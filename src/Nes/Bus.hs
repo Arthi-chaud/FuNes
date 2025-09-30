@@ -48,7 +48,7 @@ prgRomRange = (0x8000, 0xffff)
 data Bus = Bus
     { memory :: MemoryPointer
     -- ^ Pointer to writeable memory
-    , cartidge :: Rom
+    , cartridge :: Rom
     -- ^ Read-only memory, see 'Rom'
     , cycles :: Integer
     -- ^ The number of ellapsed cycles
