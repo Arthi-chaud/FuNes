@@ -1,7 +1,41 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Nes.CPU.Monad where
+module Nes.CPU.Monad (
+    -- * Monad
+    CPU (..),
+
+    -- * State
+    modifyCPUState,
+    withCPUState,
+    getCycles,
+    reset,
+    --- * PC
+    getPC,
+    setPC,
+    incrementPC,
+    readAtPC,
+    --- * Registers
+    getRegister,
+    setRegister,
+    --- * Status flags
+    setStatusFlag,
+    setStatusFlag',
+    getStatusFlag,
+    clearStatusFlag,
+    --- * Ticks
+    tick,
+    tickOnce,
+
+    -- * Stack
+    popStackAddr,
+    popStackByte,
+    pushAddrStack,
+    pushByteStack,
+
+    -- * Unsafe
+    unsafeWithBus,
+) where
 
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR))
