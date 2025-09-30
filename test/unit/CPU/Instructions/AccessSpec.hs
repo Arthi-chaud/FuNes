@@ -1,7 +1,7 @@
 module CPU.Instructions.AccessSpec (spec) where
 
 import Internal
-import Nes.Bus (Bus (cycles))
+import Nes.Bus (Bus (cpuVram, cycles))
 import Nes.CPU.State
 import Nes.Memory
 import Test.Hspec
@@ -26,7 +26,7 @@ spec = do
                     getStatusFlagPure Negative cpu `shouldBe` False
 
             it "Load from memory (Zero Page)" $ do
-                let setup = writeByte 0x55 0x10
+                let setup bus = writeByte 0x55 0x10 (cpuVram bus)
                 withMemorySetup [0xa5, 0x10, 0x00] setup $ \cpu _ -> do
                     registerA cpu `shouldBe` 0x55
         describe "Register X" $ do
@@ -53,5 +53,5 @@ spec = do
   where
     testStore st opcode = do
         withStateAndMemorySetup [opcode, 0x05, 0x00] st (const $ pure ()) $ \_ bus -> do
-            byte <- readByte 0x05 bus
+            byte <- readByte 0x05 (cpuVram bus)
             byte `shouldBe` 0x10

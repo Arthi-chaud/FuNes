@@ -1,7 +1,7 @@
 module CPU.Instructions.StackSpec (spec) where
 
 import Internal
-import Nes.Bus
+import Nes.Bus.Constants
 import Nes.CPU.State
 import Test.Hspec
 

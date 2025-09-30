@@ -14,6 +14,7 @@ import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
 import Data.Int
 import qualified Data.Map as Map
 import Nes.Bus (Bus (..), newBus)
+import Nes.Bus.Monad
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Interpreter (runProgram)
@@ -81,14 +82,14 @@ getPCTrace = printf "%04X " . unAddr <$> getPC
 getOpCodeTrace :: CPU r String
 getOpCodeTrace = do
     pc <- getPC
-    opcodeByte <- unsafeWithBus $ readByte pc
+    opcodeByte <- unsafeWithBus $ readByte pc ()
     (opname, _, addressing, type_) <-
         maybe
             (fail $ printf "Unknown opcode: %02X" $ unByte opcodeByte)
             return
             (Map.lookup opcodeByte opcodeMap)
     instrArgs <- forM [1 .. (getOperandSize addressing)] $
-        \offset -> unsafeWithBus $ readByte (Addr $ unAddr pc + fromIntegral offset)
+        \offset -> unsafeWithBus $ readByte (Addr $ unAddr pc + fromIntegral offset) ()
     let fmtBytesList = unwords (printf "%02X" . unByte <$> (opcodeByte : instrArgs))
         fmtOpname = (if type_ == Unofficial then '*' else ' ') : BSC.unpack opname
     asm <- do
@@ -101,8 +102,8 @@ getOpCodeTrace = do
 getOpCodeAsmArg :: Byte -> Addr -> AddressingMode -> CPU r String
 getOpCodeAsmArg opcode ptr addressing = do
     (memAddr, storedVal) <- getMemAddrAndStoredValue
-    addressByte <- unByte <$> unsafeWithBus (readByte ptr)
-    addressAddr <- unAddr <$> unsafeWithBus (readAddr ptr)
+    addressByte <- unByte <$> unsafeWithBus (readByte ptr ())
+    addressAddr <- unAddr <$> unsafeWithBus (readAddr ptr ())
 
     x <- getRegister X
     y <- getRegister Y
@@ -113,10 +114,10 @@ getOpCodeAsmArg opcode ptr addressing = do
             jmpAddr <-
                 if addressAddr .&. 0x00ff == 0x00ff
                     then do
-                        low <- fromIntegral . unByte <$> unsafeWithBus (readByte $ Addr addressAddr)
-                        high <- fromIntegral . unByte <$> unsafeWithBus (readByte $ Addr addressAddr .&. 0xff00)
+                        low <- fromIntegral . unByte <$> unsafeWithBus (readByte (Addr addressAddr) ())
+                        high <- fromIntegral . unByte <$> unsafeWithBus (readByte (Addr addressAddr .&. 0xff00) ())
                         return $ high `shiftL` 8 .|. low
-                    else unsafeWithBus $ readAddr $ Addr addressAddr
+                    else unsafeWithBus $ readAddr (Addr addressAddr) ()
             return $ printf "($%04X) = %04X" addressAddr $ unAddr jmpAddr
         _ -> return $ case addressing of
             Accumulator -> "A "
@@ -151,11 +152,11 @@ getOpCodeAsmArg opcode ptr addressing = do
         _ -> do
             addr <- fst <$> withoutTick (getOperandAddr' addressing)
 
-            byte <- unsafeWithBus $ readByte addr
+            byte <- unsafeWithBus $ readByte addr ()
             return (unAddr addr, unByte byte)
 
 getCycleTrace :: CPU r String
-getCycleTrace = printf "CYC:%d" <$> unsafeWithBus (return . cycles)
+getCycleTrace = printf "CYC:%d" <$> unsafeWithBus (withBus cycles)
 
 getCPUStateTrace :: CPU r String
 getCPUStateTrace = withCPUState $ \st ->

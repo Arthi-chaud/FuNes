@@ -20,7 +20,7 @@ module Nes.CPU.State (
 ) where
 
 import Foreign
-import Nes.Bus (stackReset)
+import Nes.Bus.Constants (stackReset)
 import Nes.Memory
 
 -- | Offset in the vram of the next instruction to execute
