@@ -83,7 +83,7 @@ data Flag
     | BreakCommand2
     | Overflow
     | Negative
-    deriving (Eq, Show)
+    deriving (Eq, Show, Enum)
 
 setStatusFlagPure :: Flag -> CPUState -> CPUState
 setStatusFlagPure flag = setStatusFlagPure' flag True
@@ -98,12 +98,4 @@ getStatusFlagPure :: Flag -> CPUState -> Bool
 getStatusFlagPure flag st = testBit (status st) (unsafeFlagToBitOffset flag)
 
 unsafeFlagToBitOffset :: Flag -> Int
-unsafeFlagToBitOffset = \case
-    Carry -> 0
-    Zero -> 1
-    InteruptDisable -> 2
-    DecimalMode -> 3
-    BreakCommand -> 4
-    BreakCommand2 -> 5
-    Overflow -> 6
-    Negative -> 7
+unsafeFlagToBitOffset = fromEnum
