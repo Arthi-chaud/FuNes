@@ -4,7 +4,23 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Nes.Bus where
+module Nes.Bus (
+    -- * Bus
+    Bus (..),
+    newBus,
+
+    -- * ticks
+    tick,
+
+    -- * Constants
+    ramRange,
+    stackAddr,
+    stackReset,
+    ppuRegisters,
+    programLocation,
+    programEnd,
+    prgRomRange,
+) where
 
 import Control.Monad
 import Control.Monad.IO.Class
