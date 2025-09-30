@@ -22,36 +22,24 @@ module Nes.PPU.State (
     clearStatusFlagPure,
     setStatusFlagPure',
     vramAddrIncrement,
-
-    -- * Constants
-    vramSize,
-    oamDataSize,
-    paletteTableSize,
 ) where
 
 import Data.Bits
 import Nes.Memory (Addr (..), Byte (..), bytesToAddr)
 import Nes.Rom
 
-vramSize :: Int
-vramSize = 2048
-
-oamDataSize :: Int
-oamDataSize = 64 * 4
-
-paletteTableSize :: Int
-paletteTableSize = 32
-
 data PPUState = MkPPUState
     { mirroring :: Mirroring
     , controlRegister :: Byte
     , addressRegister :: AddressRegister
+    , internalBuffer :: Byte
     }
 
 newPPUState :: Mirroring -> PPUState
 newPPUState mirroring =
     let addressRegister = newAddressRegister
         controlRegister = 0
+        internalBuffer = 0
      in MkPPUState{..}
 
 data AddressRegister = AddressRegister

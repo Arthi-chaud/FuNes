@@ -45,6 +45,8 @@ library
       Nes.Internal
       Nes.Memory
       Nes.Memory.Unsafe
+      Nes.PPU.Constants
+      Nes.PPU.Monad
       Nes.PPU.State
       Nes.Rom
   other-modules:
