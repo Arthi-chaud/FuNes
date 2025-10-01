@@ -3,6 +3,7 @@ module CPU.Instructions.StackSpec (spec) where
 import Internal
 import Nes.Bus.Constants
 import Nes.CPU.State
+import Nes.FlagRegister
 import Test.Hspec
 
 spec :: Spec
@@ -18,7 +19,7 @@ spec = do
     it "Push and Pull Status Flag" $ do
         -- Push Status, clear carry bit and restore
         let program = [0x08, 0x18, 0x28, 0x00]
-            st = setStatusFlag Carry newCPUState
+            st = modifyStatusRegister (setFlag Carry) newCPUState
         withState program st $ \st' -> do
-            getStatusFlag Carry st' `shouldBe` True
+            getFlag Carry (status st') `shouldBe` True
             registerS st' `shouldBe` stackReset

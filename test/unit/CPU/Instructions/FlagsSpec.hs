@@ -2,6 +2,7 @@ module CPU.Instructions.FlagsSpec (spec) where
 
 import Internal
 import Nes.CPU.State
+import Nes.FlagRegister
 import Test.Hspec
 
 spec :: Spec
@@ -19,9 +20,9 @@ spec = do
     testSetFlag flag opcode =
         it (show flag) $ do
             withProgram [opcode, 0x00] $ \cpu ->
-                getStatusFlag flag cpu `shouldBe` True
+                getFlag flag (status cpu) `shouldBe` True
     testClearFlag flag opcode =
         it (show flag) $ do
-            let st = setStatusFlag flag newCPUState
+            let st = modifyStatusRegister (setFlag flag) newCPUState
             withState [opcode, 0x00] st $ \cpu ->
-                getStatusFlag flag cpu `shouldBe` False
+                getFlag flag (status cpu) `shouldBe` False

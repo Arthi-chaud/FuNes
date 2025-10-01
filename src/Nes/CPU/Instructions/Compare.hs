@@ -4,6 +4,7 @@ import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.FlagRegister
 import Nes.Memory
 
 -- | Computes (Register A - _value in memory_)
@@ -30,4 +31,4 @@ compareWithRegister reg mode = do
     regValue <- withCPUState $ getRegister reg
     let diff = regValue - value
     setZeroAndNegativeFlags diff
-    modifyCPUState $ setStatusFlag' Carry (regValue >= value)
+    modifyCPUState $ modifyStatusRegister $ setFlag' Carry (regValue >= value)
