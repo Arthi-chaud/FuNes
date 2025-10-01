@@ -19,7 +19,7 @@ import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Interpreter (runProgram)
 import Nes.CPU.Monad
-import Nes.CPU.State (CPUState (..), Register (..), newCPUState)
+import Nes.CPU.State (CPUState (..), Register (..), StatusRegister (..), newCPUState)
 import Nes.Memory (Addr (Addr, unAddr), Byte (unByte), MemoryInterface (readByte), addrToInt, byteToAddr, readAddr)
 import Nes.Rom (fromFile)
 import Test.Hspec
@@ -165,7 +165,7 @@ getCPUStateTrace = withCPUState $ \st ->
         (unByte $ registerA st)
         (unByte $ registerX st)
         (unByte $ registerY st)
-        (unByte $ status st)
+        (unByte $ unSR $ status st)
         (unByte $ registerS st)
 
 beforeUnhandledOpcode :: [ByteString] -> [ByteString]

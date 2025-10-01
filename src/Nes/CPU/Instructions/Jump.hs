@@ -11,7 +11,7 @@ module Nes.CPU.Instructions.Jump (
 import Data.Bits
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State hiding (clearStatusFlag, setStatusFlag)
 import Nes.Memory
 
 -- | Sets the program counter to the address specified by the operand
@@ -63,7 +63,7 @@ rti :: CPU r ()
 rti = do
     -- Note: When one opcode does multiple stack pops, the max
     newStatus <- popStackByte
-    modifyCPUState (\st -> st{status = newStatus})
+    modifyCPUState (\st -> st{status = MkSR newStatus})
     clearStatusFlag BreakCommand
     setStatusFlag BreakCommand2
     setPC =<< popStackAddr

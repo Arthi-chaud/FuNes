@@ -28,7 +28,8 @@ import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State hiding (getRegister, getStatusFlag, setRegister, setStatusFlag')
+import qualified Nes.CPU.State as Pure
 import Nes.Memory
 import Prelude hiding (and)
 
@@ -82,7 +83,7 @@ rol_ =
             let shifted = shiftL value 1
              in if carry then setBit shifted 0 else shifted
         )
-        (\byte -> setStatusFlagPure' Carry (testBit byte 7))
+        (\byte -> Pure.setStatusFlag' Carry (testBit byte 7))
 
 -- | Rotate right
 --
@@ -99,7 +100,7 @@ ror_ =
             let shifted = shiftR value 1
              in if carry then setBit shifted 7 else shifted
         )
-        (\byte -> setStatusFlagPure' Carry (testBit byte 0))
+        (\byte -> Pure.setStatusFlag' Carry (testBit byte 0))
 
 rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r Byte
 rotate f setCarry mode =

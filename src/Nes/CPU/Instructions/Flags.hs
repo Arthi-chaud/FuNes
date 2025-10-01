@@ -1,7 +1,7 @@
 module Nes.CPU.Instructions.Flags (clc, cld, cli, clv, sec, sed, sei) where
 
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State (StatusRegisterFlag (..))
 
 -- | Clear Carry Flag
 --

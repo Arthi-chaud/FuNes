@@ -43,7 +43,8 @@ import Nes.Bus (Bus (..))
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, runBusM)
 import qualified Nes.Bus.Monad as BusM
-import Nes.CPU.State
+import Nes.CPU.State hiding (clearStatusFlag, getRegister, getStatusFlag, setRegister, setStatusFlag, setStatusFlag')
+import qualified Nes.CPU.State as Pure
 import Nes.Memory
 
 -- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
@@ -96,22 +97,22 @@ readAtPC :: CPU r Byte
 readAtPC = getPC >>= flip readByte ()
 
 setRegister :: Register -> Byte -> CPU r ()
-setRegister reg byte = modifyCPUState $ setRegisterPure reg byte
+setRegister reg byte = modifyCPUState $ Pure.setRegister reg byte
 
 getRegister :: Register -> CPU r Byte
-getRegister = withCPUState . getRegisterPure
+getRegister = withCPUState . Pure.getRegister
 
-setStatusFlag :: Flag -> CPU r ()
-setStatusFlag flag = modifyCPUState (setStatusFlagPure flag)
+setStatusFlag :: StatusRegisterFlag -> CPU r ()
+setStatusFlag flag = modifyCPUState (Pure.setStatusFlag flag)
 
-setStatusFlag' :: Flag -> Bool -> CPU r ()
-setStatusFlag' flag bool = modifyCPUState $ if bool then setStatusFlagPure flag else clearStatusFlagPure flag
+setStatusFlag' :: StatusRegisterFlag -> Bool -> CPU r ()
+setStatusFlag' flag bool = modifyCPUState $ Pure.setStatusFlag' flag bool
 
-clearStatusFlag :: Flag -> CPU r ()
-clearStatusFlag flag = modifyCPUState (clearStatusFlagPure flag)
+clearStatusFlag :: StatusRegisterFlag -> CPU r ()
+clearStatusFlag flag = modifyCPUState (Pure.clearStatusFlag flag)
 
-getStatusFlag :: Flag -> CPU r Bool
-getStatusFlag flag = withCPUState (getStatusFlagPure flag)
+getStatusFlag :: StatusRegisterFlag -> CPU r Bool
+getStatusFlag flag = withCPUState (Pure.getStatusFlag flag)
 
 popStackByte :: CPU r Byte
 popStackByte = do

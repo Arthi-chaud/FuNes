@@ -12,14 +12,14 @@ spec = do
                 let st = newCPUState{registerA = 0x10}
                 withState [0xaa, 0x00] st $ \cpu -> do
                     registerX cpu `shouldBe` 0x10
-                    getStatusFlagPure Zero cpu `shouldBe` False
-                    getStatusFlagPure Negative cpu `shouldBe` False
+                    getStatusFlag Zero cpu `shouldBe` False
+                    getStatusFlag Negative cpu `shouldBe` False
             it "Set Zero" $ do
                 let st = newCPUState{registerA = 0}
                 withState [0xaa, 0x00] st $ \cpu -> do
                     registerX cpu `shouldBe` 0x0
-                    getStatusFlagPure Zero cpu `shouldBe` True
-                    getStatusFlagPure Negative cpu `shouldBe` False
+                    getStatusFlag Zero cpu `shouldBe` True
+                    getStatusFlag Negative cpu `shouldBe` False
         it "Register Y" $ do
             let st = newCPUState{registerA = 0x10}
             withState [0xa8, 0x00] st $ \cpu -> do

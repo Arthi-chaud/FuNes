@@ -11,7 +11,7 @@ import Control.Monad
 import Data.Bits
 import Data.Int (Int8)
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State hiding (getRegister)
 import Nes.Memory
 import Text.Printf (printf)
 

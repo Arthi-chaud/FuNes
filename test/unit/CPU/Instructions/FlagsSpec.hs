@@ -19,9 +19,9 @@ spec = do
     testSetFlag flag opcode =
         it (show flag) $ do
             withProgram [opcode, 0x00] $ \cpu ->
-                getStatusFlagPure flag cpu `shouldBe` True
+                getStatusFlag flag cpu `shouldBe` True
     testClearFlag flag opcode =
         it (show flag) $ do
-            let st = setStatusFlagPure flag newCPUState
+            let st = setStatusFlag flag newCPUState
             withState [opcode, 0x00] st $ \cpu ->
-                getStatusFlagPure flag cpu `shouldBe` False
+                getStatusFlag flag cpu `shouldBe` False

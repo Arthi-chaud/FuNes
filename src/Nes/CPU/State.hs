@@ -5,22 +5,20 @@ module Nes.CPU.State (
 
     -- * Accessing registers
     Register (..),
-    getRegisterPure,
-    setRegisterPure,
+    getRegister,
+    setRegister,
 
     -- * Accessing status flags
-    Flag (..),
-    getStatusFlagPure,
-    setStatusFlagPure,
-    clearStatusFlagPure,
-    setStatusFlagPure',
-
-    -- * Internal
-    unsafeFlagToBitOffset,
+    StatusRegister (..),
+    StatusRegisterFlag (..),
+    getStatusFlag,
+    setStatusFlag,
+    clearStatusFlag,
+    setStatusFlag',
 ) where
 
-import Foreign
 import Nes.Bus.Constants (stackReset)
+import Nes.FlagRegister
 import Nes.Memory
 
 -- | Offset in the vram of the next instruction to execute
@@ -33,7 +31,7 @@ data CPUState = MkCPUState
     , registerY :: {-# UNPACK #-} !Byte
     , registerS :: {-# UNPACK #-} !Byte
     -- ^ Aka Stack pointer
-    , status :: {-# UNPACK #-} !Byte
+    , status :: {-# UNPACK #-} !StatusRegister
     , programCounter :: {-# UNPACK #-} !Addr
     }
     deriving (Eq, Show)
@@ -41,15 +39,15 @@ data CPUState = MkCPUState
 -- | Enumeration of the CPU's registers
 data Register = A | X | Y | S deriving (Eq, Show)
 
-getRegisterPure :: Register -> CPUState -> Byte
-getRegisterPure = \case
+getRegister :: Register -> CPUState -> Byte
+getRegister = \case
     A -> registerA
     X -> registerX
     Y -> registerY
     S -> registerS
 
-setRegisterPure :: Register -> Byte -> CPUState -> CPUState
-setRegisterPure reg byte st = case reg of
+setRegister :: Register -> Byte -> CPUState -> CPUState
+setRegister reg byte st = case reg of
     A -> st{registerA = byte}
     X -> st{registerX = byte}
     Y -> st{registerY = byte}
@@ -67,14 +65,16 @@ newCPUState =
         , registerS = stackReset
         , -- see https://www.nesdev.org/wiki/Status_flags
           -- and https://bugzmanov.github.io/nes_ebook/chapter_4.html
-          status = 0b00100100
+          status = MkSR 0b00100100
         , programCounter = 0
         }
+
+newtype StatusRegister = MkSR {unSR :: Byte} deriving (Eq, Show)
 
 -- | Flags for the CPU's status
 --
 -- https://www.nesdev.org/obelisk-6502-guide/registers.html#C
-data Flag
+data StatusRegisterFlag
     = Carry
     | Zero
     | InteruptDisable
@@ -85,17 +85,20 @@ data Flag
     | Negative
     deriving (Eq, Show, Enum)
 
-setStatusFlagPure :: Flag -> CPUState -> CPUState
-setStatusFlagPure flag = setStatusFlagPure' flag True
+instance FlagRegister StatusRegister where
+    type Flag StatusRegister = StatusRegisterFlag
+    fromByte = MkSR
+    toByte = unSR
+    flagToBitOffset = fromEnum
 
-setStatusFlagPure' :: Flag -> Bool -> CPUState -> CPUState
-setStatusFlagPure' flag bool st = st{status = (if bool then setBit else clearBit) (status st) (unsafeFlagToBitOffset flag)}
+setStatusFlag :: StatusRegisterFlag -> CPUState -> CPUState
+setStatusFlag flag st = st{status = setFlag flag (status st)}
 
-clearStatusFlagPure :: Flag -> CPUState -> CPUState
-clearStatusFlagPure flag = setStatusFlagPure' flag False
+setStatusFlag' :: StatusRegisterFlag -> Bool -> CPUState -> CPUState
+setStatusFlag' flag bool st = st{status = setFlag' flag bool (status st)}
 
-getStatusFlagPure :: Flag -> CPUState -> Bool
-getStatusFlagPure flag st = testBit (status st) (unsafeFlagToBitOffset flag)
+clearStatusFlag :: StatusRegisterFlag -> CPUState -> CPUState
+clearStatusFlag flag st = st{status = clearFlag flag (status st)}
 
-unsafeFlagToBitOffset :: Flag -> Int
-unsafeFlagToBitOffset = fromEnum
+getStatusFlag :: StatusRegisterFlag -> CPUState -> Bool
+getStatusFlag flag st = getFlag flag (status st)
