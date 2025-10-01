@@ -15,11 +15,17 @@ module Nes.PPU.Monad (
     writeAddressRegister,
     writeControlRegister,
 
-    -- * Data
+    -- * Vram
     readData,
     writeData,
     mirrorVramAddr,
     incrementVramAddr,
+
+    -- * Status
+    readStatus,
+
+    -- * OAM
+    readOamData,
 ) where
 
 import Control.Monad.IO.Class
@@ -88,7 +94,7 @@ writeAddressRegister byte = modifyPPUState $ \st ->
 
 writeControlRegister :: Byte -> PPU r ()
 writeControlRegister byte = modifyPPUState $ \st ->
-    st{controlRegister = byte}
+    st{controlRegister = MkCR byte}
 
 incrementVramAddr :: PPU r ()
 incrementVramAddr = modifyPPUState $ \st ->
@@ -98,6 +104,20 @@ incrementVramAddr = modifyPPUState $ \st ->
                 (vramAddrIncrement st)
                 (addressRegister st)
         }
+
+readStatus :: PPU r Byte
+readStatus = do
+    byte <- unSR <$> withPPUState statusRegister
+    modifyPPUState $ clearStatusFlag VBlankStarted
+    modifyPPUState $ \st -> st{addressRegister = addressRegisterResetLatch (addressRegister st)}
+    -- TODO Reset Scroll Latch
+    return byte
+
+readOamData :: PPU r Byte
+readOamData = do
+    oam <- withPointers oamData
+    addr <- withPPUState oamOffset
+    readByte (byteToAddr addr) oam
 
 readData :: PPU r Byte
 readData = do
