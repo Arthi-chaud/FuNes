@@ -15,31 +15,34 @@ module Nes.PPU.State (
     addressRegisterResetLatch,
 
     -- * Control Register
+    ControlRegister (..),
     ControlRegisterFlag (..),
-    unsafeFlagToBitOffset,
-    getStatusFlagPure,
-    setStatusFlagPure,
-    clearStatusFlagPure,
-    setStatusFlagPure',
+    getControlFlag,
+    setControlFlag,
+    clearControlFlag,
+    setControlFlag',
     vramAddrIncrement,
 ) where
 
 import Data.Bits
+import Nes.FlagRegister
 import Nes.Memory (Addr (..), Byte (..), bytesToAddr)
 import Nes.Rom
 
 data PPUState = MkPPUState
     { mirroring :: Mirroring
-    , controlRegister :: Byte
+    , controlRegister :: ControlRegister
     , addressRegister :: AddressRegister
     , internalBuffer :: Byte
+    , oamOffset :: Byte
     }
 
 newPPUState :: Mirroring -> PPUState
 newPPUState mirroring =
     let addressRegister = newAddressRegister
-        controlRegister = 0
+        controlRegister = MkCR 0
         internalBuffer = 0
+        oamOffset = 0
      in MkPPUState{..}
 
 data AddressRegister = AddressRegister
@@ -93,6 +96,8 @@ addressRegisterResetLatch ar = ar{highPtr = True}
 addressRegisterGet :: AddressRegister -> Addr
 addressRegisterGet (AddressRegister low high _) = bytesToAddr low high
 
+newtype ControlRegister = MkCR {unCR :: Byte} deriving (Eq, Show)
+
 -- | Flags from the control register
 --
 -- 7  bit  0
@@ -124,23 +129,24 @@ data ControlRegisterFlag
     | GenerateNMI
     deriving (Eq, Show, Enum)
 
-unsafeFlagToBitOffset :: ControlRegisterFlag -> Int
-unsafeFlagToBitOffset = fromEnum
+instance FlagRegister ControlRegister where
+    type Flag ControlRegister = ControlRegisterFlag
+    fromByte = MkCR
+    toByte = unCR
+    flagToBitOffset = fromEnum
+
+setControlFlag :: ControlRegisterFlag -> PPUState -> PPUState
+setControlFlag flag = setControlFlag' flag True
+
+setControlFlag' :: ControlRegisterFlag -> Bool -> PPUState -> PPUState
+setControlFlag' flag bool st = st{controlRegister = setFlag' flag bool (controlRegister st)}
+
+clearControlFlag :: ControlRegisterFlag -> PPUState -> PPUState
+clearControlFlag flag = setControlFlag' flag False
+
+getControlFlag :: ControlRegisterFlag -> PPUState -> Bool
+getControlFlag flag st = getFlag flag (controlRegister st)
 
 vramAddrIncrement :: PPUState -> Byte
 vramAddrIncrement st =
-    if testBit (controlRegister st) (fromEnum VramAddIncrement) then 32 else 1
-
-setStatusFlagPure :: ControlRegisterFlag -> PPUState -> PPUState
-setStatusFlagPure flag = setStatusFlagPure' flag True
-
-setStatusFlagPure' :: ControlRegisterFlag -> Bool -> PPUState -> PPUState
-setStatusFlagPure' flag bool st = st{controlRegister = (if bool then setBit else clearBit) (controlRegister st) (unsafeFlagToBitOffset flag)}
-
-clearStatusFlagPure :: ControlRegisterFlag -> PPUState -> PPUState
-clearStatusFlagPure flag = setStatusFlagPure' flag False
-
-getStatusFlagPure :: ControlRegisterFlag -> PPUState -> Bool
-getStatusFlagPure flag st = testBit (controlRegister st) (unsafeFlagToBitOffset flag)
-
--- TODO Remove CR type
+    if getControlFlag VramAddIncrement st then 32 else 1
