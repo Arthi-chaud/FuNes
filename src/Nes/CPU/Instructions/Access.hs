@@ -14,7 +14,7 @@ import Control.Monad
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
-import Nes.CPU.State hiding (getRegister, setRegister)
+import Nes.CPU.State
 import Nes.Memory
 
 -- | Load Register A
@@ -39,7 +39,7 @@ loadRegisterFromMemory :: Register -> AddressingMode -> CPU r ()
 loadRegisterFromMemory register mode = do
     argAddr <- getOperandAddr mode
     param <- readByte argAddr ()
-    setRegister register param
+    modifyCPUState $ setRegister register param
     setZeroAndNegativeFlags param
 
 -- | Store the value of the A register in memory
@@ -63,7 +63,7 @@ sty = storeRegisterInMemory Y
 storeRegisterInMemory :: Register -> AddressingMode -> CPU r ()
 storeRegisterInMemory reg mode = do
     (addr, crosses) <- getOperandAddr' mode
-    value <- getRegister reg
+    value <- withCPUState $ getRegister reg
     -- https://www.nesdev.org/wiki/Cycle_counting
     -- assumes the worst case of page crossing and always spends 1 extra read cycle.
     when (crosses || mode == AbsoluteX) tickOnce

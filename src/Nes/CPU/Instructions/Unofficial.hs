@@ -8,7 +8,7 @@ import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Instructions.Arith (addToRegisterA)
 import Nes.CPU.Instructions.Bitwise (ror_)
 import Nes.CPU.Monad
-import Nes.CPU.State (Register (..), StatusRegisterFlag (..))
+import Nes.CPU.State
 import Nes.Memory
 
 -- Source: https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes
@@ -18,16 +18,17 @@ lax :: AddressingMode -> CPU r ()
 lax mode = do
     addr <- getOperandAddr mode
     byte <- readByte addr ()
-    setRegister A byte
-    setRegister X byte
+    modifyCPUState $
+        setRegister A byte
+            . setRegister X byte
     setZeroAndNegativeFlags byte
 
 -- | Stores the bitwise AND of A and X. No flags are affected
 sax :: AddressingMode -> CPU r ()
 sax mode = do
     dest <- getOperandAddr mode
-    a <- getRegister A
-    x <- getRegister X
+    a <- withCPUState $ getRegister A
+    x <- withCPUState $ getRegister X
     let res = a .&. x
     writeByte res dest ()
 
@@ -37,9 +38,9 @@ dcp mode = do
     addr <- getOperandAddr mode
     value <- (+ (-1)) <$> readByte addr ()
     writeByte value addr ()
-    a <- getRegister A
+    a <- withCPUState $ getRegister A
     tickOnce -- It's a Read-modify-write operation
-    when (value <= a) $ setStatusFlag Carry
+    when (value <= a) $ modifyCPUState (setStatusFlag Carry)
     setZeroAndNegativeFlags (a - value)
 
 -- | (Unofficial) ROR and ADC
