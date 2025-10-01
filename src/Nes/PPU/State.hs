@@ -13,36 +13,29 @@ module Nes.PPU.State (
     addressRegisterIncrement,
     addressRegisterUpdate,
     addressRegisterResetLatch,
+    modifyAddressRegister,
 
     -- * Control Register
     ControlRegister (..),
     ControlRegisterFlag (..),
-    getControlFlag,
-    setControlFlag,
-    clearControlFlag,
-    setControlFlag',
+    modifyControlRegister,
 
     -- * Status Register
     StatusRegister (..),
     StatusRegisterFlag (..),
-    getStatusFlag,
-    setStatusFlag,
-    clearStatusFlag,
-    setStatusFlag',
+    modifyStatusRegister,
 
     -- * Scroll Register
     ScrollRegister (..),
     newScrollRegister,
-    writeScrollRegister,
-    resetScrollRegisterLatch,
+    scrollRegisterWrite,
+    scrollRegisterResetLatch,
+    modifyScrollRegister,
 
     -- * Mask Register
     MaskRegister (..),
     MaskRegisterFlag (..),
-    getMaskFlag,
-    setMaskFlag,
-    clearMaskFlag,
-    setMaskFlag',
+    modifyMaskRegister,
 
     -- * VRAM
     vramAddrIncrement,
@@ -63,6 +56,21 @@ data PPUState = MkPPUState
     , internalBuffer :: Byte
     , oamOffset :: Byte
     }
+
+modifyControlRegister :: (ControlRegister -> ControlRegister) -> PPUState -> PPUState
+modifyControlRegister f st = st{controlRegister = f $ controlRegister st}
+
+modifyAddressRegister :: (AddressRegister -> AddressRegister) -> PPUState -> PPUState
+modifyAddressRegister f st = st{addressRegister = f $ addressRegister st}
+
+modifyStatusRegister :: (StatusRegister -> StatusRegister) -> PPUState -> PPUState
+modifyStatusRegister f st = st{statusRegister = f $ statusRegister st}
+
+modifyScrollRegister :: (ScrollRegister -> ScrollRegister) -> PPUState -> PPUState
+modifyScrollRegister f st = st{scrollRegister = f $ scrollRegister st}
+
+modifyMaskRegister :: (MaskRegister -> MaskRegister) -> PPUState -> PPUState
+modifyMaskRegister f st = st{maskRegister = f $ maskRegister st}
 
 newPPUState :: Mirroring -> PPUState
 newPPUState mirroring =
@@ -165,17 +173,9 @@ instance FlagRegister ControlRegister where
     toByte = unCR
     flagToBitOffset = fromEnum
 
-setControlFlag :: ControlRegisterFlag -> PPUState -> PPUState
-setControlFlag flag = setControlFlag' flag True
-
-setControlFlag' :: ControlRegisterFlag -> Bool -> PPUState -> PPUState
-setControlFlag' flag bool st = st{controlRegister = setFlag' flag bool (controlRegister st)}
-
-clearControlFlag :: ControlRegisterFlag -> PPUState -> PPUState
-clearControlFlag flag = setControlFlag' flag False
-
-getControlFlag :: ControlRegisterFlag -> PPUState -> Bool
-getControlFlag flag st = getFlag flag (controlRegister st)
+vramAddrIncrement :: ControlRegister -> Byte
+vramAddrIncrement st =
+    if getFlag VramAddIncrement st then 32 else 1
 
 newtype StatusRegister = MkSR {unSR :: Byte} deriving (Eq, Show)
 
@@ -196,42 +196,21 @@ instance FlagRegister StatusRegister where
     toByte = unSR
     flagToBitOffset = fromEnum
 
-setStatusFlag :: StatusRegisterFlag -> PPUState -> PPUState
-setStatusFlag flag = setStatusFlag' flag True
-
-setStatusFlag' :: StatusRegisterFlag -> Bool -> PPUState -> PPUState
-setStatusFlag' flag bool st = st{statusRegister = setFlag' flag bool (statusRegister st)}
-
-clearStatusFlag :: StatusRegisterFlag -> PPUState -> PPUState
-clearStatusFlag flag = setStatusFlag' flag False
-
-getStatusFlag :: StatusRegisterFlag -> PPUState -> Bool
-getStatusFlag flag st = getFlag flag (statusRegister st)
-
-vramAddrIncrement :: PPUState -> Byte
-vramAddrIncrement st =
-    if getControlFlag VramAddIncrement st then 32 else 1
-
 data ScrollRegister = MkScrollR {x :: Byte, y :: Byte, latch :: Bool}
 
 newScrollRegister :: ScrollRegister
 newScrollRegister = MkScrollR 0 0 False
 
-writeScrollRegister :: Byte -> PPUState -> PPUState
-writeScrollRegister byte st =
+scrollRegisterWrite :: Byte -> ScrollRegister -> ScrollRegister
+scrollRegisterWrite byte sr =
     let
-        sr = scrollRegister st
         sr1 = if latch sr then sr{x = byte} else sr{y = byte}
         sr2 = sr1{latch = not (latch sr1)}
      in
-        st{scrollRegister = sr2}
+        sr2
 
-resetScrollRegisterLatch :: PPUState -> PPUState
-resetScrollRegisterLatch st =
-    let
-        sr = (scrollRegister st){latch = False}
-     in
-        st{scrollRegister = sr}
+scrollRegisterResetLatch :: ScrollRegister -> ScrollRegister
+scrollRegisterResetLatch st = st{latch = False}
 
 newtype MaskRegister = MkMR {unMR :: Byte} deriving (Eq, Show)
 
@@ -251,15 +230,3 @@ instance FlagRegister MaskRegister where
     fromByte = MkMR
     toByte = unMR
     flagToBitOffset = fromEnum
-
-setMaskFlag :: MaskRegisterFlag -> PPUState -> PPUState
-setMaskFlag flag = setMaskFlag' flag True
-
-setMaskFlag' :: MaskRegisterFlag -> Bool -> PPUState -> PPUState
-setMaskFlag' flag bool st = st{maskRegister = setFlag' flag bool (maskRegister st)}
-
-clearMaskFlag :: MaskRegisterFlag -> PPUState -> PPUState
-clearMaskFlag flag = setMaskFlag' flag False
-
-getMaskFlag :: MaskRegisterFlag -> PPUState -> Bool
-getMaskFlag flag st = getFlag flag (maskRegister st)

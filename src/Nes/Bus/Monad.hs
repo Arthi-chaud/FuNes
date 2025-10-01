@@ -93,7 +93,11 @@ instance MemoryInterface () (BusM r) where
                 modifyPPUState $
                     \st -> st{oamOffset = byte}
             | idx == 0x2004 = withPPU $ writeOamData byte
-            | idx == 0x2005 = withPPU $ modifyPPUState $ writeScrollRegister byte
+            | idx == 0x2005 =
+                withPPU $
+                    modifyPPUState $
+                        modifyScrollRegister $
+                            scrollRegisterWrite byte
             | idx == 0x2006 = withPPU $
                 modifyPPUState $
                     \st -> st{addressRegister = addressRegisterUpdate byte (addressRegister st)}
