@@ -26,7 +26,7 @@ import Data.Word
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
-import Nes.CPU.State hiding (getRegister, getStatusFlag, setRegister, setStatusFlag')
+import Nes.CPU.State
 import Nes.Memory
 
 -- | Regisiter A + (_value in memory_) + Carry
@@ -50,16 +50,16 @@ sbc mode = do
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L261
 addToRegisterA :: Byte -> CPU r ()
 addToRegisterA value = do
-    carry <- getStatusFlag Carry
-    regA :: Word16 <- fromIntegral . unByte <$> getRegister A
+    carry <- withCPUState $ getStatusFlag Carry
+    regA :: Word16 <- fromIntegral . unByte <$> withCPUState (getRegister A)
     let sumInt =
             regA
                 + (fromIntegral . unByte $ value)
                 + (if carry then 1 else 0)
-    setStatusFlag' Carry $ sumInt > 0x00ff
+    modifyCPUState $ setStatusFlag' Carry $ sumInt > 0x00ff
     let sumByte = fromIntegral sumInt :: Byte
-    setStatusFlag' Overflow $ (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
-    setRegister A sumByte
+    modifyCPUState $ setStatusFlag' Overflow $ (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
+    modifyCPUState $ setRegister A sumByte
     setZeroAndNegativeFlags sumByte
 
 -- | Increment value in memory
@@ -109,8 +109,8 @@ dey = decrementRegister Y
 
 decrementRegister :: Register -> CPU r ()
 decrementRegister reg = do
-    res <- (\y -> y - 1) <$> getRegister reg
-    setRegister reg res
+    res <- (\y -> y - 1) <$> withCPUState (getRegister reg)
+    modifyCPUState $ setRegister reg res
     setZeroAndNegativeFlags res
 
 -- | Increment the value of the X register
@@ -127,6 +127,6 @@ iny = incrementRegister Y
 
 incrementRegister :: Register -> CPU r ()
 incrementRegister reg = do
-    newRegY <- (+ 1) <$> getRegister reg
-    setRegister reg newRegY
+    newRegY <- (+ 1) <$> withCPUState (getRegister reg)
+    modifyCPUState (setRegister reg newRegY)
     setZeroAndNegativeFlags newRegY

@@ -1,46 +1,46 @@
 module Nes.CPU.Instructions.Flags (clc, cld, cli, clv, sec, sed, sei) where
 
 import Nes.CPU.Monad
-import Nes.CPU.State (StatusRegisterFlag (..))
+import Nes.CPU.State
 
 -- | Clear Carry Flag
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#CLC
 clc :: CPU r ()
-clc = clearStatusFlag Carry
+clc = modifyCPUState $ clearStatusFlag Carry
 
 -- | Clear Decimal mode flag
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#CLD
 cld :: CPU r ()
-cld = clearStatusFlag DecimalMode
+cld = modifyCPUState $ clearStatusFlag DecimalMode
 
 -- | Clear Interrupt Disable
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#CLI
 cli :: CPU r ()
-cli = clearStatusFlag InteruptDisable
+cli = modifyCPUState $ clearStatusFlag InteruptDisable
 
 -- | Clear Overflow Flag
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#CLV
 clv :: CPU r ()
-clv = clearStatusFlag Overflow
+clv = modifyCPUState $ clearStatusFlag Overflow
 
 -- | Set Carry Flag
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SEC
 sec :: CPU r ()
-sec = setStatusFlag Carry
+sec = modifyCPUState $ setStatusFlag Carry
 
 -- | Set Decimal mode flag
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SED
 sed :: CPU r ()
-sed = setStatusFlag DecimalMode
+sed = modifyCPUState $ setStatusFlag DecimalMode
 
 -- | Set Interrupt Disable
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SEI
 sei :: CPU r ()
-sei = setStatusFlag InteruptDisable
+sei = modifyCPUState $ setStatusFlag InteruptDisable

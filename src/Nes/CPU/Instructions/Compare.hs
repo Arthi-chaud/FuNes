@@ -3,7 +3,7 @@ module Nes.CPU.Instructions.Compare (cmp, cpx, cpy) where
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
-import Nes.CPU.State hiding (getRegister, setStatusFlag')
+import Nes.CPU.State
 import Nes.Memory
 
 -- | Computes (Register A - _value in memory_)
@@ -27,7 +27,7 @@ cpy = compareWithRegister Y
 compareWithRegister :: Register -> AddressingMode -> CPU r ()
 compareWithRegister reg mode = do
     value <- getOperandAddr mode >>= flip readByte ()
-    regValue <- getRegister reg
+    regValue <- withCPUState $ getRegister reg
     let diff = regValue - value
     setZeroAndNegativeFlags diff
-    setStatusFlag' Carry (regValue >= value)
+    modifyCPUState $ setStatusFlag' Carry (regValue >= value)

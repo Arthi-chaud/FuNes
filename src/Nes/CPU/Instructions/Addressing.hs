@@ -11,7 +11,7 @@ import Control.Monad
 import Data.Bits
 import Data.Int (Int8)
 import Nes.CPU.Monad
-import Nes.CPU.State hiding (getRegister)
+import Nes.CPU.State
 import Nes.Memory
 import Text.Printf (printf)
 
@@ -100,7 +100,7 @@ getOperandAddr'' = \case
         ptr <- getPC >>= flip readByte ()
         low <- readByte (byteToAddr ptr) ()
         high <- readByte (byteToAddr (ptr + 1)) ()
-        y <- getRegister Y
+        y <- withCPUState $ getRegister Y
         let derefBase = bytesToAddr low high
             deref = derefBase + byteToAddr y
         return (deref, crossesPage deref derefBase)

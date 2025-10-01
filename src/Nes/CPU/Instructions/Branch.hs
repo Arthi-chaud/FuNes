@@ -2,7 +2,7 @@ module Nes.CPU.Instructions.Branch (bvc, bvs, bcc, bcs, beq, bne, bmi, bpl) wher
 
 import Control.Monad
 import Nes.CPU.Instructions.Addressing (AddressingMode, getOperandAddr')
-import Nes.CPU.Monad hiding (getStatusFlag)
+import Nes.CPU.Monad
 import Nes.CPU.State
 
 -- | Branch over if Overflow flag is clear

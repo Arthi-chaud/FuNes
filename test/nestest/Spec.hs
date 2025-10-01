@@ -19,8 +19,8 @@ import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Interpreter (runProgram)
 import Nes.CPU.Monad
-import Nes.CPU.State (CPUState (..), Register (..), StatusRegister (..), newCPUState)
-import Nes.Memory (Addr (Addr, unAddr), Byte (unByte), MemoryInterface (readByte), addrToInt, byteToAddr, readAddr)
+import Nes.CPU.State
+import Nes.Memory
 import Nes.Rom (fromFile)
 import Test.Hspec
 import Text.Printf (printf)
@@ -105,8 +105,8 @@ getOpCodeAsmArg opcode ptr addressing = do
     addressByte <- unByte <$> unsafeWithBus (readByte ptr ())
     addressAddr <- unAddr <$> unsafeWithBus (readAddr ptr ())
 
-    x <- getRegister X
-    y <- getRegister Y
+    x <- withCPUState $ getRegister X
+    y <- withCPUState $ getRegister Y
     case opcode of
         0x4c -> return $ printf "$%04X" memAddr
         0x20 -> return $ printf "$%04X" memAddr

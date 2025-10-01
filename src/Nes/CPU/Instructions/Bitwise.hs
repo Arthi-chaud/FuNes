@@ -28,8 +28,7 @@ import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
-import Nes.CPU.State hiding (getRegister, getStatusFlag, setRegister, setStatusFlag')
-import qualified Nes.CPU.State as Pure
+import Nes.CPU.State
 import Nes.Memory
 import Prelude hiding (and)
 
@@ -39,11 +38,12 @@ import Prelude hiding (and)
 bit :: AddressingMode -> CPU r ()
 bit mode = do
     value <- getOperandAddr mode >>= flip readByte ()
-    regA <- getRegister A
+    regA <- withCPUState $ getRegister A
     let res = regA .&. value
-    setStatusFlag' Zero $ res == 0
-    setStatusFlag' Overflow $ testBit value 6
-    setStatusFlag' Negative $ testBit value 7
+    modifyCPUState $
+        setStatusFlag' Zero (res == 0)
+            . setStatusFlag' Overflow (testBit value 6)
+            . setStatusFlag' Negative (testBit value 7)
 
 -- | Register A = Register A & _value in memory_
 --
@@ -83,7 +83,7 @@ rol_ =
             let shifted = shiftL value 1
              in if carry then setBit shifted 0 else shifted
         )
-        (\byte -> Pure.setStatusFlag' Carry (testBit byte 7))
+        (\byte -> setStatusFlag' Carry (testBit byte 7))
 
 -- | Rotate right
 --
@@ -100,14 +100,14 @@ ror_ =
             let shifted = shiftR value 1
              in if carry then setBit shifted 7 else shifted
         )
-        (\byte -> Pure.setStatusFlag' Carry (testBit byte 0))
+        (\byte -> setStatusFlag' Carry (testBit byte 0))
 
 rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r Byte
 rotate f setCarry mode =
     withOperand
         mode
         ( \value -> do
-            res <- f value <$> getStatusFlag Carry
+            res <- f value <$> withCPUState (getStatusFlag Carry)
             setZeroAndNegativeFlags res
             modifyCPUState $ setCarry value
             return res
@@ -128,7 +128,7 @@ asl_ :: AddressingMode -> CPU r Byte
 asl_ mode = withOperand mode $ \value -> do
     let carry = testBit value 7
         res = shiftL value 1
-    setStatusFlag' Carry carry
+    modifyCPUState $ setStatusFlag' Carry carry
     setZeroAndNegativeFlags res
     return res
 
@@ -145,7 +145,7 @@ lsr_ mode =
         ( \value -> do
             let carry = testBit value 0
                 res = shiftR value 1
-            setStatusFlag' Carry carry
+            modifyCPUState $ setStatusFlag' Carry carry
             setZeroAndNegativeFlags res
             return res
         )
@@ -164,9 +164,9 @@ slo mode = do
 
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
 withOperand Accumulator f = do
-    a <- getRegister A
+    a <- withCPUState $ getRegister A
     res <- f a
-    setRegister A res
+    modifyCPUState $ setRegister A res
     tickOnce
     return res
 withOperand mode f = do
@@ -181,8 +181,8 @@ withOperand mode f = do
 
 modifyRegisterA :: (Byte -> Byte) -> CPU r Byte
 modifyRegisterA f = do
-    regA <- getRegister A
+    regA <- withCPUState $ getRegister A
     let res = f regA
     setZeroAndNegativeFlags res
-    setRegister A res
+    modifyCPUState $ setRegister A res
     return res

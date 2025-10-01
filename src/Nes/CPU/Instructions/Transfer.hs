@@ -13,7 +13,7 @@ module Nes.CPU.Instructions.Transfer (
 import Control.Monad
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
-import Nes.CPU.State hiding (getRegister, setRegister)
+import Nes.CPU.State
 import Nes.Memory (Byte)
 
 -- | Transfer Register A to X
@@ -54,6 +54,6 @@ tsx = void $ transferToRegister S X >>= setZeroAndNegativeFlags
 
 transferToRegister :: Register -> Register -> CPU r Byte
 transferToRegister src dest = do
-    value <- getRegister src
-    setRegister dest value
+    value <- withCPUState $ getRegister src
+    modifyCPUState $ setRegister dest value
     return value

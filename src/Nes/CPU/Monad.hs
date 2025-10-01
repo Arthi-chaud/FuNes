@@ -15,14 +15,6 @@ module Nes.CPU.Monad (
     setPC,
     incrementPC,
     readAtPC,
-    --- * Registers
-    getRegister,
-    setRegister,
-    --- * Status flags
-    setStatusFlag,
-    setStatusFlag',
-    getStatusFlag,
-    clearStatusFlag,
     --- * Ticks
     tick,
     tickOnce,
@@ -43,8 +35,7 @@ import Nes.Bus (Bus (..))
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, runBusM)
 import qualified Nes.Bus.Monad as BusM
-import Nes.CPU.State hiding (clearStatusFlag, getRegister, getStatusFlag, setRegister, setStatusFlag, setStatusFlag')
-import qualified Nes.CPU.State as Pure
+import Nes.CPU.State
 import Nes.Memory
 
 -- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
@@ -96,28 +87,10 @@ incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
 readAtPC :: CPU r Byte
 readAtPC = getPC >>= flip readByte ()
 
-setRegister :: Register -> Byte -> CPU r ()
-setRegister reg byte = modifyCPUState $ Pure.setRegister reg byte
-
-getRegister :: Register -> CPU r Byte
-getRegister = withCPUState . Pure.getRegister
-
-setStatusFlag :: StatusRegisterFlag -> CPU r ()
-setStatusFlag flag = modifyCPUState (Pure.setStatusFlag flag)
-
-setStatusFlag' :: StatusRegisterFlag -> Bool -> CPU r ()
-setStatusFlag' flag bool = modifyCPUState $ Pure.setStatusFlag' flag bool
-
-clearStatusFlag :: StatusRegisterFlag -> CPU r ()
-clearStatusFlag flag = modifyCPUState (Pure.clearStatusFlag flag)
-
-getStatusFlag :: StatusRegisterFlag -> CPU r Bool
-getStatusFlag flag = withCPUState (Pure.getStatusFlag flag)
-
 popStackByte :: CPU r Byte
 popStackByte = do
-    newRegS <- (+ 1) <$> getRegister S
-    setRegister S newRegS
+    newRegS <- (+ 1) <$> withCPUState (getRegister S)
+    modifyCPUState $ setRegister S newRegS
     readByte (stackAddr + byteToAddr newRegS) ()
 
 popStackAddr :: CPU r Addr
@@ -125,9 +98,9 @@ popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
 
 pushByteStack :: Byte -> CPU r ()
 pushByteStack byte = do
-    regS <- getRegister S
+    regS <- withCPUState $ getRegister S
     writeByte byte (stackAddr + byteToAddr regS) ()
-    setRegister S (regS - 1)
+    modifyCPUState $ setRegister S (regS - 1)
 
 pushAddrStack :: Addr -> CPU r ()
 pushAddrStack addr = do
