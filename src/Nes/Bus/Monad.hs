@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Nes.Bus.Monad where
+module Nes.Bus.Monad (BusM (..), runBusM, tick, withBus, withPPU) where
 
 import Control.Monad
 import Control.Monad.IO.Class
