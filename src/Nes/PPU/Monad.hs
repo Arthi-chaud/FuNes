@@ -30,6 +30,7 @@ import Data.Bits
 import qualified Data.ByteString as BS
 import Data.Functor ((<&>))
 import Data.Ix
+import Nes.FlagRegister
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Nes.PPU.Constants
@@ -90,16 +91,16 @@ incrementVramAddr = modifyPPUState $ \st ->
     st
         { addressRegister =
             addressRegisterIncrement
-                (vramAddrIncrement st)
+                (vramAddrIncrement $ controlRegister st)
                 (addressRegister st)
         }
 
 readStatus :: PPU r Byte
 readStatus = do
     byte <- unSR <$> withPPUState statusRegister
-    modifyPPUState $ clearStatusFlag VBlankStarted
+    modifyPPUState $ modifyStatusRegister $ clearFlag VBlankStarted
     modifyPPUState $ \st -> st{addressRegister = addressRegisterResetLatch (addressRegister st)}
-    modifyPPUState resetScrollRegisterLatch
+    modifyPPUState $ modifyScrollRegister scrollRegisterResetLatch
     return byte
 
 readOamData :: PPU r Byte
