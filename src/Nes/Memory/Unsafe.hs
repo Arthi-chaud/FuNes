@@ -20,7 +20,7 @@ instance (MonadIO m) => MemoryInterface (Ptr a) m where
             intIdx = addrToInt idx
         low <- fromIntegral <$> readWord8OffPtr castedPtr intIdx
         high <- fromIntegral <$> readWord8OffPtr castedPtr (intIdx + 1)
-        return $ shiftL high 8 .|. low
+        return $ bytesToAddr low high
     writeByte byte idx ptr = liftIO $ writeWord8OffPtr (castPtr ptr) (addrToInt idx) $ unByte byte
 
     writeAddr addr idx ptr = liftIO $ do
