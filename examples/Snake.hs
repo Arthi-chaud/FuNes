@@ -60,7 +60,7 @@ callback frame texture renderer = do
     b1 <- unsafeWithBus $ readByte (pc + 1) ()
     b2 <- unsafeWithBus $ readByte (pc + 2) ()
     (a, x, y, stack, statusFlags) <- withCPUState $ \st -> (registerA st, registerX st, registerY st, registerS st, status st)
-    liftIO $ printf "OP: 0x%02x (0x%02x 0x%02x), A: %d, X: %d, Y: %d, PC: 0x%02x, Stack: 0x%02x, Flag: 0b%08b\n" (unByte opCode) (unByte b1) (unByte b2) (unByte a) (unByte x) (unByte y) (unAddr pc) (unByte stack) (unByte statusFlags)
+    liftIO $ printf "OP: 0x%02x (0x%02x 0x%02x), A: %d, X: %d, Y: %d, PC: 0x%02x, Stack: 0x%02x, Flag: 0b%08b\n" (unByte opCode) (unByte b1) (unByte b2) (unByte a) (unByte x) (unByte y) (unAddr pc) (unByte stack) (unByte $ unSR statusFlags)
     handleEvents
     randomByte <- Byte <$> getStdRandom (randomR (1, 16))
     unsafeWithBus $ writeByte randomByte 0xfe ()

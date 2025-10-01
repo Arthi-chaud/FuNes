@@ -14,7 +14,7 @@ import Control.Monad
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State hiding (getRegister, setRegister)
 import Nes.Memory
 
 -- | Load Register A

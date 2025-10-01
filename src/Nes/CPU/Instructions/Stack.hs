@@ -2,7 +2,8 @@ module Nes.CPU.Instructions.Stack (pha, php, pla, plp) where
 
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State (CPUState (..), Register (..), StatusRegister (..), StatusRegisterFlag (..))
+import qualified Nes.CPU.State as Pure
 
 -- | Pushes a copy of the accumulator on to the stack.
 --
@@ -20,10 +21,10 @@ php = do
     st <-
         withCPUState
             ( status
-                . setStatusFlagPure BreakCommand2
-                . setStatusFlagPure BreakCommand
+                . Pure.setStatusFlag BreakCommand2
+                . Pure.setStatusFlag BreakCommand
             )
-    pushByteStack st
+    pushByteStack $ unSR st
     tickOnce
 
 -- | Pulls an 8 bit value from the stack and into the accumulator.
@@ -45,6 +46,6 @@ plp :: CPU r ()
 plp = do
     value <- popStackByte
     tick 2
-    modifyCPUState $ \st -> st{status = value}
+    modifyCPUState $ \st -> st{status = MkSR value}
     clearStatusFlag BreakCommand
     setStatusFlag BreakCommand2

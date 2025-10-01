@@ -3,7 +3,7 @@ module Nes.CPU.Instructions.After (setZeroAndNegativeFlags) where
 
 import Data.Bits
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State (StatusRegisterFlag (..))
 import Nes.Memory
 
 setZeroAndNegativeFlags :: Byte -> CPU r ()

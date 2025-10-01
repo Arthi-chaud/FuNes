@@ -3,7 +3,7 @@ module Nes.CPU.Instructions.Compare (cmp, cpx, cpy) where
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State hiding (getRegister, setStatusFlag')
 import Nes.Memory
 
 -- | Computes (Register A - _value in memory_)

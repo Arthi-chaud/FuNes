@@ -16,14 +16,14 @@ spec = do
                     cycles bus `shouldBe` 2 + 1
                     registerA cpu `shouldBe` 0x05
 
-                    getStatusFlagPure Zero cpu `shouldBe` False
-                    getStatusFlagPure Negative cpu `shouldBe` False
+                    getStatusFlag Zero cpu `shouldBe` False
+                    getStatusFlag Negative cpu `shouldBe` False
 
             it "Set Zero flag" $
                 withProgram [0xa9, 0x00, 0x00] $ \cpu -> do
                     registerA cpu `shouldBe` 0x00
-                    getStatusFlagPure Zero cpu `shouldBe` True
-                    getStatusFlagPure Negative cpu `shouldBe` False
+                    getStatusFlag Zero cpu `shouldBe` True
+                    getStatusFlag Negative cpu `shouldBe` False
 
             it "Load from memory (Zero Page)" $ do
                 let setup bus = writeByte 0x55 0x10 (cpuVram bus)
@@ -33,13 +33,13 @@ spec = do
             it "Immediate" $
                 withProgram [0xa2, 0xff, 0x00] $ \cpu -> do
                     registerX cpu `shouldBe` 0xff
-                    getStatusFlagPure Negative cpu `shouldBe` True
+                    getStatusFlag Negative cpu `shouldBe` True
         describe "Register Y" $ do
             it "Immediate" $
                 withProgram [0xa0, 0x05, 0x00] $ \cpu -> do
                     registerY cpu `shouldBe` 0x05
-                    getStatusFlagPure Zero cpu `shouldBe` False
-                    getStatusFlagPure Negative cpu `shouldBe` False
+                    getStatusFlag Zero cpu `shouldBe` False
+                    getStatusFlag Negative cpu `shouldBe` False
     describe "Store value in memory" $ do
         it "Register A" $ do
             let st = newCPUState{registerA = 0x10}

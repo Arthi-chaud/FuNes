@@ -13,7 +13,7 @@ module Nes.CPU.Instructions.Transfer (
 import Control.Monad
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State hiding (getRegister, setRegister)
 import Nes.Memory (Byte)
 
 -- | Transfer Register A to X

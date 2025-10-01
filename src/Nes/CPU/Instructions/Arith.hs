@@ -26,7 +26,7 @@ import Data.Word
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
-import Nes.CPU.State
+import Nes.CPU.State hiding (getRegister, getStatusFlag, setRegister, setStatusFlag')
 import Nes.Memory
 
 -- | Regisiter A + (_value in memory_) + Carry
