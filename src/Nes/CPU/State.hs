@@ -7,14 +7,11 @@ module Nes.CPU.State (
     Register (..),
     getRegister,
     setRegister,
+    modifyStatusRegister,
 
     -- * Accessing status flags
     StatusRegister (..),
     StatusRegisterFlag (..),
-    getStatusFlag,
-    setStatusFlag,
-    clearStatusFlag,
-    setStatusFlag',
 ) where
 
 import Nes.Bus.Constants (stackReset)
@@ -91,14 +88,5 @@ instance FlagRegister StatusRegister where
     toByte = unSR
     flagToBitOffset = fromEnum
 
-setStatusFlag :: StatusRegisterFlag -> CPUState -> CPUState
-setStatusFlag flag st = st{status = setFlag flag (status st)}
-
-setStatusFlag' :: StatusRegisterFlag -> Bool -> CPUState -> CPUState
-setStatusFlag' flag bool st = st{status = setFlag' flag bool (status st)}
-
-clearStatusFlag :: StatusRegisterFlag -> CPUState -> CPUState
-clearStatusFlag flag st = st{status = clearFlag flag (status st)}
-
-getStatusFlag :: StatusRegisterFlag -> CPUState -> Bool
-getStatusFlag flag st = getFlag flag (status st)
+modifyStatusRegister :: (StatusRegister -> StatusRegister) -> CPUState -> CPUState
+modifyStatusRegister f st = st{status = f $ status st}

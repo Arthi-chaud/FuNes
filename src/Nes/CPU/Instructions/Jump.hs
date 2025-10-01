@@ -12,6 +12,7 @@ import Data.Bits
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.FlagRegister
 import Nes.Memory
 
 -- | Sets the program counter to the address specified by the operand
@@ -65,8 +66,9 @@ rti = do
     newStatus <- popStackByte
     modifyCPUState (\st -> st{status = MkSR newStatus})
     modifyCPUState $
-        clearStatusFlag BreakCommand
-            . setStatusFlag BreakCommand2
+        modifyStatusRegister $
+            clearFlag BreakCommand
+                . setFlag BreakCommand2
     setPC =<< popStackAddr
     tick 2
 

@@ -29,6 +29,7 @@ import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.FlagRegister
 import Nes.Memory
 import Prelude hiding (and)
 
@@ -41,9 +42,10 @@ bit mode = do
     regA <- withCPUState $ getRegister A
     let res = regA .&. value
     modifyCPUState $
-        setStatusFlag' Zero (res == 0)
-            . setStatusFlag' Overflow (testBit value 6)
-            . setStatusFlag' Negative (testBit value 7)
+        modifyStatusRegister $
+            setFlag' Zero (res == 0)
+                . setFlag' Overflow (testBit value 6)
+                . setFlag' Negative (testBit value 7)
 
 -- | Register A = Register A & _value in memory_
 --
@@ -83,7 +85,7 @@ rol_ =
             let shifted = shiftL value 1
              in if carry then setBit shifted 0 else shifted
         )
-        (\byte -> setStatusFlag' Carry (testBit byte 7))
+        (\byte -> modifyStatusRegister $ setFlag' Carry (testBit byte 7))
 
 -- | Rotate right
 --
@@ -100,14 +102,14 @@ ror_ =
             let shifted = shiftR value 1
              in if carry then setBit shifted 7 else shifted
         )
-        (\byte -> setStatusFlag' Carry (testBit byte 0))
+        (\byte -> modifyStatusRegister $ setFlag' Carry (testBit byte 0))
 
 rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r Byte
 rotate f setCarry mode =
     withOperand
         mode
         ( \value -> do
-            res <- f value <$> withCPUState (getStatusFlag Carry)
+            res <- f value <$> withCPUState (getFlag Carry . status)
             setZeroAndNegativeFlags res
             modifyCPUState $ setCarry value
             return res
@@ -128,7 +130,7 @@ asl_ :: AddressingMode -> CPU r Byte
 asl_ mode = withOperand mode $ \value -> do
     let carry = testBit value 7
         res = shiftL value 1
-    modifyCPUState $ setStatusFlag' Carry carry
+    modifyCPUState $ modifyStatusRegister $ setFlag' Carry carry
     setZeroAndNegativeFlags res
     return res
 
@@ -145,7 +147,7 @@ lsr_ mode =
         ( \value -> do
             let carry = testBit value 0
                 res = shiftR value 1
-            modifyCPUState $ setStatusFlag' Carry carry
+            modifyCPUState $ modifyStatusRegister $ setFlag' Carry carry
             setZeroAndNegativeFlags res
             return res
         )

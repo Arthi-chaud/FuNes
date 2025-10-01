@@ -3,6 +3,7 @@ module Nes.CPU.Instructions.Stack (pha, php, pla, plp) where
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.FlagRegister
 
 -- | Pushes a copy of the accumulator on to the stack.
 --
@@ -19,9 +20,9 @@ php :: CPU r ()
 php = do
     st <-
         withCPUState
-            ( status
-                . setStatusFlag BreakCommand2
-                . setStatusFlag BreakCommand
+            ( setFlag BreakCommand2
+                . setFlag BreakCommand
+                . status
             )
     pushByteStack $ unSR st
     tickOnce
@@ -47,5 +48,6 @@ plp = do
     tick 2
     modifyCPUState $ \st -> st{status = MkSR value}
     modifyCPUState $
-        clearStatusFlag BreakCommand
-            . setStatusFlag BreakCommand2
+        modifyStatusRegister $
+            clearFlag BreakCommand
+                . setFlag BreakCommand2

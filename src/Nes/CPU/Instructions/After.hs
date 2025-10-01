@@ -4,10 +4,12 @@ module Nes.CPU.Instructions.After (setZeroAndNegativeFlags) where
 import Data.Bits
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.FlagRegister
 import Nes.Memory
 
 setZeroAndNegativeFlags :: Byte -> CPU r ()
 setZeroAndNegativeFlags res =
     modifyCPUState $
-        setStatusFlag' Zero (res == 0)
-            . setStatusFlag' Negative (testBit res 7)
+        modifyStatusRegister $
+            setFlag' Zero (res == 0)
+                . setFlag' Negative (testBit res 7)

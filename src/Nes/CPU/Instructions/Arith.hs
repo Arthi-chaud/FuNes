@@ -27,6 +27,7 @@ import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.FlagRegister
 import Nes.Memory
 
 -- | Regisiter A + (_value in memory_) + Carry
@@ -50,15 +51,18 @@ sbc mode = do
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L261
 addToRegisterA :: Byte -> CPU r ()
 addToRegisterA value = do
-    carry <- withCPUState $ getStatusFlag Carry
+    carry <- withCPUState $ getFlag Carry . status
     regA :: Word16 <- fromIntegral . unByte <$> withCPUState (getRegister A)
     let sumInt =
             regA
                 + (fromIntegral . unByte $ value)
                 + (if carry then 1 else 0)
-    modifyCPUState $ setStatusFlag' Carry $ sumInt > 0x00ff
+    modifyCPUState $ modifyStatusRegister (setFlag' Carry $ sumInt > 0x00ff)
     let sumByte = fromIntegral sumInt :: Byte
-    modifyCPUState $ setStatusFlag' Overflow $ (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
+    modifyCPUState $
+        modifyStatusRegister $
+            setFlag' Overflow $
+                (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
     modifyCPUState $ setRegister A sumByte
     setZeroAndNegativeFlags sumByte
 

@@ -2,6 +2,7 @@ module CPU.Instructions.TransferSpec (spec) where
 
 import Internal
 import Nes.CPU.State
+import Nes.FlagRegister
 import Test.Hspec
 
 spec :: Spec
@@ -12,14 +13,14 @@ spec = do
                 let st = newCPUState{registerA = 0x10}
                 withState [0xaa, 0x00] st $ \cpu -> do
                     registerX cpu `shouldBe` 0x10
-                    getStatusFlag Zero cpu `shouldBe` False
-                    getStatusFlag Negative cpu `shouldBe` False
+                    getFlag Zero (status cpu) `shouldBe` False
+                    getFlag Negative (status cpu) `shouldBe` False
             it "Set Zero" $ do
                 let st = newCPUState{registerA = 0}
                 withState [0xaa, 0x00] st $ \cpu -> do
                     registerX cpu `shouldBe` 0x0
-                    getStatusFlag Zero cpu `shouldBe` True
-                    getStatusFlag Negative cpu `shouldBe` False
+                    getFlag Zero (status cpu) `shouldBe` True
+                    getFlag Negative (status cpu) `shouldBe` False
         it "Register Y" $ do
             let st = newCPUState{registerA = 0x10}
             withState [0xa8, 0x00] st $ \cpu -> do

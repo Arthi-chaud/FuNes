@@ -9,6 +9,7 @@ import Nes.CPU.Instructions.Arith (addToRegisterA)
 import Nes.CPU.Instructions.Bitwise (ror_)
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.FlagRegister
 import Nes.Memory
 
 -- Source: https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes
@@ -40,7 +41,7 @@ dcp mode = do
     writeByte value addr ()
     a <- withCPUState $ getRegister A
     tickOnce -- It's a Read-modify-write operation
-    when (value <= a) $ modifyCPUState (setStatusFlag Carry)
+    when (value <= a) $ modifyCPUState $ modifyStatusRegister (setFlag Carry)
     setZeroAndNegativeFlags (a - value)
 
 -- | (Unofficial) ROR and ADC

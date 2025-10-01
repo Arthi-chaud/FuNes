@@ -2,6 +2,7 @@ module CPU.Instructions.BranchSpec (spec) where
 
 import Internal
 import Nes.CPU.State
+import Nes.FlagRegister
 import Test.Hspec
 
 spec :: Spec
@@ -31,5 +32,5 @@ spec = describe "Branch when" $ do
             registerX st' `shouldBe` 1
     testBranch (Just flag) opcode = it "should branch" $ do
         let program = [opcode, 0x01, 0x00, 0xe8, 0x00]
-        withState program (setStatusFlag flag newCPUState) $ \st' -> do
+        withState program (modifyStatusRegister (setFlag flag) newCPUState) $ \st' -> do
             registerX st' `shouldBe` 1
