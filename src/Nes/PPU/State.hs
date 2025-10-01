@@ -21,6 +21,16 @@ module Nes.PPU.State (
     setControlFlag,
     clearControlFlag,
     setControlFlag',
+
+    -- * Status Register
+    StatusRegister (..),
+    StatusRegisterFlag (..),
+    getStatusFlag,
+    setStatusFlag,
+    clearStatusFlag,
+    setStatusFlag',
+
+    -- * VRAM
     vramAddrIncrement,
 ) where
 
@@ -33,6 +43,7 @@ data PPUState = MkPPUState
     { mirroring :: Mirroring
     , controlRegister :: ControlRegister
     , addressRegister :: AddressRegister
+    , statusRegister :: StatusRegister
     , internalBuffer :: Byte
     , oamOffset :: Byte
     }
@@ -41,6 +52,7 @@ newPPUState :: Mirroring -> PPUState
 newPPUState mirroring =
     let addressRegister = newAddressRegister
         controlRegister = MkCR 0
+        statusRegister = MkSR 0
         internalBuffer = 0
         oamOffset = 0
      in MkPPUState{..}
@@ -146,6 +158,37 @@ clearControlFlag flag = setControlFlag' flag False
 
 getControlFlag :: ControlRegisterFlag -> PPUState -> Bool
 getControlFlag flag st = getFlag flag (controlRegister st)
+
+newtype StatusRegister = MkSR {unSR :: Byte} deriving (Eq, Show)
+
+data StatusRegisterFlag
+    = NotUsed1
+    | NotUsed2
+    | NotUsed3
+    | NotUsed4
+    | NotUsed5
+    | SpriteOverflow
+    | SpriteZeroHit
+    | VBlankStarted
+    deriving (Eq, Show, Enum)
+
+instance FlagRegister StatusRegister where
+    type Flag StatusRegister = StatusRegisterFlag
+    fromByte = MkSR
+    toByte = unSR
+    flagToBitOffset = fromEnum
+
+setStatusFlag :: StatusRegisterFlag -> PPUState -> PPUState
+setStatusFlag flag = setStatusFlag' flag True
+
+setStatusFlag' :: StatusRegisterFlag -> Bool -> PPUState -> PPUState
+setStatusFlag' flag bool st = st{statusRegister = setFlag' flag bool (statusRegister st)}
+
+clearStatusFlag :: StatusRegisterFlag -> PPUState -> PPUState
+clearStatusFlag flag = setStatusFlag' flag False
+
+getStatusFlag :: StatusRegisterFlag -> PPUState -> Bool
+getStatusFlag flag st = getFlag flag (statusRegister st)
 
 vramAddrIncrement :: PPUState -> Byte
 vramAddrIncrement st =
