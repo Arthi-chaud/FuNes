@@ -12,6 +12,8 @@ import Foreign
 import Nes.Bus
 import Nes.Bus.Constants
 import Nes.Memory
+import Nes.PPU.Monad
+import Nes.PPU.State
 import Nes.Rom
 import Text.Printf
 
@@ -38,68 +40,84 @@ runBusM bus f = unBusM f bus (\bus' a -> return (a, bus'))
 withBus :: (Bus -> a) -> BusM r a
 withBus f = MkBusM $ \bus cont -> cont bus (f bus)
 
+withPPU :: PPU (a, PPUState) a -> BusM r a
+withPPU f = MkBusM $ \bus cont -> do
+    (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) f
+    cont (bus{ppuState = ppuSt}) res
+
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     replicateM_ n (cycleCallback bus)
     cont bus{cycles = cycles bus + fromIntegral n} ()
 
 instance MemoryInterface () (BusM r) where
-    readByte idx () = do
-        checkBound idx
-        translatedAddr <- translateReadAddr idx
-        case translatedAddr of
-            VRamAddr addr -> liftIO . readByte addr =<< withBus cpuVram
-            PRGRomAddr addr -> do
+    readByte idx () = checkBound idx >> go
+      where
+        go
+            | inRange ramRange idx =
+                liftIO . readByte idx =<< withBus cpuVram
+            | idx `elem` [0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014] =
+                fail $
+                    printf "Invalid read from write-only PPU address %4x" $
+                        unAddr idx
+            | idx == 0x2002 = withPPU readStatus
+            | idx == 0x2004 = withPPU readOamData
+            | idx == 0x2007 = withPPU readData
+            | inRange (0x2008, snd ramRange) idx =
+                let
+                    addr1 = idx .&. 0b0010000000000111
+                 in
+                    readByte addr1 ()
+            | inRange prgRomRange idx = do
                 rom <- withBus cartridge
-                readPrgRomAddr addr rom readByte
+                readPrgRomAddr idx rom readByte
+            | otherwise = do
+                liftIO $ printf "Invalid read at %4x" $ unAddr idx
+                return 0
+    writeByte byte idx () = checkBound idx >> go
+      where
+        go
+            | inRange ramRange idx =
+                let
+                    addr = idx .&. 0b11111111111
+                 in
+                    liftIO . writeByte byte addr =<< withBus cpuVram
+            | idx == 0x2000 = withPPU $
+                modifyPPUState $
+                    \st -> st{controlRegister = MkCR byte}
+            | idx == 0x2001 = withPPU $
+                modifyPPUState $
+                    \st -> st{maskRegister = MkMR byte}
+            | idx == 0x2002 = fail "Invalid write to PPU status register"
+            | idx == 0x2003 = withPPU $
+                modifyPPUState $
+                    \st -> st{oamOffset = byte}
+            | idx == 0x2004 = withPPU $ writeOamData byte
+            | idx == 0x2005 = withPPU $ modifyPPUState $ writeScrollRegister byte
+            | idx == 0x2006 = withPPU $
+                modifyPPUState $
+                    \st -> st{addressRegister = addressRegisterUpdate byte (addressRegister st)}
+            | idx == 0x2007 = withPPU $ writeData byte
+            | inRange (0x2008, snd ramRange) idx =
+                let
+                    addr = idx .&. 0b0010000000000111
+                 in
+                    writeByte byte addr ()
+            | inRange prgRomRange idx = fail "Cannot writ to catridge"
+            | otherwise = liftIO $ printf "Ignoring write at %4x" $ unAddr idx
     readAddr idx () = do
-        checkBound idx
-        translatedAddr <- translateReadAddr idx
-        case translatedAddr of
-            VRamAddr addr -> liftIO . readAddr addr =<< withBus cpuVram
-            PRGRomAddr addr -> do
-                rom <- withBus cartridge
-                readPrgRomAddr addr rom readAddr
-    writeByte byte idx () = do
-        checkBound idx
-        translateWriteAddr idx $ \dest ->
-            writeByte byte dest =<< withBus cpuVram
+        low <- readByte idx ()
+        high <- readByte (idx + 1) ()
+        return $ bytesToAddr low high
+
     writeAddr addr idx () = do
-        checkBound idx
-        translateWriteAddr idx $ \dest ->
-            writeAddr addr dest =<< withBus cpuVram
+        let low = unsafeAddrToByte (addr .&. 0xff)
+            high = unsafeAddrToByte (addr `shiftR` 8)
+        writeByte low idx ()
+        writeByte high (idx + 1) ()
 
 checkBound :: (MonadFail m) => Addr -> m ()
 checkBound idx = when (idx >= memorySize) $ fail "Out-of-bounds memory access"
-
-data TranslatedAddr = VRamAddr Addr | PRGRomAddr Addr
-
-translateReadAddr :: (MonadIO m) => Addr -> m TranslatedAddr
-translateReadAddr idx = case translateAddr idx of
-    Just addr -> return addr
-    _ -> do
-        liftIO $ printf "Invalid virtual memory read at 0x%x" $ unAddr idx
-        return (VRamAddr 0)
-
--- | Using CPS because in some case we noop
-translateWriteAddr :: (MonadIO m, MonadFail m) => Addr -> (Addr -> m ()) -> m ()
-translateWriteAddr idx cont = case translateAddr idx of
-    Just (VRamAddr addr) -> cont addr
-    Just (PRGRomAddr _) -> fail "Attempt to write to Cartridge ROM space"
-    _ -> liftIO $ printf "Invalid virtual memory write at 0x%x" $ unAddr idx
-
-translateAddr :: Addr -> Maybe TranslatedAddr
-translateAddr idx
-    | inRange ramRange idx = Just $ VRamAddr $ idx .&. 0b11111111111
-    | inRange prgRomRange idx = Just $ PRGRomAddr (idx - fst prgRomRange)
-    | inRange ppuRegisters idx =
-        let
-            _ = idx .&. 0b0010000000000111
-         in
-            -- TODO
-            -- error "PPU is not supported yet"
-            return $ VRamAddr 0
-    | otherwise = Nothing
 
 -- | The continuation will be called with the translated addr to use on the PRG Rom
 -- No bound check are necessary
