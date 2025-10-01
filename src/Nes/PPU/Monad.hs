@@ -11,10 +11,6 @@ module Nes.PPU.Monad (
     withPPUState,
     modifyPPUState,
 
-    -- * Register
-    writeAddressRegister,
-    writeControlRegister,
-
     -- * Vram
     readData,
     writeData,
@@ -26,6 +22,7 @@ module Nes.PPU.Monad (
 
     -- * OAM
     readOamData,
+    writeOamData,
 ) where
 
 import Control.Monad.IO.Class
@@ -88,14 +85,6 @@ modifyPPUState :: (PPUState -> PPUState) -> PPU r ()
 modifyPPUState f = MkPPU $ \st ptr cont ->
     cont (f st) ptr ()
 
-writeAddressRegister :: Byte -> PPU r ()
-writeAddressRegister byte = modifyPPUState $ \st ->
-    st{addressRegister = addressRegisterUpdate byte $ addressRegister st}
-
-writeControlRegister :: Byte -> PPU r ()
-writeControlRegister byte = modifyPPUState $ \st ->
-    st{controlRegister = MkCR byte}
-
 incrementVramAddr :: PPU r ()
 incrementVramAddr = modifyPPUState $ \st ->
     st
@@ -110,7 +99,7 @@ readStatus = do
     byte <- unSR <$> withPPUState statusRegister
     modifyPPUState $ clearStatusFlag VBlankStarted
     modifyPPUState $ \st -> st{addressRegister = addressRegisterResetLatch (addressRegister st)}
-    -- TODO Reset Scroll Latch
+    modifyPPUState resetScrollRegisterLatch
     return byte
 
 readOamData :: PPU r Byte
@@ -118,6 +107,12 @@ readOamData = do
     oam <- withPointers oamData
     addr <- withPPUState oamOffset
     readByte (byteToAddr addr) oam
+
+writeOamData :: Byte -> PPU r ()
+writeOamData byte = do
+    oam <- withPointers oamData
+    addr <- withPPUState oamOffset
+    writeByte byte (byteToAddr addr) oam
 
 readData :: PPU r Byte
 readData = do
@@ -179,7 +174,5 @@ mirrorVramAddr mirr addr = case (mirr, nameTable) of
     mirroredVram = addr .&. 0b10111111111111
     vramIndex = mirroredVram - 0x2000
     nameTable = unAddr vramIndex `div` 0x400
-
--- TODO Writing to 0x2007 increments addr register
 
 -- TODO It is a memory interface

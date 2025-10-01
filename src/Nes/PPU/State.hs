@@ -30,6 +30,20 @@ module Nes.PPU.State (
     clearStatusFlag,
     setStatusFlag',
 
+    -- * Scroll Register
+    ScrollRegister (..),
+    newScrollRegister,
+    writeScrollRegister,
+    resetScrollRegisterLatch,
+
+    -- * Mask Register
+    MaskRegister (..),
+    MaskRegisterFlag (..),
+    getMaskFlag,
+    setMaskFlag,
+    clearMaskFlag,
+    setMaskFlag',
+
     -- * VRAM
     vramAddrIncrement,
 ) where
@@ -44,6 +58,8 @@ data PPUState = MkPPUState
     , controlRegister :: ControlRegister
     , addressRegister :: AddressRegister
     , statusRegister :: StatusRegister
+    , scrollRegister :: ScrollRegister
+    , maskRegister :: MaskRegister
     , internalBuffer :: Byte
     , oamOffset :: Byte
     }
@@ -53,6 +69,8 @@ newPPUState mirroring =
     let addressRegister = newAddressRegister
         controlRegister = MkCR 0
         statusRegister = MkSR 0
+        maskRegister = MkMR 0
+        scrollRegister = newScrollRegister
         internalBuffer = 0
         oamOffset = 0
      in MkPPUState{..}
@@ -193,3 +211,55 @@ getStatusFlag flag st = getFlag flag (statusRegister st)
 vramAddrIncrement :: PPUState -> Byte
 vramAddrIncrement st =
     if getControlFlag VramAddIncrement st then 32 else 1
+
+data ScrollRegister = MkScrollR {x :: Byte, y :: Byte, latch :: Bool}
+
+newScrollRegister :: ScrollRegister
+newScrollRegister = MkScrollR 0 0 False
+
+writeScrollRegister :: Byte -> PPUState -> PPUState
+writeScrollRegister byte st =
+    let
+        sr = scrollRegister st
+        sr1 = if latch sr then sr{x = byte} else sr{y = byte}
+        sr2 = sr1{latch = not (latch sr1)}
+     in
+        st{scrollRegister = sr2}
+
+resetScrollRegisterLatch :: PPUState -> PPUState
+resetScrollRegisterLatch st =
+    let
+        sr = (scrollRegister st){latch = False}
+     in
+        st{scrollRegister = sr}
+
+newtype MaskRegister = MkMR {unMR :: Byte} deriving (Eq, Show)
+
+data MaskRegisterFlag
+    = GreyScale
+    | LeftmostBackground
+    | LeftmostSprite
+    | ShowBackground
+    | ShowSprites
+    | EmphRed
+    | EmphGree
+    | EmphBlue
+    deriving (Eq, Show, Enum)
+
+instance FlagRegister MaskRegister where
+    type Flag MaskRegister = MaskRegisterFlag
+    fromByte = MkMR
+    toByte = unMR
+    flagToBitOffset = fromEnum
+
+setMaskFlag :: MaskRegisterFlag -> PPUState -> PPUState
+setMaskFlag flag = setMaskFlag' flag True
+
+setMaskFlag' :: MaskRegisterFlag -> Bool -> PPUState -> PPUState
+setMaskFlag' flag bool st = st{maskRegister = setFlag' flag bool (maskRegister st)}
+
+clearMaskFlag :: MaskRegisterFlag -> PPUState -> PPUState
+clearMaskFlag flag = setMaskFlag' flag False
+
+getMaskFlag :: MaskRegisterFlag -> PPUState -> Bool
+getMaskFlag flag st = getFlag flag (maskRegister st)
