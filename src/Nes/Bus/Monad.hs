@@ -82,25 +82,13 @@ instance MemoryInterface () (BusM r) where
                     addr = idx .&. 0b11111111111
                  in
                     liftIO . writeByte byte addr =<< withBus cpuVram
-            | idx == 0x2000 = withPPU $
-                modifyPPUState $
-                    \st -> st{controlRegister = MkCR byte}
-            | idx == 0x2001 = withPPU $
-                modifyPPUState $
-                    \st -> st{maskRegister = MkMR byte}
+            | idx == 0x2000 = withPPU $ setControlRegister byte
+            | idx == 0x2001 = withPPU $ setMaskRegister byte
             | idx == 0x2002 = fail "Invalid write to PPU status register"
-            | idx == 0x2003 = withPPU $
-                modifyPPUState $
-                    \st -> st{oamOffset = byte}
+            | idx == 0x2003 = withPPU $ setOamOffset byte
             | idx == 0x2004 = withPPU $ writeOamData byte
-            | idx == 0x2005 =
-                withPPU $
-                    modifyPPUState $
-                        modifyScrollRegister $
-                            scrollRegisterWrite byte
-            | idx == 0x2006 = withPPU $
-                modifyPPUState $
-                    \st -> st{addressRegister = addressRegisterUpdate byte (addressRegister st)}
+            | idx == 0x2005 = withPPU $ setScrollRegister byte
+            | idx == 0x2006 = withPPU $ writeToAddressRegister byte
             | idx == 0x2007 = withPPU $ writeData byte
             | inRange (0x2008, snd ramRange) idx =
                 let

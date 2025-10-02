@@ -17,6 +17,13 @@ module Nes.PPU.Monad (
     mirrorVramAddr,
     incrementVramAddr,
 
+    -- * Registers
+    writeToAddressRegister,
+    setControlRegister,
+    setMaskRegister,
+    setOamOffset,
+    setScrollRegister,
+
     -- * Status
     readStatus,
 
@@ -114,6 +121,26 @@ writeOamData byte = do
     oam <- withPointers oamData
     addr <- withPPUState oamOffset
     writeByte byte (byteToAddr addr) oam
+
+writeToAddressRegister :: Byte -> PPU r ()
+writeToAddressRegister byte =
+    modifyPPUState $
+        \st -> st{addressRegister = addressRegisterUpdate byte (addressRegister st)}
+
+setControlRegister :: Byte -> PPU r ()
+setControlRegister byte = modifyPPUState $ \st -> st{controlRegister = MkCR byte}
+
+setMaskRegister :: Byte -> PPU r ()
+setMaskRegister byte = modifyPPUState $ \st -> st{maskRegister = MkMR byte}
+
+setOamOffset :: Byte -> PPU r ()
+setOamOffset byte = modifyPPUState $ \st -> st{oamOffset = byte}
+
+setScrollRegister :: Byte -> PPU r ()
+setScrollRegister byte =
+    modifyPPUState $
+        modifyScrollRegister $
+            scrollRegisterWrite byte
 
 readData :: PPU r Byte
 readData = do
