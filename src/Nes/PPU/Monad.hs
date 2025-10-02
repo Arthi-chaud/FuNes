@@ -156,7 +156,8 @@ readData = do
             return value
         | inRange vramRange addr = do
             res <- withPPUState internalBuffer
-            value <- withPointers vram >>= liftIO . readByte (byteToAddr res)
+            mirr <- withPPUState mirroring
+            value <- readByte (mirrorVramAddr mirr addr) =<< withPointers vram
             modifyPPUState $ \st -> st{internalBuffer = value}
             return res
         | inRange unusedAddrRange addr = fail "Address range should not be accessed"
