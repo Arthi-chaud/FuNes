@@ -30,11 +30,13 @@ module Nes.PPU.Monad (
     -- * OAM
     readOamData,
     writeOamData,
+    writeListToOam,
 ) where
 
 import Control.Monad.IO.Class
 import Data.Bits
 import qualified Data.ByteString as BS
+import Data.Foldable (foldlM)
 import Data.Functor ((<&>))
 import Data.Ix
 import Nes.FlagRegister
@@ -105,9 +107,10 @@ incrementVramAddr = modifyPPUState $ \st ->
 readStatus :: PPU r Byte
 readStatus = do
     byte <- unSR <$> withPPUState statusRegister
-    modifyPPUState $ modifyStatusRegister $ clearFlag VBlankStarted
-    modifyPPUState $ \st -> st{addressRegister = addressRegisterResetLatch (addressRegister st)}
-    modifyPPUState $ modifyScrollRegister scrollRegisterResetLatch
+    modifyPPUState $
+        modifyStatusRegister (clearFlag VBlankStarted)
+            . modifyAddressRegister addressRegisterResetLatch
+            . modifyScrollRegister scrollRegisterResetLatch
     return byte
 
 readOamData :: PPU r Byte
@@ -121,6 +124,10 @@ writeOamData byte = do
     oam <- withPointers oamData
     addr <- withPPUState oamOffset
     writeByte byte (byteToAddr addr) oam
+    setOamOffset (addr + 1)
+
+writeListToOam :: [Byte] -> PPU r ()
+writeListToOam = foldlM (\_ item -> writeOamData item) ()
 
 writeToAddressRegister :: Byte -> PPU r ()
 writeToAddressRegister byte =
