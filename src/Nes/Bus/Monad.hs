@@ -12,7 +12,8 @@ import Foreign
 import Nes.Bus
 import Nes.Bus.Constants
 import Nes.Memory
-import Nes.PPU.Monad
+import Nes.PPU.Monad hiding (tick)
+import qualified Nes.PPU.Monad as PPUM
 import Nes.PPU.State
 import Nes.Rom
 import Text.Printf
@@ -48,7 +49,9 @@ withPPU f = MkBusM $ \bus cont -> do
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     replicateM_ n (cycleCallback bus)
-    cont bus{cycles = cycles bus + fromIntegral n} ()
+    (_, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ PPUM.tick (n * 3)
+    -- TODO Check return value
+    cont bus{Nes.Bus.cycles = Nes.Bus.cycles bus + fromIntegral n, ppuState = ppuSt} ()
 
 instance MemoryInterface () (BusM r) where
     readByte idx () = checkBound idx >> go
@@ -82,7 +85,7 @@ instance MemoryInterface () (BusM r) where
                     addr = idx .&. 0b11111111111
                  in
                     liftIO . writeByte byte addr =<< withBus cpuVram
-            | idx == 0x2000 = withPPU $ setControlRegister byte
+            | idx == 0x2000 = withPPU $ writeToControlRegister byte
             | idx == 0x2001 = withPPU $ setMaskRegister byte
             | idx == 0x2002 = fail "Invalid write to PPU status register"
             | idx == 0x2003 = withPPU $ setOamOffset byte

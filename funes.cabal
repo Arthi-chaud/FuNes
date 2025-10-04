@@ -46,6 +46,7 @@ library
       Nes.CPU.State
       Nes.FlagRegister
       Nes.Internal
+      Nes.Interrupt
       Nes.Memory
       Nes.Memory.Unsafe
       Nes.PPU.Constants

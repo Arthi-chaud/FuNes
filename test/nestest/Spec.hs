@@ -18,14 +18,12 @@ import Nes.Bus.Monad
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Interpreter (runProgram)
-import Nes.CPU.Monad
+import Nes.CPU.Monad hiding (withBus)
 import Nes.CPU.State
 import Nes.Memory
 import Nes.Rom (fromFile)
 import Test.Hspec
 import Text.Printf (printf)
-
--- TODO 2 tests from guide
 
 -- Source:
 -- https://www.qmtpro.com/~nes/misc/nestest.txt

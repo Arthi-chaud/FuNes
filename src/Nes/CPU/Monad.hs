@@ -5,6 +5,9 @@ module Nes.CPU.Monad (
     -- * Monad
     CPU (..),
 
+    -- * Interracting with bus
+    withBus,
+
     -- * State
     modifyCPUState,
     withCPUState,
@@ -25,17 +28,22 @@ module Nes.CPU.Monad (
     pushAddrStack,
     pushByteStack,
 
+    -- * Interruption
+    interrupt,
+
     -- * Unsafe
     unsafeWithBus,
 ) where
 
 import Control.Monad.IO.Class
-import Data.Bits (Bits (shiftR))
+import Data.Bits (Bits (shiftR), testBit)
 import Nes.Bus (Bus (..))
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, runBusM)
 import qualified Nes.Bus.Monad as BusM
 import Nes.CPU.State
+import Nes.FlagRegister
+import Nes.Interrupt
 import Nes.Memory
 
 -- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
@@ -128,6 +136,21 @@ reset :: CPU r ()
 reset = do
     pc <- readAddr 0xfffc ()
     modifyCPUState (const $ newCPUState{programCounter = pc})
+
+interrupt :: Interrupt -> CPU r ()
+interrupt signal = do
+    pushAddrStack =<< getPC
+    let mask = getFlagMask signal
+    flag <-
+        withCPUState $
+            setFlag' BreakCommand2 (testBit mask 4)
+                . setFlag' BreakCommand (testBit mask 5)
+                . status
+    pushByteStack $ unSR flag
+    modifyCPUState $ modifyStatusRegister $ setFlag InterruptDisable
+    withBus $ BusM.tick (getCPUCycles signal)
+    setPC =<< readAddr (getVectorAddr signal) ()
+    undefined
 
 instance MemoryInterface () (CPU r) where
     readByte n () = do

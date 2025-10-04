@@ -74,7 +74,7 @@ newtype StatusRegister = MkSR {unSR :: Byte} deriving (Eq, Show)
 data StatusRegisterFlag
     = Carry
     | Zero
-    | InteruptDisable
+    | InterruptDisable
     | DecimalMode
     | BreakCommand
     | BreakCommand2

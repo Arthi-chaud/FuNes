@@ -6,6 +6,9 @@ module Nes.PPU.Monad (
     PPU (..),
     runPPU,
 
+    -- * Ticks
+    tick,
+
     -- * State
     withPointers,
     withPPUState,
@@ -19,7 +22,7 @@ module Nes.PPU.Monad (
 
     -- * Registers
     writeToAddressRegister,
-    setControlRegister,
+    writeToControlRegister,
     setMaskRegister,
     setOamOffset,
     setScrollRegister,
@@ -33,6 +36,7 @@ module Nes.PPU.Monad (
     writeListToOam,
 ) where
 
+import Control.Monad
 import Control.Monad.IO.Class
 import Data.Bits
 import qualified Data.ByteString as BS
@@ -82,6 +86,35 @@ instance (MonadIO (PPU r)) where
 
 instance (MonadFail (PPU r)) where
     fail s = liftIO $ fail s
+
+tick :: Int -> PPU r Bool
+tick n = MkPPU $ \st0 ptrs cont -> do
+    let st1 = st0{cycles = cycles st0 + fromIntegral n}
+    if cycles st1 < 341
+        then
+            cont st1 ptrs False
+        else do
+            let st2 = st1{cycles = cycles st1 - 341, scanline = scanline st1 + 1}
+                st3 =
+                    if scanline st2 == 241
+                        then
+                            let
+                                st' = modifyStatusRegister (setFlag VBlankStarted . clearFlag SpriteZeroHit) st2
+                             in
+                                if getFlag GenerateNMI (controlRegister st')
+                                    then st'{nmiInterrupt = True}
+                                    else st'
+                        else st2
+             in if scanline st3 >= 262
+                    then
+                        let
+                            st4 =
+                                modifyStatusRegister
+                                    (clearFlag SpriteZeroHit . clearFlag VBlankStarted)
+                                    st2{scanline = 0, nmiInterrupt = False}
+                         in
+                            cont st4 ptrs True
+                    else cont st3 ptrs False
 
 withPointers :: (PPUPointers -> a) -> PPU r a
 withPointers f = MkPPU $ \st ptr cont ->
@@ -134,8 +167,16 @@ writeToAddressRegister byte =
     modifyPPUState $
         \st -> st{addressRegister = addressRegisterUpdate byte (addressRegister st)}
 
-setControlRegister :: Byte -> PPU r ()
-setControlRegister byte = modifyPPUState $ \st -> st{controlRegister = MkCR byte}
+writeToControlRegister :: Byte -> PPU r ()
+writeToControlRegister byte = do
+    oldNmi <- withPPUState $ getFlag GenerateNMI . controlRegister
+    let newCR = MkCR byte
+        newNmi = getFlag GenerateNMI newCR
+    modifyPPUState $ \st -> st{controlRegister = newCR}
+    isInVBlank <- withPPUState $ getFlag VBlankStarted . statusRegister
+    when (not oldNmi && newNmi && isInVBlank) $
+        modifyPPUState $
+            \st -> st{nmiInterrupt = True}
 
 setMaskRegister :: Byte -> PPU r ()
 setMaskRegister byte = modifyPPUState $ \st -> st{maskRegister = MkMR byte}

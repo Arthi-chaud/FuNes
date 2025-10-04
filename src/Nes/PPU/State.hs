@@ -42,6 +42,7 @@ module Nes.PPU.State (
 ) where
 
 import Data.Bits
+import Data.Word
 import Nes.FlagRegister
 import Nes.Memory (Addr (..), Byte (..), bytesToAddr)
 import Nes.Rom
@@ -55,6 +56,9 @@ data PPUState = MkPPUState
     , maskRegister :: MaskRegister
     , internalBuffer :: Byte
     , oamOffset :: Byte
+    , cycles :: Integer
+    , scanline :: Word16
+    , nmiInterrupt :: Bool
     }
 
 modifyControlRegister :: (ControlRegister -> ControlRegister) -> PPUState -> PPUState
@@ -81,6 +85,9 @@ newPPUState mirroring =
         scrollRegister = newScrollRegister
         internalBuffer = 0
         oamOffset = 0
+        cycles = 0
+        scanline = 0
+        nmiInterrupt = False
      in MkPPUState{..}
 
 data AddressRegister = AddressRegister

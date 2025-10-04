@@ -1,32 +1,40 @@
 module Nes.CPU.Interpreter (
     runProgram,
-    interpret,
     interpretWithCallback,
 ) where
 
 import Control.Monad
 import Data.Map
 import Nes.Bus
+import Nes.Bus.Monad (withPPU)
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.Interrupt
 import Nes.Memory
+import Nes.PPU.Monad (modifyPPUState, withPPUState)
+import Nes.PPU.State (PPUState (nmiInterrupt))
 import Text.Printf
 
 -- | Runs the program that's on the memory (interfaced by the given 'Bus') usingthe given CPU state.
 --
--- The thrid argument is a callback run at each loop
+-- The third argument is a callback run at each loop
 --
 -- Returns the state of the CPU with the number of ellapsed ticks
 runProgram :: CPUState -> Bus -> CPU (CPUState, Integer) () -> IO (CPUState, Integer)
 runProgram state prog callback = unCPU (interpretWithCallback callback) state prog $ \state' bus _ -> return (state', cycles bus)
 
-interpret :: CPU r ()
-interpret = interpretWithCallback $ pure ()
-
 -- | Interpretation loop of the program
 interpretWithCallback :: CPU r () -> CPU r ()
 interpretWithCallback callback = do
+    hasNmiInterrupt <-
+        withBus
+            ( withPPU $ do
+                f <- withPPUState nmiInterrupt
+                modifyPPUState $ \st -> st{nmiInterrupt = False}
+                return f
+            )
+    when hasNmiInterrupt $ interrupt NMI
     callback
     oldCycleCount <- getCycles
     opCode <- readAtPC

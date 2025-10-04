@@ -10,12 +10,12 @@ spec = do
     describe "Clear Flag" $ do
         testClearFlag Carry 0x18
         testClearFlag DecimalMode 0xd8
-        testClearFlag InteruptDisable 0x58
+        testClearFlag InterruptDisable 0x58
         testClearFlag Overflow 0xb8
     describe "Set Flag" $ do
         testSetFlag Carry 0x38
         testSetFlag DecimalMode 0xf8
-        testSetFlag InteruptDisable 0x78
+        testSetFlag InterruptDisable 0x78
   where
     testSetFlag flag opcode =
         it (show flag) $ do

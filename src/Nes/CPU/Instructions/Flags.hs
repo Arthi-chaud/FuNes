@@ -20,7 +20,7 @@ cld = modifyCPUState $ modifyStatusRegister $ clearFlag DecimalMode
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#CLI
 cli :: CPU r ()
-cli = modifyCPUState $ modifyStatusRegister $ clearFlag InteruptDisable
+cli = modifyCPUState $ modifyStatusRegister $ clearFlag InterruptDisable
 
 -- | Clear Overflow Flag
 --
@@ -44,4 +44,4 @@ sed = modifyCPUState $ modifyStatusRegister $ setFlag DecimalMode
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SEI
 sei :: CPU r ()
-sei = modifyCPUState $ modifyStatusRegister $ setFlag InteruptDisable
+sei = modifyCPUState $ modifyStatusRegister $ setFlag InterruptDisable
