@@ -11,7 +11,7 @@ import Nes.Bus
 import Nes.Internal
 import Nes.Memory
 import Nes.Memory.Unsafe ()
-import Nes.PPU.Pointers (PPUPointers (vram))
+import Nes.PPU.Pointers (PPUPointers (paletteTable, vram))
 import Nes.PPU.State (PPUState (controlRegister), getBackgroundPatternAddr)
 import Nes.Rom
 
@@ -29,9 +29,29 @@ frameLength = frameWidth * frameHeight * 3
 newFrame :: IO Frame
 newFrame = MkF <$> callocForeignPtr frameLength
 
+type Palette = (Int, Int, Int, Int)
+
+getBackgroundPalette :: PPUPointers -> Int -> Int -> IO Palette
+getBackgroundPalette ptrs tileCol tileRow = do
+    let attrTableIdx = tileRow `div` 4 * 8 + tileCol `div` 4
+    attrByte <- readByte (Addr $ fromIntegral $ 0x3c0 + attrTableIdx) (vram ptrs)
+    let paletteIdx =
+            (.&. 0b11) $ case (tileCol `mod` 4 `div` 2, tileRow `mod` 4 `div` 2) of
+                (0, 0) -> attrByte
+                (1, 0) -> attrByte `shiftR` 2
+                (0, 1) -> attrByte `shiftR` 4
+                (1, 1) -> attrByte `shiftR` 6
+                _ -> error "Should not happen"
+        paletteOffset = Addr $ fromIntegral $ 1 + byteToInt paletteIdx * 4
+    c0 <- byteToInt <$> readByte 0 (paletteTable ptrs)
+    c1 <- byteToInt <$> readByte paletteOffset (paletteTable ptrs)
+    c2 <- byteToInt <$> readByte (paletteOffset + 1) (paletteTable ptrs)
+    c3 <- byteToInt <$> readByte (paletteOffset + 2) (paletteTable ptrs)
+    return (c0, c1, c2, c3)
+
 frameSetPixel :: (Word8, Word8, Word8) -> (Int, Int) -> Frame -> IO ()
 frameSetPixel (colorR, colorG, colorB) (x, y) (MkF fptr) = do
-    let base = (y * 3 * frameWidth) + x * 3
+    let base = y * 3 * frameWidth + x * 3
     when (inRange (0, frameLength) (base + 2)) $ do
         -- Note: we don't use 'writeByte' because base + 2 might overflow
         unsafeWithForeignPtr (castForeignPtr fptr) $ \ptr -> do
@@ -50,26 +70,25 @@ render frame bus = do
             tileRow = i `div` 32
             tile =
                 BS.take 16 $
-                    BS.drop (addrToInt bank + (tileOffset * 16)) chr
-        -- palette = undefined -- TODO
-        extractFrame frame tile tileCol tileRow
+                    BS.drop (addrToInt bank + tileOffset * 16) chr
+        palette <- getBackgroundPalette (ppuPointers bus) tileCol tileRow
+        extractFrame palette frame tile tileCol tileRow
 
-extractFrame :: Frame -> ByteString -> Int -> Int -> IO ()
-extractFrame frame tile tileCol tileRow = do
-    forM_ [0 .. 7] $ \y -> do
-        let upper = BS.index tile y
-            lower = BS.index tile (y + 8)
-        forM_ (reverse [0 .. 7]) $ \x -> do
-            let value =
-                    ((1 .&. (lower `shiftR` (7 - x))) `shiftL` 1)
-                        .|. (1 .&. (upper `shiftR` (7 - x)))
-            let color = case value of
-                    0 -> systemPalette !! 0x01
-                    1 -> systemPalette !! 0x23
-                    2 -> systemPalette !! 0x27
-                    3 -> systemPalette !! 0x30
-                    _ -> error "Bad color index"
-            frameSetPixel color (tileCol * 8 + x, tileRow * 8 + y) frame
+extractFrame :: Palette -> Frame -> ByteString -> Int -> Int -> IO ()
+extractFrame (c0, c1, c2, c3) frame tile tileCol tileRow = forM_ [0 .. 7] $ \y -> do
+    let upper = BS.index tile y
+        lower = BS.index tile (y + 8)
+    forM_ (reverse [0 .. 7]) $ \x -> do
+        let value =
+                ((1 .&. (lower `shiftR` (7 - x))) `shiftL` 1)
+                    .|. (1 .&. (upper `shiftR` (7 - x)))
+        let color = case value of
+                0 -> systemPalette !! c0
+                1 -> systemPalette !! c1
+                2 -> systemPalette !! c2
+                3 -> systemPalette !! c3
+                _ -> error "Bad color index"
+        frameSetPixel color (tileCol * 8 + x, tileRow * 8 + y) frame
 
 -- TODO https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch6.4/src/render/mod.rs#L63
 
