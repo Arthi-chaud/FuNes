@@ -12,6 +12,7 @@ import Foreign
 import Nes.Bus
 import Nes.Bus.Constants
 import Nes.Memory
+import Nes.PPU.Constants (oamDataSize)
 import Nes.PPU.Monad hiding (tick)
 import qualified Nes.PPU.Monad as PPUM
 import Nes.PPU.State
@@ -49,7 +50,6 @@ withPPU f = MkBusM $ \bus cont -> do
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     replicateM_ n (cycleCallback bus)
-
     ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ do
         before <- withPPUState nmiInterrupt
         isNewFrame <- PPUM.tick (n * 3)
@@ -106,6 +106,13 @@ instance MemoryInterface () (BusM r) where
                  in
                     writeByte byte addr ()
             | inRange prgRomRange idx = fail "Cannot write to catridge"
+            | idx == 0x4014 = do
+                let high = byteToAddr byte `shiftL` 8
+                bytes <- forM [0 .. oamDataSize - 1] $ \i -> do
+                    readByte (high + Addr (fromIntegral i)) ()
+                withPPU $ writeListToOam bytes
+            -- TODO add cycles
+            -- https://www.nesdev.org/wiki/PPU_programmer_reference#OAMDMA_-_Sprite_DMA_($4014_write)
             | otherwise = liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()
