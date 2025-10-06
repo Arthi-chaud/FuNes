@@ -1,8 +1,14 @@
-module Render where
+module Render (
+    frameWidth,
+    frameHeight,
+    frameLength,
+    newFrame,
+    Frame (..),
+    render,
+) where
 
 import Control.Monad
 import Data.Bits
-import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Ix (Ix (inRange))
 import Foreign
@@ -11,8 +17,9 @@ import Nes.Bus
 import Nes.Internal
 import Nes.Memory
 import Nes.Memory.Unsafe ()
-import Nes.PPU.Pointers (PPUPointers (paletteTable, vram))
-import Nes.PPU.State (PPUState (controlRegister), getBackgroundPatternAddr)
+import Nes.PPU.Constants
+import Nes.PPU.Pointers hiding (chrRom)
+import Nes.PPU.State hiding (ScrollRegister (..))
 import Nes.Rom
 
 newtype Frame = MkF {unF :: MemoryPointer}
@@ -30,6 +37,88 @@ newFrame :: IO Frame
 newFrame = MkF <$> callocForeignPtr frameLength
 
 type Palette = (Int, Int, Int, Int)
+
+render :: Frame -> Bus -> IO ()
+render frame bus = do
+    renderBackground frame bus
+    renderSprites frame bus
+
+renderSprites :: Frame -> Bus -> IO ()
+renderSprites frame bus = do
+    let oam = oamData $ ppuPointers bus
+        chr = chrRom . cartridge $ bus
+        bank = addrToInt . getSpritePatternAddr . controlRegister . ppuState $ bus
+    forM_ (reverse [0, 4 .. oamDataSize - 1]) $ \i -> do
+        tileIdx <- byteToInt <$> readByte (fromIntegral i + 1) oam
+        tileCol <- byteToInt <$> readByte (fromIntegral i + 3) oam
+        tileRow <- byteToInt <$> readByte (fromIntegral i) oam
+        attributes <- readByte (fromIntegral i + 2) oam
+        let flipVertical = testBit attributes 7
+            flipHorizontal = testBit attributes 6
+            -- TODO Handle bit 5: priority
+            paletteIdx = byteToInt (attributes .&. 0b11)
+            tile =
+                BS.take 16 $
+                    BS.drop (bank + tileIdx * 16) chr
+        (_, c1, c2, c3) <- getSpritePalette (ppuPointers bus) paletteIdx
+        forM [0 .. 7] $ \y -> do
+            let upper = BS.index tile y
+                lower = BS.index tile (y + 8)
+            forM_ (reverse [0 .. 7]) $ \x -> do
+                let value =
+                        ((1 .&. (lower `shiftR` (7 - x))) `shiftL` 1)
+                            .|. (1 .&. (upper `shiftR` (7 - x)))
+                when (value /= 0) $ do
+                    let color = case value of
+                            1 -> systemPalette !! c1
+                            2 -> systemPalette !! c2
+                            3 -> systemPalette !! c3
+                            _ -> error "Bad color index"
+                    let flipCoord base n flip' = if not flip' then base + n else base + 7 - n
+                    frameSetPixel
+                        color
+                        (flipCoord tileCol x flipHorizontal, flipCoord tileRow y flipVertical)
+                        frame
+
+renderBackground :: Frame -> Bus -> IO ()
+renderBackground frame bus = do
+    let chr = chrRom . cartridge $ bus
+        bank = addrToInt . getBackgroundPatternAddr . controlRegister . ppuState $ bus
+        ppuVram = vram . ppuPointers $ bus
+    forM_ [0 .. 0x3c0] $ \i -> do
+        tileOffset <- fromIntegral . unByte <$> readByte (fromIntegral i) ppuVram
+        let tileCol = i `mod` 32
+            tileRow = i `div` 32
+            tile =
+                BS.take 16 $
+                    BS.drop (bank + tileOffset * 16) chr
+        palette <- getBackgroundPalette (ppuPointers bus) tileCol tileRow
+        renderTile palette tile tileCol tileRow
+  where
+    renderTile (c0, c1, c2, c3) tile tileCol tileRow = forM_ [0 .. 7] $ \y -> do
+        let upper = BS.index tile y
+            lower = BS.index tile (y + 8)
+        forM_ (reverse [0 .. 7]) $ \x -> do
+            let value =
+                    ((1 .&. (lower `shiftR` (7 - x))) `shiftL` 1)
+                        .|. (1 .&. (upper `shiftR` (7 - x)))
+            let color = case value of
+                    0 -> systemPalette !! c0
+                    1 -> systemPalette !! c1
+                    2 -> systemPalette !! c2
+                    3 -> systemPalette !! c3
+                    _ -> error "Bad color index"
+            frameSetPixel color (tileCol * 8 + x, tileRow * 8 + y) frame
+
+frameSetPixel :: (Word8, Word8, Word8) -> (Int, Int) -> Frame -> IO ()
+frameSetPixel (colorR, colorG, colorB) (x, y) (MkF fptr) = do
+    let base = y * 3 * frameWidth + x * 3
+    when (inRange (0, frameLength) (base + 2)) $ do
+        -- Note: we don't use 'writeByte' because base + 2 might overflow
+        unsafeWithForeignPtr (castForeignPtr fptr) $ \ptr -> do
+            pokeByteOff ptr base colorR
+            pokeByteOff ptr (base + 1) colorG
+            pokeByteOff ptr (base + 2) colorB
 
 getBackgroundPalette :: PPUPointers -> Int -> Int -> IO Palette
 getBackgroundPalette ptrs tileCol tileRow = do
@@ -49,46 +138,13 @@ getBackgroundPalette ptrs tileCol tileRow = do
     c3 <- byteToInt <$> readByte (paletteOffset + 2) (paletteTable ptrs)
     return (c0, c1, c2, c3)
 
-frameSetPixel :: (Word8, Word8, Word8) -> (Int, Int) -> Frame -> IO ()
-frameSetPixel (colorR, colorG, colorB) (x, y) (MkF fptr) = do
-    let base = y * 3 * frameWidth + x * 3
-    when (inRange (0, frameLength) (base + 2)) $ do
-        -- Note: we don't use 'writeByte' because base + 2 might overflow
-        unsafeWithForeignPtr (castForeignPtr fptr) $ \ptr -> do
-            pokeByteOff ptr base colorR
-            pokeByteOff ptr (base + 1) colorG
-            pokeByteOff ptr (base + 2) colorB
-
-render :: Frame -> Bus -> IO ()
-render frame bus = do
-    let chr = chrRom . cartridge $ bus
-        bank = getBackgroundPatternAddr . controlRegister . ppuState $ bus
-        ppuVram = vram . ppuPointers $ bus
-    forM_ [0 .. 0x3c0] $ \i -> do
-        tileOffset <- fromIntegral . unByte <$> readByte (fromIntegral i) ppuVram
-        let tileCol = i `mod` 32
-            tileRow = i `div` 32
-            tile =
-                BS.take 16 $
-                    BS.drop (addrToInt bank + tileOffset * 16) chr
-        palette <- getBackgroundPalette (ppuPointers bus) tileCol tileRow
-        extractFrame palette frame tile tileCol tileRow
-
-extractFrame :: Palette -> Frame -> ByteString -> Int -> Int -> IO ()
-extractFrame (c0, c1, c2, c3) frame tile tileCol tileRow = forM_ [0 .. 7] $ \y -> do
-    let upper = BS.index tile y
-        lower = BS.index tile (y + 8)
-    forM_ (reverse [0 .. 7]) $ \x -> do
-        let value =
-                ((1 .&. (lower `shiftR` (7 - x))) `shiftL` 1)
-                    .|. (1 .&. (upper `shiftR` (7 - x)))
-        let color = case value of
-                0 -> systemPalette !! c0
-                1 -> systemPalette !! c1
-                2 -> systemPalette !! c2
-                3 -> systemPalette !! c3
-                _ -> error "Bad color index"
-        frameSetPixel color (tileCol * 8 + x, tileRow * 8 + y) frame
+getSpritePalette :: PPUPointers -> Int -> IO Palette
+getSpritePalette ptrs paletteIdx = do
+    let offset = Addr $ fromIntegral $ 0x11 + (paletteIdx * 4)
+    c1 <- byteToInt <$> readByte offset (paletteTable ptrs)
+    c2 <- byteToInt <$> readByte (offset + 1) (paletteTable ptrs)
+    c3 <- byteToInt <$> readByte (offset + 2) (paletteTable ptrs)
+    return (0, c1, c2, c3)
 
 -- TODO https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch6.4/src/render/mod.rs#L63
 

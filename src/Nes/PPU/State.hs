@@ -20,6 +20,7 @@ module Nes.PPU.State (
     ControlRegisterFlag (..),
     modifyControlRegister,
     getBackgroundPatternAddr,
+    getSpritePatternAddr,
 
     -- * Status Register
     StatusRegister (..),
@@ -188,6 +189,12 @@ vramAddrIncrement st =
 getBackgroundPatternAddr :: ControlRegister -> Addr
 getBackgroundPatternAddr st =
     if getFlag BackgroundPatternAddr st
+        then 0x1000
+        else 0
+
+getSpritePatternAddr :: ControlRegister -> Addr
+getSpritePatternAddr st =
+    if getFlag SpritePatternAddr st
         then 0x1000
         else 0
 
