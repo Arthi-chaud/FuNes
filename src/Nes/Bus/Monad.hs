@@ -49,9 +49,15 @@ withPPU f = MkBusM $ \bus cont -> do
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     replicateM_ n (cycleCallback bus)
-    (isNewFrame, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ PPUM.tick (n * 3)
+
+    ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ do
+        before <- withPPUState nmiInterrupt
+        isNewFrame <- PPUM.tick (n * 3)
+        after <- withPPUState nmiInterrupt
+        return (isNewFrame, before, after)
+
     let bus' = bus{Nes.Bus.cycles = Nes.Bus.cycles bus + fromIntegral n, ppuState = ppuSt}
-    when isNewFrame $ onNewFrame bus' bus'
+    when (not nmiBefore && nmiAfter) $ onNewFrame bus' bus'
     cont bus' ()
 
 instance MemoryInterface () (BusM r) where
