@@ -134,6 +134,7 @@ unsafeWithBus f = MkCPU $ \st bus cont -> do
 -- | Resets the state of the CPU
 reset :: CPU r ()
 reset = do
+    modifyCPUState $ const newCPUState
     pc <- readAddr 0xfffc ()
     modifyCPUState (const $ newCPUState{programCounter = pc})
 
@@ -150,7 +151,6 @@ interrupt signal = do
     modifyCPUState $ modifyStatusRegister $ setFlag InterruptDisable
     withBus $ BusM.tick (getCPUCycles signal)
     setPC =<< readAddr (getVectorAddr signal) ()
-    undefined
 
 instance MemoryInterface () (CPU r) where
     readByte n () = do
