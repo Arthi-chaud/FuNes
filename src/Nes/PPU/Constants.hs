@@ -31,7 +31,7 @@ oamDataSize :: Int
 oamDataSize = 64 * 4
 
 unusedAddrRange :: (Addr, Addr)
-unusedAddrRange = (0x3000, 0x3fff)
+unusedAddrRange = (0x3000, 0x3eff)
 
 chrRomRange :: (Addr, Addr)
 chrRomRange = (0, 0x1fff)
