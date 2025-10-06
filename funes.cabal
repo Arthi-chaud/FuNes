@@ -102,6 +102,32 @@ executable fake-snake
     , sdl2
   default-language: Haskell2010
 
+executable funes-exe
+  main-is: Main.hs
+  other-modules:
+      Render
+      Paths_funes
+  autogen-modules:
+      Paths_funes
+  hs-source-dirs:
+      app
+  default-extensions:
+      BinaryLiterals
+      LambdaCase
+      GeneralizedNewtypeDeriving
+      OverloadedStrings
+      TupleSections
+      TypeFamilies
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , containers
+    , funes
+    , mtl
+    , sdl2
+  default-language: Haskell2010
+
 test-suite nestest
   type: exitcode-stdio-1.0
   main-is: Spec.hs
