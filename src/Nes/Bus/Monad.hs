@@ -111,8 +111,10 @@ instance MemoryInterface () (BusM r) where
                 bytes <- forM [0 .. oamDataSize - 1] $ \i -> do
                     readByte (high + Addr (fromIntegral i)) ()
                 withPPU $ writeListToOam bytes
-            -- TODO add cycles
-            -- https://www.nesdev.org/wiki/PPU_programmer_reference#OAMDMA_-_Sprite_DMA_($4014_write)
+                cycles_ <- withBus Nes.Bus.cycles
+                -- TODO 1) ticks should be done 256 * 2 (as it's a writting operarion) times
+                -- TODO 2) Not sure about about the tick count
+                tick (513 + fromEnum (odd cycles_))
             | otherwise = liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()
