@@ -19,6 +19,7 @@ module Nes.PPU.State (
     ControlRegister (..),
     ControlRegisterFlag (..),
     modifyControlRegister,
+    getBackgroundPatternAddr,
 
     -- * Status Register
     StatusRegister (..),
@@ -183,6 +184,12 @@ instance FlagRegister ControlRegister where
 vramAddrIncrement :: ControlRegister -> Byte
 vramAddrIncrement st =
     if getFlag VramAddIncrement st then 32 else 1
+
+getBackgroundPatternAddr :: ControlRegister -> Addr
+getBackgroundPatternAddr st =
+    if getFlag BackgroundPatternAddr st
+        then 0x1000
+        else 0
 
 newtype StatusRegister = MkSR {unSR :: Byte} deriving (Eq, Show)
 
