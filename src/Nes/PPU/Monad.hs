@@ -222,6 +222,7 @@ readData = do
 writeData :: Byte -> PPU r ()
 writeData byte = do
     addr <- withPPUState $ addressRegisterGet . addressRegister
+    incrementVramAddr
     go addr
   where
     go addr
@@ -230,7 +231,7 @@ writeData byte = do
             mirr <- withPPUState mirroring
             writeByte byte (mirrorVramAddr mirr addr) =<< withPointers vram
         | inRange unusedAddrRange addr = fail "Invalid write in address space"
-        | addr `elem` paletteIndexes = do
+        | inRange paletteTableRange addr = do
             plt <- withPointers paletteTable
             let addr1 =
                     if addr `elem` paletteIndexes
