@@ -49,9 +49,10 @@ withPPU f = MkBusM $ \bus cont -> do
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     replicateM_ n (cycleCallback bus)
-    (_, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ PPUM.tick (n * 3)
-    -- TODO Check return value
-    cont bus{Nes.Bus.cycles = Nes.Bus.cycles bus + fromIntegral n, ppuState = ppuSt} ()
+    (isNewFrame, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ PPUM.tick (n * 3)
+    let bus' = bus{Nes.Bus.cycles = Nes.Bus.cycles bus + fromIntegral n, ppuState = ppuSt}
+    when isNewFrame $ onNewFrame bus' bus'
+    cont bus' ()
 
 instance MemoryInterface () (BusM r) where
     readByte idx () = checkBound idx >> go
@@ -61,7 +62,7 @@ instance MemoryInterface () (BusM r) where
                 liftIO . readByte idx =<< withBus cpuVram
             | idx `elem` [0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014] =
                 fail $
-                    printf "Invalid read from write-only PPU address %4x" $
+                    printf "Invalid read from write-only PPU address %4x\n" $
                         unAddr idx
             | idx == 0x2002 = withPPU readStatus
             | idx == 0x2004 = withPPU readOamData
@@ -75,7 +76,7 @@ instance MemoryInterface () (BusM r) where
                 rom <- withBus cartridge
                 readPrgRomAddr idx rom readByte
             | otherwise = do
-                liftIO $ printf "Invalid read at %4x" $ unAddr idx
+                liftIO $ printf "Invalid read at %4x\n" $ unAddr idx
                 return 0
     writeByte byte idx () = checkBound idx >> go
       where
@@ -98,8 +99,8 @@ instance MemoryInterface () (BusM r) where
                     addr = idx .&. 0b0010000000000111
                  in
                     writeByte byte addr ()
-            | inRange prgRomRange idx = fail "Cannot writ to catridge"
-            | otherwise = liftIO $ printf "Ignoring write at %4x" $ unAddr idx
+            | inRange prgRomRange idx = fail "Cannot write to catridge"
+            | otherwise = liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()
         high <- readByte (idx + 1) ()

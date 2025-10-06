@@ -3,7 +3,7 @@ module Internal (withProgram, withState, withMemorySetup, withStateAndMemorySetu
 import Control.Monad
 import Data.Word
 import Nes.Bus
-import Nes.CPU.Interpreter (runProgram)
+import Nes.CPU.Interpreter (runProgram')
 import Nes.CPU.State
 import Nes.Memory
 import Nes.Memory.Unsafe ()
@@ -20,11 +20,11 @@ withStateAndMemorySetup ::
     (CPUState -> Bus -> IO r') ->
     IO ()
 withStateAndMemorySetup program st memSetup post = do
-    bus <- newBus unsafeEmptyRom
+    bus <- newBus unsafeEmptyRom $ \_ -> pure ()
     loadProgramToMemory program bus
     _ <- memSetup bus
     -- Not we do not read 0xfffc because it's out of the bus read
-    (st'', ticks) <- runProgram st bus (pure ())
+    (st'', ticks) <- runProgram' st bus (pure ())
     _ <- post st'' (bus{cycles = ticks})
     return ()
 

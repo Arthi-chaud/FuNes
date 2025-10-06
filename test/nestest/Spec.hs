@@ -17,7 +17,7 @@ import Nes.Bus (Bus (..), newBus)
 import Nes.Bus.Monad
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.Map
-import Nes.CPU.Interpreter (runProgram)
+import Nes.CPU.Interpreter (runProgram')
 import Nes.CPU.Monad hiding (withBus)
 import Nes.CPU.State
 import Nes.Memory
@@ -38,11 +38,11 @@ spec = it "Trace should match logfile" $ do
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
-    bus <- newBus rom
+    bus <- newBus rom (\_ -> pure ())
     traceRef <- newIORef (T [] 0)
     let st = newCPUState{programCounter = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
-    _ <- try @IOException $ runProgram st (bus{cycles = 7}) (trace traceRef)
+    _ <- try @IOException $ runProgram' st (bus{cycles = 7}) (trace traceRef)
     actualTrace <- beforeUnhandledOpcode . toRawTrace <$> readIORef traceRef
     -- BS.writeFile "actual.log" $ BSC.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace

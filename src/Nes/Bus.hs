@@ -14,6 +14,7 @@ import Foreign
 import Nes.Internal
 import Nes.Memory
 import Nes.Memory.Unsafe ()
+import Nes.PPU.Constants
 import Nes.PPU.Pointers (PPUPointers, newPPUPointers)
 import Nes.PPU.State (PPUState, newPPUState)
 import Nes.Rom (Rom (..))
@@ -32,14 +33,20 @@ data Bus = Bus
     -- ^ The state of the PPU
     , ppuPointers :: PPUPointers
     -- ^ Memory dedicated to PPU
+    , onNewFrame :: Bus -> IO ()
     }
 
-newBus :: Rom -> IO Bus
-newBus rom_ = do
-    fptr <- callocVram
+newBus :: Rom -> (Bus -> IO ()) -> IO Bus
+newBus rom_ onNewFrame_ = do
+    fptr <- callocForeignPtr vramSize
     ppuPtrs <- newPPUPointers (chrRom rom_)
     let ppuSt = newPPUState (mirroring rom_)
-    return $ Bus (castForeignPtr fptr) rom_ 0 (pure ()) ppuSt ppuPtrs
-  where
-    vramSize = 2048
-    callocVram = callocForeignPtr vramSize
+    return $
+        Bus
+            (castForeignPtr fptr)
+            rom_
+            0
+            (pure ())
+            ppuSt
+            ppuPtrs
+            onNewFrame_

@@ -48,9 +48,9 @@ main = do
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 32 32)
     frame <- newArray @IOUArray (0, frameSize) (0 :: Word8)
     let cpuState = newCPUState{programCounter = programOffset}
-    bus <- newBus unsafeEmptyRom
+    bus <- newBus unsafeEmptyRom (\_ -> pure ())
     loadProgramToMemory gameCode bus
-    _ <- runProgram cpuState bus (callback frame texture renderer)
+    _ <- runProgram' cpuState bus (callback frame texture renderer)
     destroyRenderer renderer
 
 callback :: IOUArray Int Word8 -> Texture -> Renderer -> CPU r ()
