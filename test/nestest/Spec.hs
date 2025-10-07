@@ -38,7 +38,7 @@ spec = it "Trace should match logfile" $ do
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
-    bus <- newBus rom (\_ -> pure ())
+    bus <- newBus rom pure
     traceRef <- newIORef (T [] 0)
     let st = newCPUState{programCounter = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?

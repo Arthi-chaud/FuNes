@@ -106,6 +106,7 @@ executable fake-snake
 executable funes-exe
   main-is: Main.hs
   other-modules:
+      Events
       Render
       Paths_funes
   autogen-modules:
