@@ -11,6 +11,7 @@ module Nes.Bus (
 ) where
 
 import Foreign
+import Nes.Controller
 import Nes.Internal
 import Nes.Memory
 import Nes.Memory.Unsafe ()
@@ -25,6 +26,8 @@ data Bus = Bus
     -- ^ Pointer to writeable memory
     , cartridge :: Rom
     -- ^ Read-only memory, see 'Rom'
+    , controller :: Controller
+    -- ^ Aka Joypad
     , cycles :: Integer
     -- ^ The number of ellapsed cycles
     , cycleCallback :: IO ()
@@ -45,6 +48,7 @@ newBus rom_ onNewFrame_ = do
         Bus
             (castForeignPtr fptr)
             rom_
+            newController
             0
             (pure ())
             ppuSt

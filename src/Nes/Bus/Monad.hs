@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Nes.Bus.Monad (BusM (..), runBusM, tick, withBus, withPPU) where
+module Nes.Bus.Monad (BusM (..), runBusM, tick, withBus, withPPU, withController) where
 
 import Control.Monad
 import Control.Monad.IO.Class
@@ -11,6 +11,7 @@ import Data.Ix
 import Foreign
 import Nes.Bus
 import Nes.Bus.Constants
+import Nes.Controller
 import Nes.Memory
 import Nes.PPU.Constants (oamDataSize)
 import Nes.PPU.Monad hiding (tick)
@@ -46,6 +47,13 @@ withPPU :: PPU (a, PPUState) a -> BusM r a
 withPPU f = MkBusM $ \bus cont -> do
     (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) f
     cont (bus{ppuState = ppuSt}) res
+
+withController :: ControllerM (a, Controller) a -> BusM r a
+withController f = MkBusM $ \bus cont ->
+    let
+        (res, controller') = runControllerM f (controller bus)
+     in
+        cont (bus{controller = controller'}) res
 
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
