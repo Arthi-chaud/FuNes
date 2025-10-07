@@ -36,10 +36,10 @@ data Bus = Bus
     -- ^ The state of the PPU
     , ppuPointers :: PPUPointers
     -- ^ Memory dedicated to PPU
-    , onNewFrame :: Bus -> IO ()
+    , onNewFrame :: Bus -> IO Bus
     }
 
-newBus :: Rom -> (Bus -> IO ()) -> IO Bus
+newBus :: Rom -> (Bus -> IO Bus) -> IO Bus
 newBus rom_ onNewFrame_ = do
     fptr <- callocForeignPtr vramSize
     ppuPtrs <- newPPUPointers (chrRom rom_)

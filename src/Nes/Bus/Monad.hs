@@ -65,8 +65,10 @@ tick n = MkBusM $ \bus cont -> do
         return (isNewFrame, before, after)
 
     let bus' = bus{Nes.Bus.cycles = Nes.Bus.cycles bus + fromIntegral n, ppuState = ppuSt}
-    when (not nmiBefore && nmiAfter) $ onNewFrame bus' bus'
-    cont bus' ()
+    if not nmiBefore && nmiAfter
+        then onNewFrame bus' bus' >>= flip cont ()
+        else
+            cont bus' ()
 
 instance MemoryInterface () (BusM r) where
     readByte idx () = checkBound idx >> go
@@ -89,6 +91,8 @@ instance MemoryInterface () (BusM r) where
             | inRange prgRomRange idx = do
                 rom <- withBus cartridge
                 readPrgRomAddr idx rom readByte
+            | idx == 0x4016 = withController readButtonStatus
+            | idx == 0x4017 = return 0 -- Second joypad, ignore
             | otherwise = do
                 liftIO $ printf "Invalid read at %4x\n" $ unAddr idx
                 return 0
@@ -123,6 +127,8 @@ instance MemoryInterface () (BusM r) where
                 -- TODO 1) ticks should be done 256 * 2 (as it's a writting operarion) times
                 -- TODO 2) Not sure about about the tick count
                 tick (513 + fromEnum (odd cycles_))
+            | idx == 0x4016 = withController $ setStrobe byte
+            | idx == 0x4017 = pure () -- Second joypad, ignore
             | otherwise = liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()
