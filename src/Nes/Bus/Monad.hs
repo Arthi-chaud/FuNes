@@ -71,7 +71,7 @@ tick n = MkBusM $ \bus cont -> do
             cont bus' ()
 
 instance MemoryInterface () (BusM r) where
-    readByte idx () = checkBound idx >> go
+    readByte idx () = guardReadBound idx go
       where
         go
             | inRange ramRange idx =
@@ -97,7 +97,7 @@ instance MemoryInterface () (BusM r) where
             | otherwise = do
                 liftIO $ printf "Invalid read at %4x\n" $ unAddr idx
                 return 0
-    writeByte byte idx () = checkBound idx >> go
+    writeByte byte idx () = guardWriteBound idx go
       where
         go
             | inRange ramRange idx =
@@ -144,8 +144,11 @@ instance MemoryInterface () (BusM r) where
         writeByte low idx ()
         writeByte high (idx + 1) ()
 
-checkBound :: (MonadFail m) => Addr -> m ()
-checkBound idx = when (idx >= memorySize) $ fail "Out-of-bounds memory access"
+guardReadBound :: (MonadFail m) => Addr -> m Byte -> m Byte
+guardReadBound idx cont = if idx >= memorySize then return 0 else cont
+
+guardWriteBound :: (MonadFail m) => Addr -> m () -> m ()
+guardWriteBound idx = when (idx < memorySize)
 
 -- | The continuation will be called with the translated addr to use on the PRG Rom
 -- No bound check are necessary
