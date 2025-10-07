@@ -15,6 +15,7 @@ module Nes.CPU.Instructions.Bitwise (
     lsr,
 
     -- * Unofficial
+    anc,
     sre,
     slo,
 
@@ -119,6 +120,12 @@ rla :: AddressingMode -> CPU r ()
 rla mode = do
     value <- rol_ mode
     void $ modifyRegisterA (value .&.)
+
+anc :: AddressingMode -> CPU r ()
+anc =
+    and >=> \() -> do
+        isNeg <- withCPUState $ getFlag Negative . status
+        modifyCPUState $ modifyStatusRegister (setFlag' Carry isNeg)
 
 -- | Arithmetic Shift Left
 --

@@ -244,6 +244,8 @@ opcodeMap =
         , (0x37, ("RLA", rla, ZeroPageX, Unofficial))
         , (0x3b, ("RLA", rla, AbsoluteY, Unofficial))
         , (0x3f, ("RLA", rla, AbsoluteX, Unofficial))
+        , (0x0b, ("ANC", anc, Immediate, Unofficial))
+        , (0x2b, ("ANC", anc, Immediate, Unofficial))
         , (0x43, ("SRE", sre, IndirectX, Unofficial))
         , (0x47, ("SRE", sre, ZeroPage, Unofficial))
         , (0x4f, ("SRE", sre, Absolute, Unofficial))
