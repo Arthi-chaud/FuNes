@@ -5,6 +5,7 @@ module Nes.CPU.Interpreter (
 ) where
 
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.Map
 import Nes.Bus
 import Nes.Bus.Monad (withPPU)
@@ -62,4 +63,4 @@ interpretWithCallback callback = do
   where
     go opcode = case Data.Map.lookup opcode opcodeMap of
         Just (_, f, mode, _) -> f mode
-        Nothing -> fail $ printf "OP Code not implemented: 0x%x" (unByte opcode)
+        Nothing -> liftIO $ printf "OP Code not implemented: 0x%x\n" (unByte opcode)

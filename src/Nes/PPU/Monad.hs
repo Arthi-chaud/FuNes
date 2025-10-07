@@ -208,7 +208,9 @@ readData = do
             value <- readByte (mirrorVramAddr mirr addr) =<< withPointers vram
             modifyPPUState $ \st -> st{internalBuffer = value}
             return res
-        | inRange unusedAddrRange addr = fail "Address range should not be accessed"
+        | inRange unusedAddrRange addr = do
+            liftIO $ putStrLn "Address range should not be accessed"
+            return 0
         | inRange paletteTableRange addr = do
             plt <- withPointers paletteTable
             -- https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch6.1/src/ppu/mod.rs#L169
@@ -217,7 +219,9 @@ readData = do
                         then addr - 0x10
                         else addr
             liftIO $ readByte (addr1 - 0x3f00) plt
-        | otherwise = fail "Unexpected access to mirrored space"
+        | otherwise = do
+            liftIO $ putStrLn "Unexpected access to mirrored space"
+            return 0
 
 writeData :: Byte -> PPU r ()
 writeData byte = do
@@ -226,11 +230,11 @@ writeData byte = do
     go addr
   where
     go addr
-        | inRange chrRomRange addr = fail "Invalid write to CHR Rom"
+        | inRange chrRomRange addr = liftIO $ putStrLn "Invalid write to CHR Rom"
         | inRange vramRange addr = do
             mirr <- withPPUState mirroring
             writeByte byte (mirrorVramAddr mirr addr) =<< withPointers vram
-        | inRange unusedAddrRange addr = fail "Invalid write in address space"
+        | inRange unusedAddrRange addr = liftIO $ putStrLn "Invalid write in address space"
         | inRange paletteTableRange addr = do
             plt <- withPointers paletteTable
             let addr1 =
@@ -238,7 +242,7 @@ writeData byte = do
                         then addr - 0x10
                         else addr
             liftIO $ writeByte byte (addr1 - 0x3f00) plt
-        | otherwise = fail "Unexpected access to mirrored space"
+        | otherwise = liftIO $ putStrLn "Unexpected access to mirrored space"
 
 mirrorVramAddr :: Mirroring -> Addr -> Addr
 mirrorVramAddr mirr addr = case (mirr, nameTable) of
