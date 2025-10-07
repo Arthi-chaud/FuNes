@@ -27,6 +27,7 @@ library
       Nes.Bus
       Nes.Bus.Constants
       Nes.Bus.Monad
+      Nes.Controller
       Nes.CPU.Instructions.Access
       Nes.CPU.Instructions.Addressing
       Nes.CPU.Instructions.After
