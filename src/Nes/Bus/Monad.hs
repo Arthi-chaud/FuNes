@@ -76,10 +76,11 @@ instance MemoryInterface () (BusM r) where
         go
             | inRange ramRange idx =
                 liftIO . readByte idx =<< withBus cpuVram
-            | idx `elem` [0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014] =
-                fail $
+            | idx `elem` [0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014] = do
+                liftIO $
                     printf "Invalid read from write-only PPU address %4x\n" $
                         unAddr idx
+                return 0
             | idx == 0x2002 = withPPU readStatus
             | idx == 0x2004 = withPPU readOamData
             | idx == 0x2007 = withPPU readData
@@ -90,7 +91,7 @@ instance MemoryInterface () (BusM r) where
                     readByte addr1 ()
             | inRange prgRomRange idx = do
                 rom <- withBus cartridge
-                readPrgRomAddr idx rom readByte
+                readPrgRomAddr (idx - fst prgRomRange) rom readByte
             | idx == 0x4016 = withController readButtonStatus
             | idx == 0x4017 = return 0 -- Second joypad, ignore
             | otherwise = do
@@ -106,7 +107,9 @@ instance MemoryInterface () (BusM r) where
                     liftIO . writeByte byte addr =<< withBus cpuVram
             | idx == 0x2000 = withPPU $ writeToControlRegister byte
             | idx == 0x2001 = withPPU $ setMaskRegister byte
-            | idx == 0x2002 = fail "Invalid write to PPU status register"
+            | idx == 0x2002 = do
+                liftIO $ putStrLn "Invalid write to PPU status register"
+                return ()
             | idx == 0x2003 = withPPU $ setOamOffset byte
             | idx == 0x2004 = withPPU $ writeOamData byte
             | idx == 0x2005 = withPPU $ setScrollRegister byte
@@ -117,7 +120,7 @@ instance MemoryInterface () (BusM r) where
                     addr = idx .&. 0b0010000000000111
                  in
                     writeByte byte addr ()
-            | inRange prgRomRange idx = fail "Cannot write to catridge"
+            | inRange prgRomRange idx = liftIO $ putStrLn "Cannot write to catridge"
             | idx == 0x4014 = do
                 let high = byteToAddr byte `shiftL` 8
                 bytes <- forM [0 .. oamDataSize - 1] $ \i -> do
