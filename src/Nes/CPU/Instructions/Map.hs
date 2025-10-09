@@ -9,6 +9,7 @@ import Nes.CPU.Instructions.Bitwise
 import Nes.CPU.Instructions.Branch
 import Nes.CPU.Instructions.Compare
 import Nes.CPU.Instructions.Flags
+import Nes.CPU.Instructions.Interrupt (brk)
 import Nes.CPU.Instructions.Jump
 import Nes.CPU.Instructions.Noop (noop)
 import Nes.CPU.Instructions.Stack
@@ -260,6 +261,5 @@ opcodeMap =
         , (0x77, ("RRA", rra, ZeroPageX, Unofficial))
         , (0x7b, ("RRA", rra, AbsoluteY, Unofficial))
         , (0x7f, ("RRA", rra, AbsoluteX, Unofficial))
-        , -- Note: for this one, the intepreter is responsible for breaking
-          (0x00, ("BRK", const $ pure (), None, Official))
+        , (0x00, ("BRK", const brk, None, Official))
         ]
