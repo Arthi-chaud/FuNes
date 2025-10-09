@@ -125,7 +125,7 @@ isSpriteZeroHit cycle_ = do
     scanline_ <- withPPUState scanline
     line <- unAddr . byteToAddr <$> (readByte 0 =<< withPointers oamData)
     col <- byteToInt <$> (readByte 3 =<< withPointers oamData)
-    showSprites <- withPPUState $ getFlag ShowBackground . maskRegister
+    showSprites <- withPPUState $ getFlag ShowSprites . maskRegister
     return $ (line == scanline_) && col <= cycle_ && showSprites
 
 withPointers :: (PPUPointers -> a) -> PPU r a
@@ -205,15 +205,16 @@ setScrollRegister byte =
 readData :: PPU r Byte
 readData = do
     addr <- withPPUState $ addressRegisterGet . addressRegister
+    res <- go addr
     incrementVramAddr
-    go addr
+    return res
   where
     go addr
         | inRange chrRomRange addr = do
             res <- withPPUState internalBuffer
-            value <- Byte <$> (withPointers chrRom <&> (`BS.index` byteToInt res))
+            value <- Byte <$> (withPointers chrRom <&> (`BS.index` addrToInt addr))
             modifyPPUState $ \st -> st{internalBuffer = value}
-            return value
+            return res
         | inRange vramRange addr = do
             res <- withPPUState internalBuffer
             mirr <- withPPUState mirroring
