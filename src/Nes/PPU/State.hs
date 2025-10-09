@@ -58,7 +58,7 @@ data PPUState = MkPPUState
     , maskRegister :: MaskRegister
     , internalBuffer :: Byte
     , oamOffset :: Byte
-    , cycles :: Integer
+    , cycles :: Int
     , scanline :: Word16
     , nmiInterrupt :: Bool
     }
