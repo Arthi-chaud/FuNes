@@ -21,6 +21,7 @@ module Nes.PPU.State (
     modifyControlRegister,
     getBackgroundPatternAddr,
     getSpritePatternAddr,
+    getNametableAddr,
 
     -- * Status Register
     StatusRegister (..),
@@ -198,6 +199,14 @@ getSpritePatternAddr st =
         then 0x1000
         else 0
 
+getNametableAddr :: ControlRegister -> Addr
+getNametableAddr st = case unCR st .&. 0b11 of
+    0 -> 0x2000
+    1 -> 0x2400
+    2 -> 0x2800
+    3 -> 0x2c00
+    _ -> error "Invalid Nametable Addr"
+
 newtype StatusRegister = MkSR {unSR :: Byte} deriving (Eq, Show)
 
 data StatusRegisterFlag
@@ -225,7 +234,7 @@ newScrollRegister = MkScrollR 0 0 False
 scrollRegisterWrite :: Byte -> ScrollRegister -> ScrollRegister
 scrollRegisterWrite byte sr =
     let
-        sr1 = if latch sr then sr{x = byte} else sr{y = byte}
+        sr1 = if not $ latch sr then sr{x = byte} else sr{y = byte}
         sr2 = sr1{latch = not (latch sr1)}
      in
         sr2
