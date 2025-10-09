@@ -36,6 +36,7 @@ library
       Nes.CPU.Instructions.Branch
       Nes.CPU.Instructions.Compare
       Nes.CPU.Instructions.Flags
+      Nes.CPU.Instructions.Interrupt
       Nes.CPU.Instructions.Jump
       Nes.CPU.Instructions.Map
       Nes.CPU.Instructions.Noop
