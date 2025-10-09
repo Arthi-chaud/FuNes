@@ -9,9 +9,13 @@ module Render (
 
 import Control.Monad
 import Data.Bits
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Internal as BS
 import Data.Ix (Ix (inRange))
+import Debug.Trace (trace, traceShow)
 import Foreign
+import GHC.Exts (Ptr (Ptr))
 import GHC.ForeignPtr
 import Nes.Bus
 import Nes.Internal
@@ -19,7 +23,7 @@ import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Nes.PPU.Constants
 import Nes.PPU.Pointers hiding (chrRom)
-import Nes.PPU.State hiding (ScrollRegister (..))
+import Nes.PPU.State
 import Nes.Rom
 
 newtype Frame = MkF {unF :: MemoryPointer}
@@ -82,17 +86,46 @@ renderSprites frame bus = do
 
 renderBackground :: Frame -> Bus -> IO ()
 renderBackground frame bus = do
+    let (scrollX, scrollY) =
+            let
+                scroll = (scrollRegister $ ppuState bus)
+             in
+                (byteToInt $ x scroll, byteToInt $ y scroll)
+        ppuVram = vram $ ppuPointers bus
+    let (nt1, nt2) = case (Nes.PPU.State.mirroring $ ppuState bus, getNametableAddr . controlRegister $ ppuState bus) of
+            (Vertical, 0x2000) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
+            (Vertical, 0x2800) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
+            (Horizontal, 0x2000) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
+            (Horizontal, 0x2400) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
+            (Vertical, 0x2400) -> (bsFromSlice ppuVram (0x400, 0x800), bsFromSlice ppuVram (0, 0x400))
+            (Vertical, 0x2C00) -> (bsFromSlice ppuVram (0x400, 0x800), bsFromSlice ppuVram (0, 0x400))
+            (Horizontal, 0x2800) -> (bsFromSlice ppuVram (0x400, 0x800), bsFromSlice ppuVram (0, 0x400))
+            (Horizontal, 0x2C00) -> (bsFromSlice ppuVram (0x400, 0x800), bsFromSlice ppuVram (0, 0x400))
+            _ -> error "Not supported mirror type"
+    renderNameTable frame bus nt1 (MkVP{xStart_ = scrollX, yStart_ = scrollY, xEnd_ = 256, yEnd_ = 240}) (-scrollX, -scrollY)
+    if scrollX > 0
+        then
+            renderNameTable frame bus nt2 (MkVP{xStart_ = 0, yStart_ = 0, xEnd_ = scrollX, yEnd_ = 240}) (256 - scrollX, 0)
+        else
+            when (scrollY > 0) $
+                renderNameTable frame bus nt2 (MkVP{xStart_ = 0, yStart_ = 0, xEnd_ = 256, yEnd_ = scrollY}) (0, 240 - scrollY)
+  where
+    bsFromSlice :: ForeignPtr () -> (Int, Int) -> ByteString
+    bsFromSlice vram_ (offset, end) = BS.BS (vram_ `plusForeignPtr` offset) (end - offset + 1)
+
+renderNameTable :: Frame -> Bus -> ByteString -> ViewPort -> (Int, Int) -> IO ()
+renderNameTable frame bus nametable vp (shiftX, shiftY) = do
     let chr = chrRom . cartridge $ bus
         bank = addrToInt . getBackgroundPatternAddr . controlRegister . ppuState $ bus
-        ppuVram = vram . ppuPointers $ bus
+        attrTable = BS.drop 0x3c0 nametable
     forM_ [0 .. 0x3c0] $ \i -> do
-        tileOffset <- fromIntegral . unByte <$> readByte (fromIntegral i) ppuVram
-        let tileCol = i `mod` 32
+        let tileOffset = fromIntegral $ BS.index nametable i
+            tileCol = i `mod` 32
             tileRow = i `div` 32
             tile =
                 BS.take 16 $
                     BS.drop (bank + tileOffset * 16) chr
-        palette <- getBackgroundPalette (ppuPointers bus) tileCol tileRow
+        palette <- getBackgroundPalette (ppuPointers bus) attrTable tileCol tileRow
         renderTile palette tile tileCol tileRow
   where
     renderTile (c0, c1, c2, c3) tile tileCol tileRow = forM_ [0 .. 7] $ \y -> do
@@ -108,7 +141,15 @@ renderBackground frame bus = do
                     2 -> systemPalette !! c2
                     3 -> systemPalette !! c3
                     _ -> error "Bad color index"
-            frameSetPixel color (tileCol * 8 + x, tileRow * 8 + y) frame
+                pixelX = tileCol * 8 + x
+                pixelY = tileRow * 8 + y
+            when
+                ( xStart_ vp <= pixelX
+                    && pixelX < xEnd_ vp
+                    && yStart_ vp <= pixelY
+                    && pixelY < yEnd_ vp
+                )
+                $ frameSetPixel color (pixelX + shiftX, pixelY + shiftY) frame
 
 frameSetPixel :: (Word8, Word8, Word8) -> (Int, Int) -> Frame -> IO ()
 frameSetPixel (colorR, colorG, colorB) (x, y) (MkF fptr) = do
@@ -120,10 +161,12 @@ frameSetPixel (colorR, colorG, colorB) (x, y) (MkF fptr) = do
             pokeByteOff ptr (base + 1) colorG
             pokeByteOff ptr (base + 2) colorB
 
-getBackgroundPalette :: PPUPointers -> Int -> Int -> IO Palette
-getBackgroundPalette ptrs tileCol tileRow = do
+data ViewPort = MkVP {xEnd_ :: Int, yEnd_ :: Int, xStart_ :: Int, yStart_ :: Int}
+
+getBackgroundPalette :: PPUPointers -> ByteString -> Int -> Int -> IO Palette
+getBackgroundPalette ptrs attrTable tileCol tileRow = do
     let attrTableIdx = tileRow `div` 4 * 8 + tileCol `div` 4
-    attrByte <- readByte (Addr $ fromIntegral $ 0x3c0 + attrTableIdx) (vram ptrs)
+        attrByte = fromIntegral $ BS.index attrTable attrTableIdx
     let paletteIdx =
             (.&. 0b11) $ case (tileCol `mod` 4 `div` 2, tileRow `mod` 4 `div` 2) of
                 (0, 0) -> attrByte
