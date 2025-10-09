@@ -144,8 +144,8 @@ interrupt signal = do
     let mask = getFlagMask signal
     flag <-
         withCPUState $
-            setFlag' BreakCommand2 (testBit mask 4)
-                . setFlag' BreakCommand (testBit mask 5)
+            setFlag' BreakCommand (testBit mask 4)
+                . setFlag' BreakCommand2 (testBit mask 5)
                 . status
     pushByteStack $ unSR flag
     modifyCPUState $ modifyStatusRegister $ setFlag InterruptDisable
