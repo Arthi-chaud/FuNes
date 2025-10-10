@@ -11,7 +11,7 @@ import Nes.CPU.Instructions.Compare
 import Nes.CPU.Instructions.Flags
 import Nes.CPU.Instructions.Interrupt (brk)
 import Nes.CPU.Instructions.Jump
-import Nes.CPU.Instructions.Noop (noop)
+import Nes.CPU.Instructions.Noop
 import Nes.CPU.Instructions.Stack
 import Nes.CPU.Instructions.Transfer
 import Nes.CPU.Instructions.Unofficial
@@ -262,4 +262,16 @@ opcodeMap =
         , (0x7b, ("RRA", rra, AbsoluteY, Unofficial))
         , (0x7f, ("RRA", rra, AbsoluteX, Unofficial))
         , (0x00, ("BRK", const brk, None, Official))
+        , (0x02, ("KIL", const kil, None, Unofficial))
+        , (0x12, ("KIL", const kil, None, Unofficial))
+        , (0x22, ("KIL", const kil, None, Unofficial))
+        , (0x32, ("KIL", const kil, None, Unofficial))
+        , (0x42, ("KIL", const kil, None, Unofficial))
+        , (0x52, ("KIL", const kil, None, Unofficial))
+        , (0x62, ("KIL", const kil, None, Unofficial))
+        , (0x72, ("KIL", const kil, None, Unofficial))
+        , (0x92, ("KIL", const kil, None, Unofficial))
+        , (0xB2, ("KIL", const kil, None, Unofficial))
+        , (0xD2, ("KIL", const kil, None, Unofficial))
+        , (0xF2, ("KIL", const kil, None, Unofficial))
         ]

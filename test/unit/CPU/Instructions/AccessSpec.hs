@@ -14,7 +14,7 @@ spec = do
             it "Base" $ do
                 let setup _ = pure ()
                 withStateAndMemorySetup [0xa9, 0x05, 0x00] newCPUState setup $ \cpu bus -> do
-                    cycles bus `shouldBe` 2 + 1
+                    cycles bus `shouldBe` 2
                     registerA cpu `shouldBe` 0x05
 
                     getFlag Zero (status cpu) `shouldBe` False

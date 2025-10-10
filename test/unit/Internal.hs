@@ -4,6 +4,7 @@ import Control.Monad
 import Data.Word
 import Nes.Bus
 import Nes.CPU.Interpreter (runProgram')
+import Nes.CPU.Monad (CPU (MkCPU))
 import Nes.CPU.State
 import Nes.Memory
 import Nes.Memory.Unsafe ()
@@ -24,9 +25,15 @@ withStateAndMemorySetup program st memSetup post = do
     loadProgramToMemory program bus
     _ <- memSetup bus
     -- Not we do not read 0xfffc because it's out of the bus read
-    (st'', ticks) <- runProgram' st bus (pure ())
+    (st'', ticks) <- runProgram' st bus stopAtBrk
     _ <- post st'' (bus{cycles = ticks})
     return ()
+  where
+    stopAtBrk = MkCPU $ \st' bus cont -> do
+        b <- readByte (programCounter st') (cpuVram bus)
+        if b == 0x00
+            then pure (st', cycles bus)
+            else cont st' bus ()
 
 -- | Runs a program and returns the state of the CPU at the end of the execution
 withProgram :: [Word8] -> (CPUState -> IO r) -> IO ()

@@ -1,4 +1,4 @@
-module Nes.CPU.Instructions.Noop (noop) where
+module Nes.CPU.Instructions.Noop (noop, kil) where
 
 import Control.Monad
 import Nes.CPU.Instructions.Addressing (AddressingMode (..), getOperandAddr)
@@ -15,3 +15,7 @@ noop = \case
     mode -> do
         addr <- getOperandAddr mode
         void $ readByte addr ()
+
+-- | AKA Jam
+kil :: CPU r ()
+kil = pure ()

@@ -6,6 +6,7 @@ module Nes.CPU.Interpreter (
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.Functor
 import Data.Map
 import Nes.Bus
 import Nes.Bus.Monad (withPPU)
@@ -49,18 +50,17 @@ interpretWithCallback callback = do
     oldCycleCount <- getCycles
     opCode <- readAtPC
     incrementPC
-    if opCode == 0x00
-        then return ()
-        else do
-            go opCode
-            newCycleCount <- getCycles
-            -- Each opcode should take at least 2 ticks
-            -- We cannot just check that addressing is none,
-            -- because some opcode w/o addressing take more that 1 cycle
-            -- e.g. php
-            when (newCycleCount - 1 == oldCycleCount) tickOnce
-            interpretWithCallback callback
+    do
+        forceMultiByte <- go opCode
+        newCycleCount <- getCycles
+        -- Each opcode should take at least 2 ticks
+        -- We cannot just check that addressing is none,
+        -- because some opcode w/o addressing take more that 1 cycle
+        -- e.g. php
+        -- This does not apply to unofficial KIL/JAM opcodes
+        when (forceMultiByte && newCycleCount - 1 == oldCycleCount) tickOnce
+        interpretWithCallback callback
   where
     go opcode = case Data.Map.lookup opcode opcodeMap of
-        Just (_, f, mode, _) -> f mode
-        Nothing -> liftIO $ printf "OP Code not implemented: 0x%x\n" (unByte opcode)
+        Just (mnemo, f, mode, _) -> f mode $> (mnemo /= "KIL")
+        Nothing -> liftIO $ printf "OP Code not implemented: 0x%x\n" (unByte opcode) $> False
