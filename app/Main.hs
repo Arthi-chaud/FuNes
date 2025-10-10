@@ -44,7 +44,7 @@ main = do
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
     frame <- newFrame
-    bus <- newBus rom (onDrawFrame frame texture renderer)
+    bus <- newBus rom (onDrawFrame frame texture renderer) (\_ -> pure ())
     void $ runProgram bus (pure ())
     destroyRenderer renderer
 

@@ -38,7 +38,7 @@ spec = it "Trace should match logfile" $ do
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
-    bus <- newBus rom pure
+    bus <- newBus rom pure (const $ pure ())
     traceRef <- newIORef (T [] 0)
     let st = newCPUState{programCounter = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
@@ -185,4 +185,4 @@ loadExpectedRawTrace = do
 
 withoutTick :: CPU r a -> CPU r a
 withoutTick (MkCPU f) = MkCPU $ \st bus cont -> do
-    f st bus{cycleCallback = pure ()} $ \st' _ -> cont st' bus
+    f st bus{cycleCallback = \_ -> pure ()} $ \st' _ -> cont st' bus
