@@ -8,7 +8,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: sudo apt install -y libsdl2-dev
+    - run: sudo apt update -y && sudo apt install -y libsdl2-dev
       shell: sh
     - name: Cache GHC installation
       uses: actions/cache@v3
