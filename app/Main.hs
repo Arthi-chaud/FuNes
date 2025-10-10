@@ -1,7 +1,9 @@
 module Main (main) where
 
+import Control.Concurrent (threadDelay)
 import Control.Monad
 import qualified Data.ByteString.Internal as BS
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Events
 import Foreign (castForeignPtr)
 import Nes.Bus
@@ -24,7 +26,7 @@ main = do
     rom <- do
         res <- fromFile romPath
         either fail return res
-
+    tickRef <- newIORef (0 :: Int)
     initializeAll
     let windowConfig =
             defaultWindow
@@ -44,9 +46,17 @@ main = do
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
     frame <- newFrame
-    bus <- newBus rom (onDrawFrame frame texture renderer) (\_ -> pure ())
+    bus <- newBus rom (onDrawFrame frame texture renderer) (tickCallback tickRef)
     void $ runProgram bus (pure ())
     destroyRenderer renderer
+
+tickCallback :: IORef Int -> Int -> IO ()
+tickCallback ref ticks_ = do
+    old <- readIORef ref
+    let res = old + ticks_
+        microsecondsToSleep = res `div` 179
+    writeIORef ref (res `mod` 179)
+    when (microsecondsToSleep > 0) $ threadDelay microsecondsToSleep
 
 onDrawFrame :: Frame -> Texture -> Renderer -> Bus -> IO Bus
 onDrawFrame frame texture renderer bus = do
