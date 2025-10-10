@@ -74,24 +74,33 @@ instance MemoryInterface () (BusM r) where
     readByte idx () = guardReadBound idx go
       where
         go
-            | inRange ramRange idx =
-                liftIO . readByte idx =<< withBus cpuVram
-            | idx `elem` [0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014] = do
-                liftIO $
-                    printf "Invalid read from write-only PPU address %4x\n" $
-                        unAddr idx
-                return 0
-            | idx == 0x2002 = withPPU readStatus
-            | idx == 0x2004 = withPPU readOamData
-            | idx == 0x2007 = withPPU readData
-            | inRange (0x2008, snd ramRange) idx =
-                let
-                    addr1 = idx .&. 0b0010000000000111
-                 in
-                    readByte addr1 ()
+            | inRange ramRange idx = do
+                let mirroredDownAddr = idx .&. 0b11111111111 -- 11 bits
+                liftIO . readByte mirroredDownAddr =<< withBus cpuVram
+            | inRange ppuRegisters idx = do
+                let mirroredIdx = Addr . fromIntegral $ addrToInt (idx - fst ppuRegisters) `mod` 8
+                    onInvalidRead = return 0
+                case mirroredIdx of
+                    0 ->
+                        if idx == 0x2000
+                            then onInvalidRead
+                            else
+                                let
+                                    addr1 = idx .&. 0b0010000000000111
+                                 in
+                                    readByte addr1 ()
+                    1 -> onInvalidRead
+                    2 -> withPPU readStatus
+                    3 -> onInvalidRead
+                    4 -> withPPU readOamData
+                    5 -> onInvalidRead
+                    6 -> onInvalidRead
+                    7 -> withPPU readData
+                    _ -> error "Cannot happen"
             | inRange prgRomRange idx = do
                 rom <- withBus cartridge
                 readPrgRomAddr (idx - fst prgRomRange) rom readByte
+            | idx == 0x4014 = return 0
             | idx == 0x4016 = withController readButtonStatus
             | idx == 0x4017 = return 0 -- Second joypad, ignore
             | otherwise = do
@@ -105,21 +114,27 @@ instance MemoryInterface () (BusM r) where
                     addr = idx .&. 0b11111111111
                  in
                     liftIO . writeByte byte addr =<< withBus cpuVram
-            | idx == 0x2000 = withPPU $ writeToControlRegister byte
-            | idx == 0x2001 = withPPU $ setMaskRegister byte
-            | idx == 0x2002 = do
-                liftIO $ putStrLn "Invalid write to PPU status register"
-                return ()
-            | idx == 0x2003 = withPPU $ setOamOffset byte
-            | idx == 0x2004 = withPPU $ writeOamData byte
-            | idx == 0x2005 = withPPU $ setScrollRegister byte
-            | idx == 0x2006 = withPPU $ writeToAddressRegister byte
-            | idx == 0x2007 = withPPU $ writeData byte
-            | inRange (0x2008, snd ramRange) idx =
-                let
-                    addr = idx .&. 0b0010000000000111
-                 in
-                    writeByte byte addr ()
+            | inRange ppuRegisters idx = do
+                let mirroredIdx = Addr . fromIntegral $ addrToInt (idx - fst ppuRegisters) `mod` 8
+                case mirroredIdx of
+                    0 ->
+                        if idx == 0x2000
+                            then withPPU $ writeToControlRegister byte
+                            else
+                                let
+                                    addr = idx .&. 0b0010000000000111
+                                 in
+                                    writeByte byte addr ()
+                    1 -> withPPU $ setMaskRegister byte
+                    2 -> do
+                        liftIO $ putStrLn "Invalid write to PPU status register"
+                        return ()
+                    3 -> withPPU $ setOamOffset byte
+                    4 -> withPPU $ writeOamData byte
+                    5 -> withPPU $ setScrollRegister byte
+                    6 -> withPPU $ writeToAddressRegister byte
+                    7 -> withPPU $ writeData byte
+                    _ -> error "Cannot happen"
             | inRange prgRomRange idx = liftIO $ putStrLn "Cannot write to catridge"
             | idx == 0x4014 = do
                 let high = byteToAddr byte `shiftL` 8
