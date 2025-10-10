@@ -57,7 +57,7 @@ withController f = MkBusM $ \bus cont ->
 
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
-    replicateM_ n (cycleCallback bus)
+    replicateM_ n (cycleCallback bus n)
     ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ do
         before <- withPPUState nmiInterrupt
         isNewFrame <- PPUM.tick (n * 3)

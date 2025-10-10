@@ -30,8 +30,8 @@ data Bus = Bus
     -- ^ Aka Joypad
     , cycles :: Integer
     -- ^ The number of ellapsed cycles
-    , cycleCallback :: IO ()
-    -- ^ The function executed on every tick (e.g. sleep)
+    , cycleCallback :: Int -> IO ()
+    -- ^ The function executed on tick (the arg is the number of ellapsed ticks)
     , ppuState :: PPUState
     -- ^ The state of the PPU
     , ppuPointers :: PPUPointers
@@ -39,8 +39,8 @@ data Bus = Bus
     , onNewFrame :: Bus -> IO Bus
     }
 
-newBus :: Rom -> (Bus -> IO Bus) -> IO Bus
-newBus rom_ onNewFrame_ = do
+newBus :: Rom -> (Bus -> IO Bus) -> (Int -> IO ()) -> IO Bus
+newBus rom_ onNewFrame_ tickCallback_ = do
     fptr <- callocForeignPtr vramSize
     ppuPtrs <- newPPUPointers (chrRom rom_)
     let ppuSt = newPPUState (mirroring rom_)
@@ -50,7 +50,7 @@ newBus rom_ onNewFrame_ = do
             rom_
             newController
             0
-            (pure ())
+            tickCallback_
             ppuSt
             ppuPtrs
             onNewFrame_
