@@ -30,12 +30,12 @@ import Nes.Memory (Byte (Byte))
 data Mirroring = Vertical | Horizontal | FourScreen deriving (Eq, Show)
 
 data Rom = Rom
-    { prgRom :: ByteString
+    { prgRom :: {-# UNPACK #-} !ByteString
     -- ^ The portion of the ROM that's connected to the CPU
-    , chrRom :: ByteString
+    , chrRom :: {-# UNPACK #-} !ByteString
     -- ^ The portion of the ROM that's connected to the PPU
-    , mapper :: Byte
-    , mirroring :: Mirroring
+    , mapper :: {-# UNPACK #-} !Byte
+    , mirroring :: {-# UNPACK #-} !Mirroring
     }
 
 type RomParsingError = String
