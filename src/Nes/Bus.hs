@@ -41,7 +41,7 @@ data Bus = Bus
 newBus :: Rom -> (Bus -> IO Bus) -> (Int -> IO ()) -> IO Bus
 newBus rom_ onNewFrame_ tickCallback_ = do
     fptr <- callocForeignPtr vramSize
-    ppuPtrs <- newPPUPointers (chrRom rom_)
+    ppuPtrs <- newPPUPointers
     let ppuSt = newPPUState (mirroring rom_)
     return $
         Bus
