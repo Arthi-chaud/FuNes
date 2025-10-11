@@ -11,10 +11,10 @@ import Nes.Memory
 import Nes.PPU.Constants
 
 data PPUPointers = MkPPUPtr
-    { chrRom :: ByteString
-    , paletteTable :: MemoryPointer
-    , vram :: MemoryPointer
-    , oamData :: MemoryPointer
+    { chrRom :: {-# UNPACK #-} !ByteString
+    , paletteTable :: {-# UNPACK #-} !MemoryPointer
+    , vram :: {-# UNPACK #-} !MemoryPointer
+    , oamData :: {-# UNPACK #-} !MemoryPointer
     }
 
 newPPUPointers :: ByteString -> IO PPUPointers

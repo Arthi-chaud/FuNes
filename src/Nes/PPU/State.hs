@@ -51,17 +51,17 @@ import Nes.Memory (Addr (..), Byte (..), bytesToAddr)
 import Nes.Rom
 
 data PPUState = MkPPUState
-    { mirroring :: Mirroring
-    , controlRegister :: ControlRegister
-    , addressRegister :: AddressRegister
-    , statusRegister :: StatusRegister
-    , scrollRegister :: ScrollRegister
-    , maskRegister :: MaskRegister
-    , internalBuffer :: Byte
-    , oamOffset :: Byte
-    , cycles :: Int
-    , scanline :: Word16
-    , nmiInterrupt :: Bool
+    { mirroring :: {-# UNPACK #-} !Mirroring
+    , controlRegister :: {-# UNPACK #-} !ControlRegister
+    , addressRegister :: {-# UNPACK #-} !AddressRegister
+    , statusRegister :: {-# UNPACK #-} !StatusRegister
+    , scrollRegister :: {-# UNPACK #-} !ScrollRegister
+    , maskRegister :: {-# UNPACK #-} !MaskRegister
+    , internalBuffer :: {-# UNPACK #-} !Byte
+    , oamOffset :: {-# UNPACK #-} !Byte
+    , cycles :: {-# UNPACK #-} !Int
+    , scanline :: {-# UNPACK #-} !Word16
+    , nmiInterrupt :: {-# UNPACK #-} !Bool
     }
 
 modifyControlRegister :: (ControlRegister -> ControlRegister) -> PPUState -> PPUState
