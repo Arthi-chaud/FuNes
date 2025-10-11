@@ -6,7 +6,11 @@ FuNes is a Nintendo Entertainment System (NES) emulator, written in Haskell.
 > This emulator is for research purposes. Do not use as your daily emulator. You can easily find more mature NES emulators on GitHub!
 
 <img src="https://github.com/user-attachments/assets/3e42fe20-13ac-40bc-85a5-10cf7305a41a" width="400">
-<img src="https://github.com/user-attachments/assets/9eeb7891-1711-4cb6-886b-dfa46f360164" width="400">
+<img src="https://github.com/user-attachments/assets/5aba908a-bd80-40d1-b062-93a3ab9f97c5" width="400">
+
+
+
+
 
 
 ## :mag: Why does this project exist?
@@ -61,7 +65,8 @@ Do not be scared of the failing tests, please check out [this video](https://www
 
 _Results from Oct. 11 2025_
 
-https://github.com/user-attachments/assets/792677ba-1788-439e-ba40-b2af5105fc37
+https://github.com/user-attachments/assets/44a75a2b-9972-4bb6-92eb-122cdeb44c85
+
 
 </details>
 
