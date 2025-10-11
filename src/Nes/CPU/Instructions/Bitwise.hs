@@ -18,6 +18,7 @@ module Nes.CPU.Instructions.Bitwise (
     anc,
     sre,
     slo,
+    alr,
 
     -- * Internal
     rol_,
@@ -170,6 +171,12 @@ slo :: AddressingMode -> CPU r ()
 slo mode = do
     value <- asl_ mode
     void $ modifyRegisterA (value .|.)
+
+-- | (Unofficial) AND + LSR
+--
+-- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch8/src/cpu.rs#L1073
+alr :: AddressingMode -> CPU r ()
+alr mode = and mode >> lsr Accumulator
 
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
 withOperand Accumulator f = do
