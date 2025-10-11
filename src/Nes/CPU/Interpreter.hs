@@ -63,4 +63,7 @@ interpretWithCallback callback = do
   where
     go opcode = case Data.Map.lookup opcode opcodeMap of
         Just (mnemo, f, mode, _) -> f mode $> (mnemo /= "KIL")
-        Nothing -> liftIO $ printf "OP Code not implemented: 0x%x\n" (unByte opcode) $> False
+        Nothing -> do
+            incrementPC
+            liftIO $ printf "OP Code not implemented: 0x%x\n" (unByte opcode)
+            return False
