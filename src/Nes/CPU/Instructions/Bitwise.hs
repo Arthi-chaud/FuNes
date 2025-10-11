@@ -19,6 +19,7 @@ module Nes.CPU.Instructions.Bitwise (
     sre,
     slo,
     alr,
+    arr,
 
     -- * Internal
     rol_,
@@ -26,7 +27,7 @@ module Nes.CPU.Instructions.Bitwise (
 ) where
 
 import Control.Monad
-import Data.Bits (Bits (setBit, shiftL, testBit, (.|.)), shiftR, (.&.), (.^.))
+import Data.Bits hiding (bit, rotate)
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
@@ -177,6 +178,22 @@ slo mode = do
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch8/src/cpu.rs#L1073
 alr :: AddressingMode -> CPU r ()
 alr mode = and mode >> lsr Accumulator
+
+-- | (Unofficial) part of this command are some ADC mechanisms. following effects appear after AND but before ROR
+--
+-- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch8/src/cpu.rs#L1028
+arr :: AddressingMode -> CPU r ()
+arr mode = do
+    addr <- getOperandAddr mode
+    byte <- readByte addr ()
+    void $ modifyRegisterA (.&. byte)
+    ror Accumulator
+    res <- withCPUState $ getRegister A
+    modifyCPUState $
+        modifyStatusRegister $
+            setFlag' Carry (testBit res 6)
+                . setFlag' Overflow (testBit res 6 `xor` testBit res 5)
+    setZeroAndNegativeFlags res
 
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
 withOperand Accumulator f = do
