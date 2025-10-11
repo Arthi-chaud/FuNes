@@ -20,6 +20,7 @@ module Nes.CPU.Instructions.Bitwise (
     slo,
     alr,
     arr,
+    xaa,
 
     -- * Internal
     rol_,
@@ -194,6 +195,17 @@ arr mode = do
             setFlag' Carry (testBit res 6)
                 . setFlag' Overflow (testBit res 6 `xor` testBit res 5)
     setZeroAndNegativeFlags res
+
+-- | (Unofficial)
+--
+-- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch8/src/cpu.rs#L1133
+xaa :: AddressingMode -> CPU r ()
+xaa mode = do
+    x <- withCPUState $ getRegister X
+    modifyCPUState $ setRegister A x
+    setZeroAndNegativeFlags x
+    byte <- flip readByte () =<< getOperandAddr mode
+    void $ modifyRegisterA (.&. byte)
 
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
 withOperand Accumulator f = do
