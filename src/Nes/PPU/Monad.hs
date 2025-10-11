@@ -49,12 +49,13 @@ import Nes.Memory.Unsafe ()
 import Nes.PPU.Constants
 import Nes.PPU.Pointers
 import Nes.PPU.State
-import Nes.Rom (Mirroring (..))
+import Nes.Rom (Mirroring (..), Rom, chrRom)
 
 newtype PPU r a = MkPPU
     { unPPU ::
         PPUState ->
         PPUPointers ->
+        Rom ->
         ( PPUState ->
           PPUPointers ->
           a ->
@@ -64,24 +65,24 @@ newtype PPU r a = MkPPU
     }
     deriving (Functor)
 
-runPPU :: PPUState -> PPUPointers -> PPU (a, PPUState) a -> IO (a, PPUState)
-runPPU st ptrs f = unPPU op st ptrs $ \_ _ a -> return a
+runPPU :: PPUState -> PPUPointers -> Rom -> PPU (a, PPUState) a -> IO (a, PPUState)
+runPPU st ptrs rom f = unPPU op st ptrs rom $ \_ _ a -> return a
   where
     op = f >>= \a -> withPPUState (a,)
 
 instance Applicative (PPU r) where
-    pure a = MkPPU $ \st ptr cont -> cont st ptr a
-    liftA2 f (MkPPU a) (MkPPU b) = MkPPU $ \st ptr cont ->
-        a st ptr $ \st' ptr' aRes ->
-            b st' ptr' $ \st'' ptr'' bRes ->
+    pure a = MkPPU $ \st ptr _ cont -> cont st ptr a
+    liftA2 f (MkPPU a) (MkPPU b) = MkPPU $ \st ptr rom cont ->
+        a st ptr rom $ \st' ptr' aRes ->
+            b st' ptr' rom $ \st'' ptr'' bRes ->
                 cont st'' ptr'' (f aRes bRes)
 
 instance Monad (PPU r) where
-    (MkPPU a) >>= next = MkPPU $ \st ptr cont ->
-        a st ptr $ \st' ptr' aRes ->
-            unPPU (next aRes) st' ptr' cont
+    (MkPPU a) >>= next = MkPPU $ \st ptr rom cont ->
+        a st ptr rom $ \st' ptr' aRes ->
+            unPPU (next aRes) st' ptr' rom cont
 instance (MonadIO (PPU r)) where
-    liftIO io = MkPPU $ \st ptr cont ->
+    liftIO io = MkPPU $ \st ptr _ cont ->
         io >>= cont st ptr
 
 instance (MonadFail (PPU r)) where
@@ -129,15 +130,15 @@ isSpriteZeroHit cycle_ = do
     return $ (line == scanline_) && col <= cycle_ && showSprites
 
 withPointers :: (PPUPointers -> a) -> PPU r a
-withPointers f = MkPPU $ \st ptr cont ->
+withPointers f = MkPPU $ \st ptr _ cont ->
     cont st ptr (f ptr)
 
 withPPUState :: (PPUState -> a) -> PPU r a
-withPPUState f = MkPPU $ \st ptr cont ->
+withPPUState f = MkPPU $ \st ptr _ cont ->
     cont st ptr (f st)
 
 modifyPPUState :: (PPUState -> PPUState) -> PPU r ()
-modifyPPUState f = MkPPU $ \st ptr cont ->
+modifyPPUState f = MkPPU $ \st ptr _ cont ->
     cont (f st) ptr ()
 
 incrementVramAddr :: PPU r ()
@@ -202,6 +203,9 @@ setScrollRegister byte =
         modifyScrollRegister $
             scrollRegisterWrite byte
 
+withCartridge :: (Rom -> a) -> PPU r a
+withCartridge f = MkPPU $ \st ptrs rom cont -> cont st ptrs (f rom)
+
 readData :: PPU r Byte
 readData = do
     addr <- withPPUState $ addressRegisterGet . addressRegister
@@ -212,7 +216,7 @@ readData = do
     go addr
         | inRange chrRomRange addr = do
             res <- withPPUState internalBuffer
-            value <- Byte <$> (withPointers chrRom <&> (`BS.index` addrToInt addr))
+            value <- Byte <$> (withCartridge chrRom <&> (`BS.index` addrToInt addr))
             modifyPPUState $ \st -> st{internalBuffer = value}
             return res
         | inRange vramRange addr = do

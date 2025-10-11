@@ -1,7 +1,6 @@
 module PPUSpec (spec) where
 
 import Control.Monad
-import qualified Data.ByteString as BS
 import Nes.FlagRegister (getFlag, setFlag)
 import Nes.Memory (MemoryInterface (readByte, writeByte))
 import Nes.PPU.Monad
@@ -205,7 +204,7 @@ spec = do
 
         it "Vertical" $ do
             let st = newPPUState Vertical
-            ptrs <- newPPUPointers BS.empty
+            ptrs <- newPPUPointers
             withPPU
                 st
                 ptrs
@@ -243,12 +242,12 @@ noSetup = const . return
 withNewPPU :: (PPUState -> PPUPointers -> IO PPUState) -> PPU (a, PPUState) a -> (a -> PPUState -> PPUPointers -> IO b) -> IO b
 withNewPPU setup op next = do
     let st = newPPUState Horizontal
-    ptrs <- newPPUPointers BS.empty
+    ptrs <- newPPUPointers
     st' <- setup st ptrs
-    (res, st'') <- runPPU st' ptrs op
+    (res, st'') <- runPPU st' ptrs unsafeEmptyRom op
     next res st'' ptrs
 
 withPPU :: PPUState -> PPUPointers -> PPU (a, PPUState) a -> (a -> PPUState -> IO b) -> IO b
 withPPU st ptrs op next = do
-    (res, st'') <- runPPU st ptrs op
+    (res, st'') <- runPPU st ptrs unsafeEmptyRom op
     next res st''

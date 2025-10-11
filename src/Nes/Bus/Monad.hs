@@ -45,7 +45,7 @@ withBus f = MkBusM $ \bus cont -> cont bus (f bus)
 
 withPPU :: PPU (a, PPUState) a -> BusM r a
 withPPU f = MkBusM $ \bus cont -> do
-    (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) f
+    (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) f
     cont (bus{ppuState = ppuSt}) res
 
 withController :: ControllerM (a, Controller) a -> BusM r a
@@ -58,7 +58,7 @@ withController f = MkBusM $ \bus cont ->
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     replicateM_ n (cycleCallback bus n)
-    ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) $ do
+    ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
         before <- withPPUState nmiInterrupt
         isNewFrame <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
