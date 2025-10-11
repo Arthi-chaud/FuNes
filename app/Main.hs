@@ -9,8 +9,9 @@ import Foreign (castForeignPtr)
 import Nes.Bus
 import Nes.Bus.Monad (runBusM)
 import Nes.CPU.Interpreter
+import Nes.Render
+import Nes.Render.Frame
 import Nes.Rom
-import Render
 import SDL
 import SDL.Internal.Types
 import qualified SDL.Raw as Raw

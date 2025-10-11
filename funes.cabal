@@ -55,6 +55,9 @@ library
       Nes.PPU.Monad
       Nes.PPU.Pointers
       Nes.PPU.State
+      Nes.Render
+      Nes.Render.Frame
+      Nes.Render.Palette
       Nes.Rom
   other-modules:
       Paths_funes
@@ -110,7 +113,6 @@ executable funes-exe
   main-is: Main.hs
   other-modules:
       Events
-      Render
       Paths_funes
   autogen-modules:
       Paths_funes
