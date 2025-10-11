@@ -17,7 +17,8 @@ keymap =
     , (ScancodeSpace, Select)
     , (ScancodeReturn, Start)
     , (ScancodeA, A)
-    , (ScancodeB, B)
+    , (ScancodeS, B)
+    , (ScancodeZ, B)
     ]
 
 handleEvents :: BusM r ()
