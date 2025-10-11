@@ -1,5 +1,9 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Redundant bracket" #-}
+
 -- | Unofficial instructions that are combinations of official ones
-module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra) where
+module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra, ahx, shx, shy) where
 
 import Control.Monad
 import Data.Bits
@@ -49,3 +53,24 @@ rra :: AddressingMode -> CPU r ()
 rra mode = do
     value <- ror_ mode
     addToRegisterA value
+
+shx :: AddressingMode -> CPU r ()
+shx = sh X
+
+shy :: AddressingMode -> CPU r ()
+shy = sh Y
+
+ahx :: AddressingMode -> CPU r ()
+ahx mode = do
+    a <- withCPUState $ getRegister A
+    mask <- withCPUState $ getRegister X
+    addr <- getOperandAddr mode
+    let byte' = a .&. mask .&. ((unsafeAddrToByte (shiftR addr 8)))
+    writeByte byte' addr ()
+
+sh :: Register -> AddressingMode -> CPU r ()
+sh reg mode = do
+    mask <- withCPUState $ getRegister reg
+    addr <- getOperandAddr mode
+    let byte' = mask .&. ((unsafeAddrToByte (shiftR addr 8)))
+    writeByte byte' addr ()
