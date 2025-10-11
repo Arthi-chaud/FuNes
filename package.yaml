@@ -23,6 +23,7 @@ default-extensions:
   - OverloadedStrings
   - TupleSections
   - TypeFamilies
+  - BangPatterns
 
 ghc-options:
   - -Wall

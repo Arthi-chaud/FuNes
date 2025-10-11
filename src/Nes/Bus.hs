@@ -10,7 +10,6 @@ module Nes.Bus (
     newBus,
 ) where
 
-import Foreign
 import Nes.Controller
 import Nes.Internal
 import Nes.Memory
@@ -22,19 +21,19 @@ import Nes.Rom (Rom (..))
 
 -- | Interface for the CPU that allows it to read/write to RAM
 data Bus = Bus
-    { cpuVram :: MemoryPointer
+    { cpuVram :: {-# UNPACK #-} !MemoryPointer
     -- ^ Pointer to writeable memory
-    , cartridge :: Rom
+    , cartridge :: {-# UNPACK #-} !Rom
     -- ^ Read-only memory, see 'Rom'
-    , controller :: Controller
+    , controller :: {-# UNPACK #-} !Controller
     -- ^ Aka Joypad
-    , cycles :: Integer
+    , cycles :: {-# UNPACK #-} !Integer
     -- ^ The number of ellapsed cycles
     , cycleCallback :: Int -> IO ()
     -- ^ The function executed on tick (the arg is the number of ellapsed ticks)
-    , ppuState :: PPUState
+    , ppuState :: {-# UNPACK #-} !PPUState
     -- ^ The state of the PPU
-    , ppuPointers :: PPUPointers
+    , ppuPointers :: {-# UNPACK #-} !PPUPointers
     -- ^ Memory dedicated to PPU
     , onNewFrame :: Bus -> IO Bus
     }
@@ -46,7 +45,7 @@ newBus rom_ onNewFrame_ tickCallback_ = do
     let ppuSt = newPPUState (mirroring rom_)
     return $
         Bus
-            (castForeignPtr fptr)
+            fptr
             rom_
             newController
             0
