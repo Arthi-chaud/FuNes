@@ -16,7 +16,11 @@ import Data.Bits
 import Nes.FlagRegister
 import Nes.Memory (Byte (Byte, unByte))
 
-data Controller = MkC {strobe :: Bool, buttonIdx :: Byte, buttonStatus :: ControllerButtonStatus}
+data Controller = MkC
+    { strobe :: {-# UNPACK #-} !Bool
+    , buttonIdx :: {-# UNPACK #-} !Byte
+    , buttonStatus :: {-# UNPACK #-} !ControllerButtonStatus
+    }
 
 newController :: Controller
 newController = MkC False 0 (MkCBS 0)
