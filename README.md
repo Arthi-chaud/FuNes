@@ -21,7 +21,7 @@ Moreover, I find the code overal quite elegant (e.g. for the opcodes).
 
 - The typeafety prevented some bit-level mistakes (especially when handling 2-byte addresses and 1-byte data), which is always welcome.
 
-- However, it feels like the functional paradigm didn't bring much else to the table, compared to a regular object-orented approach. Although, it should be noted that, in any case, was the functional paradigm an obstacle in the design and implementation of the emulator
+- However, it feels like the functional paradigm didn't bring much else to the table, compared to a regular object-orented approach. Although, it should be noted that the functional paradigm never felt like an obstacle when designing and implementing the emulator.
 
 ## 📄 How to use
 
