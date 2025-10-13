@@ -56,8 +56,10 @@ library
       Nes.PPU.Pointers
       Nes.PPU.State
       Nes.Render
+      Nes.Render.Background
       Nes.Render.Frame
       Nes.Render.Palette
+      Nes.Render.Sprite
       Nes.Rom
   other-modules:
       Paths_funes
