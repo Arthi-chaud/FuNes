@@ -7,9 +7,7 @@ import Nes.Render.Background
 import Nes.Render.Frame
 import Nes.Render.Sprite
 
-render :: Frame -> Bus -> IO ()
-render frame bus = do
-    fb <- newFrameBuffer
+render :: FrameBuffer -> Bus -> IO ()
+render fb bus = do
     renderBackground fb bus
     renderSprites fb bus
-    renderFrameBuffer fb frame

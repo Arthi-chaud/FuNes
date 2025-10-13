@@ -45,7 +45,8 @@ main = do
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
     frame <- newFrame
-    bus <- newBus rom (onDrawFrame frame texture renderer) (tickCallback tickRef)
+    frameBuffer <- newFrameBuffer
+    bus <- newBus rom (onDrawFrame frame frameBuffer texture renderer) (tickCallback tickRef)
     void $ runProgram bus (pure ())
     destroyRenderer renderer
 
@@ -57,9 +58,10 @@ tickCallback ref ticks_ = do
     writeIORef ref (res `mod` 179)
     when (microsecondsToSleep > 0) $ threadDelay microsecondsToSleep
 
-onDrawFrame :: Frame -> Texture -> Renderer -> Bus -> IO Bus
-onDrawFrame frame texture renderer bus = do
-    render frame bus
+onDrawFrame :: Frame -> FrameBuffer -> Texture -> Renderer -> Bus -> IO Bus
+onDrawFrame frame fb texture renderer bus = do
+    render fb bus
+    renderFrameBuffer fb frame
     updateTexture texture Nothing (frameToByteString frame) (256 * 3)
     copy renderer texture Nothing Nothing
     present renderer
