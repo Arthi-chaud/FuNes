@@ -15,6 +15,7 @@ dependencies:
   - bytestring
   - mtl
   - containers
+  - array
 
 default-extensions:
   - BinaryLiterals

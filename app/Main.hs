@@ -2,10 +2,8 @@ module Main (main) where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad
-import qualified Data.ByteString.Internal as BS
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Events
-import Foreign (castForeignPtr)
 import Nes.Bus
 import Nes.Bus.Monad (runBusM)
 import Nes.CPU.Interpreter
@@ -62,8 +60,7 @@ tickCallback ref ticks_ = do
 onDrawFrame :: Frame -> Texture -> Renderer -> Bus -> IO Bus
 onDrawFrame frame texture renderer bus = do
     render frame bus
-    let bs = BS.fromForeignPtr0 (castForeignPtr $ unF frame) frameLength
-    updateTexture texture Nothing bs (256 * 3)
+    updateTexture texture Nothing (frameToByteString frame) (256 * 3)
     copy renderer texture Nothing Nothing
     present renderer
     snd <$> runBusM bus handleEvents
