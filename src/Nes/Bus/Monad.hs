@@ -18,7 +18,6 @@ import Nes.PPU.Monad hiding (tick)
 import qualified Nes.PPU.Monad as PPUM
 import Nes.PPU.State
 import Nes.Rom
-import Text.Printf
 
 newtype BusM r a = MkBusM {unBusM :: Bus -> (Bus -> a -> IO r) -> IO r} deriving (Functor)
 
@@ -104,7 +103,7 @@ instance MemoryInterface () (BusM r) where
             | idx == 0x4016 = withController readButtonStatus
             | idx == 0x4017 = return 0 -- Second joypad, ignore
             | otherwise = do
-                liftIO $ printf "Invalid read at %4x\n" $ unAddr idx
+                -- liftIO $ printf "Invalid read at %4x\n" $ unAddr idx
                 return 0
     writeByte byte idx () = guardWriteBound idx go
       where
@@ -147,7 +146,7 @@ instance MemoryInterface () (BusM r) where
                 tick (513 + fromEnum (odd cycles_))
             | idx == 0x4016 = withController $ setStrobe byte
             | idx == 0x4017 = pure () -- Second joypad, ignore
-            | otherwise = liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
+            | otherwise = pure () -- liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()
         high <- readByte (idx + 1) ()
