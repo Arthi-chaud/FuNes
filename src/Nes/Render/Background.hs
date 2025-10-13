@@ -16,8 +16,8 @@ import Nes.Render.Frame
 import Nes.Render.Palette
 import Nes.Rom
 
-renderBackground :: Frame -> Bus -> IO ()
-renderBackground frame bus = do
+renderBackground :: FrameBuffer -> Bus -> IO ()
+renderBackground fb bus = do
     let (scrollX, scrollY) =
             let
                 scroll = (scrollRegister $ ppuState bus)
@@ -34,19 +34,19 @@ renderBackground frame bus = do
             (Horizontal, 0x2800) -> (bsFromSlice ppuVram (0x400, 0x800), bsFromSlice ppuVram (0, 0x400))
             (Horizontal, 0x2C00) -> (bsFromSlice ppuVram (0x400, 0x800), bsFromSlice ppuVram (0, 0x400))
             _ -> error "Not supported mirror type"
-    renderNameTable frame bus nt1 (MkVP{xStart_ = scrollX, yStart_ = scrollY, xEnd_ = 256, yEnd_ = 240}) (-scrollX, -scrollY)
+    renderNameTable fb bus nt1 (MkVP{xStart_ = scrollX, yStart_ = scrollY, xEnd_ = 256, yEnd_ = 240}) (-scrollX, -scrollY)
     if scrollX > 0
         then
-            renderNameTable frame bus nt2 (MkVP{xStart_ = 0, yStart_ = 0, xEnd_ = scrollX, yEnd_ = 240}) (256 - scrollX, 0)
+            renderNameTable fb bus nt2 (MkVP{xStart_ = 0, yStart_ = 0, xEnd_ = scrollX, yEnd_ = 240}) (256 - scrollX, 0)
         else
             when (scrollY > 0) $
-                renderNameTable frame bus nt2 (MkVP{xStart_ = 0, yStart_ = 0, xEnd_ = 256, yEnd_ = scrollY}) (0, 240 - scrollY)
+                renderNameTable fb bus nt2 (MkVP{xStart_ = 0, yStart_ = 0, xEnd_ = 256, yEnd_ = scrollY}) (0, 240 - scrollY)
   where
     bsFromSlice :: ForeignPtr () -> (Int, Int) -> ByteString
     bsFromSlice vram_ (offset, end) = BS.BS (vram_ `plusForeignPtr` offset) (end - offset + 1)
 
-renderNameTable :: Frame -> Bus -> ByteString -> ViewPort -> (Int, Int) -> IO ()
-renderNameTable frame bus nametable vp (shiftX, shiftY) = do
+renderNameTable :: FrameBuffer -> Bus -> ByteString -> ViewPort -> (Int, Int) -> IO ()
+renderNameTable fb bus nametable vp (shiftX, shiftY) = do
     let chr = chrRom . cartridge $ bus
         bank = addrToInt . getBackgroundPatternAddr . controlRegister . ppuState $ bus
         attrTable = BS.drop 0x3c0 nametable
@@ -73,6 +73,7 @@ renderNameTable frame bus nametable vp (shiftX, shiftY) = do
                     2 -> systemPalette !! c2
                     3 -> systemPalette !! c3
                     _ -> error "Bad color index"
+                pixel = MkP (if value == 0 then Transparent else Opaque) color
                 pixelX = tileCol * 8 + x
                 pixelY = tileRow * 8 + y
             when
@@ -81,7 +82,7 @@ renderNameTable frame bus nametable vp (shiftX, shiftY) = do
                     && yStart_ vp <= pixelY
                     && pixelY < yEnd_ vp
                 )
-                $ frameSetPixel color (pixelX + shiftX, pixelY + shiftY) frame
+                $ frameBufferSetPixel pixel (pixelX + shiftX, pixelY + shiftY) fb
 
 data ViewPort = MkVP {xEnd_ :: Int, yEnd_ :: Int, xStart_ :: Int, yStart_ :: Int}
 

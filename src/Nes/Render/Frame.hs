@@ -7,11 +7,16 @@ module Nes.Render.Frame (
 
     -- * Frame Buffer
     FrameBuffer (..),
-    FrameBufferCoord,
     FrameBufferPixel (..),
+    FrameBufferPixelType (..),
     newFrameBuffer,
     frameBufferSetPixel,
+    frameBufferGetPixel,
     renderFrameBuffer,
+
+    -- * Pixel
+    PixelCoord,
+    PixelColor,
 
     -- * Dimensions
     frameWidth,
@@ -22,10 +27,9 @@ import Control.Monad
 import Data.Array
 import Data.Array.Base
 import Data.Array.IO (IOArray)
-import qualified Data.Array.MArray
 import Data.ByteString.Internal
 import Data.Word
-import Foreign
+import Foreign (castForeignPtr, pokeByteOff)
 import Nes.Internal
 import Nes.Memory
 
@@ -57,24 +61,39 @@ frameSetPixel (colorR, colorG, colorB) (x, y) (MkF fptr) = do
             pokeByteOff ptr (base + 1) colorG
             pokeByteOff ptr (base + 2) colorB
 
-type FrameBufferCoord = (Int, Int)
+type PixelCoord = (Int, Int)
+type PixelColor = (Word8, Word8, Word8)
 
-data FrameBufferPixel = Transparent | Opaque Word8 Word8 Word8
+data FrameBufferPixel = MkP
+    { type_ :: FrameBufferPixelType
+    , color_ :: PixelColor
+    }
 
-newtype FrameBuffer = MkFB {unFB :: IOArray FrameBufferCoord FrameBufferPixel}
+data FrameBufferPixelType = Transparent | Opaque
+
+newtype FrameBuffer = MkFB {unFB :: IOArray Int FrameBufferPixel}
+
+frameBufferHeight :: Int
+frameBufferHeight = 262
+
+pixelCoordToFrameBufferOffset :: PixelCoord -> Int
+pixelCoordToFrameBufferOffset (x, y) = y * frameWidth + x
 
 newFrameBuffer :: IO FrameBuffer
-newFrameBuffer = MkFB <$> Data.Array.MArray.newArray ((0, 0), (frameWidth - 1, frameHeight - 1)) Transparent
+newFrameBuffer = MkFB <$> newArray (0, frameBufferHeight * frameWidth) (MkP Transparent (0, 0, 0))
 
-frameBufferSetPixel :: (Word8, Word8, Word8) -> (Int, Int) -> FrameBuffer -> IO ()
-frameBufferSetPixel (r, g, b) coord (MkFB fb) = writeArray fb coord $ Opaque r g b
+frameBufferSetPixel :: FrameBufferPixel -> (Int, Int) -> FrameBuffer -> IO ()
+frameBufferSetPixel pixel coord (MkFB fb) = do
+    writeArray
+        fb
+        (pixelCoordToFrameBufferOffset coord)
+        pixel
+
+frameBufferGetPixel :: (Int, Int) -> FrameBuffer -> IO FrameBufferPixel
+frameBufferGetPixel coord (MkFB fb) = readArray fb (pixelCoordToFrameBufferOffset coord)
 
 renderFrameBuffer :: FrameBuffer -> Frame -> IO ()
-renderFrameBuffer (MkFB fb) f =
-    getAssocs fb
-        >>= mapM_
-            ( \(coord, pixel) ->
-                case pixel of
-                    Transparent -> pure ()
-                    Opaque r g b -> frameSetPixel (r, g, b) coord f
-            )
+renderFrameBuffer (MkFB fb) f = forM_ [0 .. frameWidth * frameHeight - 1] $ \offset -> do
+    let coord = (offset `mod` frameWidth, offset `div` frameWidth)
+    pixel <- readArray fb offset
+    frameSetPixel (color_ pixel) coord f
