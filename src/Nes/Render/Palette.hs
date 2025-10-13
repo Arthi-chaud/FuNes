@@ -1,8 +1,8 @@
 module Nes.Render.Palette (systemPalette) where
 
-import Data.Word
+import Nes.Render.Frame (PixelColor)
 
-systemPalette :: [(Word8, Word8, Word8)]
+systemPalette :: [PixelColor]
 systemPalette =
     [ (0x80, 0x80, 0x80)
     , (0x00, 0x3D, 0xA6)
