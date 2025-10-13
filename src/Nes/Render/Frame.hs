@@ -1,25 +1,35 @@
 module Nes.Render.Frame (
-    -- * Type
+    -- * Frame
     Frame (..),
-
-    -- * Functions
     newFrame,
     frameSetPixel,
+    frameToByteString,
+
+    -- * Frame Buffer
+    FrameBuffer (..),
+    FrameBufferCoord,
+    FrameBufferPixel (..),
+    newFrameBuffer,
+    frameBufferSetPixel,
+    renderFrameBuffer,
 
     -- * Dimensions
     frameWidth,
     frameHeight,
-    frameLength,
 ) where
 
 import Control.Monad
-import Data.Ix
+import Data.Array
+import Data.Array.Base
+import Data.Array.IO (IOArray)
+import qualified Data.Array.MArray
+import Data.ByteString.Internal
 import Data.Word
 import Foreign
-import GHC.ForeignPtr
 import Nes.Internal
 import Nes.Memory
 
+-- | Frame buffer for SDL2
 newtype Frame = MkF {unF :: MemoryPointer}
 
 frameWidth :: Int
@@ -30,6 +40,9 @@ frameHeight = 240
 
 frameLength :: Int
 frameLength = frameWidth * frameHeight * 3
+
+frameToByteString :: Frame -> ByteString
+frameToByteString (MkF fptr) = BS (castForeignPtr fptr) frameLength
 
 newFrame :: IO Frame
 newFrame = MkF <$> callocForeignPtr frameLength
@@ -43,3 +56,25 @@ frameSetPixel (colorR, colorG, colorB) (x, y) (MkF fptr) = do
             pokeByteOff ptr base colorR
             pokeByteOff ptr (base + 1) colorG
             pokeByteOff ptr (base + 2) colorB
+
+type FrameBufferCoord = (Int, Int)
+
+data FrameBufferPixel = Transparent | Opaque Word8 Word8 Word8
+
+newtype FrameBuffer = MkFB {unFB :: IOArray FrameBufferCoord FrameBufferPixel}
+
+newFrameBuffer :: IO FrameBuffer
+newFrameBuffer = MkFB <$> Data.Array.MArray.newArray ((0, 0), (frameWidth - 1, frameHeight - 1)) Transparent
+
+frameBufferSetPixel :: (Word8, Word8, Word8) -> (Int, Int) -> FrameBuffer -> IO ()
+frameBufferSetPixel (r, g, b) coord (MkFB fb) = writeArray fb coord $ Opaque r g b
+
+renderFrameBuffer :: FrameBuffer -> Frame -> IO ()
+renderFrameBuffer (MkFB fb) f =
+    getAssocs fb
+        >>= mapM_
+            ( \(coord, pixel) ->
+                case pixel of
+                    Transparent -> pure ()
+                    Opaque r g b -> frameSetPixel (r, g, b) coord f
+            )
