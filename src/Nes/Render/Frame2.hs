@@ -32,8 +32,10 @@ module Nes.Render.Frame2 (
 ) where
 
 import Control.Monad
-import Data.Array.IO
-import Foreign hiding (newArray)
+import Data.Array (Ix (..))
+import Data.Vector.Strict.Mutable
+import qualified Data.Vector.Strict.Mutable as V
+import Foreign hiding (new)
 import GHC.ForeignPtr
 import Nes.Internal
 import Nes.Memory (MemoryPointer)
@@ -50,6 +52,7 @@ frameHeight = 240
 frameLength :: Int
 frameLength = frameWidth * frameHeight * 3
 
+{-# INLINE frameSetPixel #-}
 frameSetPixel :: (Word8, Word8, Word8) -> (Int, Int) -> MemoryPointer -> IO ()
 frameSetPixel (colorR, colorG, colorB) (x, y) fptr = do
     let base = y * 3 * frameWidth + x * 3
@@ -78,22 +81,27 @@ bufferHeight = 260
 bufferLength :: Int
 bufferLength = bufferWidth * bufferHeight
 
+{-# INLINE bufferSet #-}
 bufferSet :: a -> Coord -> Buffer a -> IO ()
 bufferSet pixel coord = bufferSetOffset pixel (bufferCoordToOffset coord)
 
+{-# INLINE bufferSetOffset #-}
 bufferSetOffset :: a -> Int -> Buffer a -> IO ()
 bufferSetOffset pixel offset (MkBuffer fb) =
-    writeArray
+    V.write
         fb
         offset
         pixel
 
+{-# INLINE bufferGet #-}
 bufferGet :: Coord -> Buffer a -> IO a
-bufferGet coord (MkBuffer fb) = readArray fb (bufferCoordToOffset coord)
+bufferGet coord = bufferGetOffset (bufferCoordToOffset coord)
 
+{-# INLINE bufferGetOffset #-}
 bufferGetOffset :: Int -> Buffer a -> IO a
-bufferGetOffset offset (MkBuffer fb) = readArray fb offset
+bufferGetOffset offset (MkBuffer fb) = V.read fb offset
 
+{-# INLINE bufferCoordToOffset #-}
 bufferCoordToOffset :: Coord -> Int
 bufferCoordToOffset (x, y) = y * frameWidth + x
 
@@ -107,11 +115,11 @@ data FrameState = MkFrameState
 newFrameState :: IO FrameState
 newFrameState = do
     !sdl2Frame <- callocForeignPtr frameLength
-    !pixelBuffer <- MkBuffer <$> newArray (0, bufferLength) ((0, 0, 0), TransparentBG)
-    !spriteBuffer <- MkBuffer <$> newArray (0, bufferLength) Nothing
+    !pixelBuffer <- MkBuffer <$> V.replicate bufferLength ((0, 0, 0), TransparentBG)
+    !spriteBuffer <- MkBuffer <$> V.replicate bufferLength Nothing
     return $ MkFrameState{..}
 
-newtype Buffer a = MkBuffer (IOArray Int a)
+newtype Buffer a = MkBuffer (IOVector a)
 
 -- | Says _where_ the pixel comes from
 data PixelType
