@@ -1,6 +1,6 @@
 module Nes.Render.Palette (systemPalette) where
 
-import Nes.Render.Frame2 (Color)
+import Nes.Render.Frame (Color)
 
 systemPalette :: [Color]
 systemPalette =

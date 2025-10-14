@@ -12,7 +12,6 @@ module Nes.Render.Monad (
 
     -- * Operations
     whenR,
-    forR,
     liftIO,
     unsafeStep,
     unsafeCastRender,
@@ -21,9 +20,8 @@ module Nes.Render.Monad (
 
 import qualified Control.Monad as IO
 import Data.ByteString.Internal
-import Data.Foldable (traverse_)
 import Foreign (castForeignPtr)
-import Nes.Render.Frame2
+import Nes.Render.Frame
 import Prelude hiding (return, (>>), (>>=))
 
 data RenderStep = DirtyFrame | BGDrawn | BGAndSpritesDrawn | Renderable | Rendered deriving (Eq)
@@ -44,7 +42,7 @@ runRender (MkRender f) st = f st $ \_ res -> pure res
 
 {-# INLINE withFrameState #-}
 withFrameState :: (FrameState -> IO a) -> Render b b r a
-withFrameState f = MkRender $ \st cont -> f st IO.>>= cont st
+withFrameState f = MkRender $ \st cont -> f st IO.>>= \(!i) -> cont st i
 
 {-# INLINE toSDL2ByteString #-}
 toSDL2ByteString :: Render Rendered Rendered r ByteString
@@ -52,7 +50,7 @@ toSDL2ByteString = MkRender $ \st cont -> cont st (BS (castForeignPtr $ sdl2Fram
 
 {-# INLINE liftIO #-}
 liftIO :: IO a -> Render b b r a
-liftIO io = MkRender $ \st cont -> io IO.>>= cont st
+liftIO io = MkRender $ \st cont -> io IO.>>= \(!i) -> cont st i
 
 {-# INLINE whenR #-}
 whenR :: Bool -> Render a a r () -> Render a a r ()
@@ -77,7 +75,3 @@ unsafeStep = MkRender $ \st cont -> cont st ()
 {-# INLINE return #-}
 return :: a -> Render b b r a
 return a = MkRender $ \st cont -> cont st a
-
-{-# INLINE forR #-}
-forR :: [a] -> (a -> Render b b r ()) -> Render b b r ()
-forR list f = traverse_ f list

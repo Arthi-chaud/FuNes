@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Nes.Render.Frame2 (
+module Nes.Render.Frame (
     -- * State
     FrameState (..),
     newFrameState,
@@ -33,8 +33,8 @@ module Nes.Render.Frame2 (
 
 import Control.Monad
 import Data.Array (Ix (..))
-import Data.Vector.Strict.Mutable
-import qualified Data.Vector.Strict.Mutable as V
+import Data.Vector.Mutable
+import qualified Data.Vector.Mutable as V
 import Foreign hiding (new)
 import GHC.ForeignPtr
 import Nes.Internal
@@ -75,7 +75,7 @@ bufferWidth = frameWidth
 --
 -- See https://www.nesdev.org/wiki/PPU_rendering#Vertical_blanking_lines_(241-260)
 bufferHeight :: Int
-bufferHeight = 260
+bufferHeight = 261
 
 -- | Number of elements in a buffer
 bufferLength :: Int
@@ -119,7 +119,7 @@ newFrameState = do
     !spriteBuffer <- MkBuffer <$> V.replicate bufferLength Nothing
     return $ MkFrameState{..}
 
-newtype Buffer a = MkBuffer (IOVector a)
+newtype Buffer a = MkBuffer {unBuffer :: IOVector a}
 
 -- | Says _where_ the pixel comes from
 data PixelType

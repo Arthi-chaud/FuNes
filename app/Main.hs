@@ -8,7 +8,7 @@ import Nes.Bus
 import Nes.Bus.Monad (runBusM)
 import Nes.CPU.Interpreter
 import Nes.Render
-import Nes.Render.Frame2
+import Nes.Render.Frame
 import Nes.Render.Monad (runRender, toSDL2ByteString)
 import qualified Nes.Render.Monad as R
 import Nes.Rom

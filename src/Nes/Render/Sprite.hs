@@ -2,12 +2,14 @@ module Nes.Render.Sprite (renderSprites, applySprites) where
 
 import Data.Bits
 import qualified Data.ByteString as BS
+import Data.Foldable (for_)
+import qualified Data.Vector.Mutable as V
 import Nes.Bus
 import Nes.Memory
 import Nes.PPU.Constants
 import Nes.PPU.Pointers
 import Nes.PPU.State hiding (ScrollRegister (..))
-import Nes.Render.Frame2
+import Nes.Render.Frame
 import Nes.Render.Monad
 import qualified Nes.Render.Monad as Render
 import Nes.Render.Palette
@@ -21,7 +23,7 @@ renderSprites bus = Render.do
     let oam = oamData $ ppuPointers bus
         chr = chrRom . cartridge $ bus
         bank = addrToInt . getSpritePatternAddr . controlRegister . ppuState $ bus
-    forR (reverse [0, 4 .. oamDataSize - 1]) $ \i -> Render.do
+    for_ (reverse [0, 4 .. oamDataSize - 1]) $ \i -> Render.do
         tileIdx <- liftIO $ byteToInt <$> readByte (fromIntegral i + 1) oam
         tileCol <- liftIO $ byteToInt <$> readByte (fromIntegral i + 3) oam
         tileRow <- liftIO $ byteToInt <$> readByte (fromIntegral i) oam
@@ -34,10 +36,10 @@ renderSprites bus = Render.do
                 BS.take 16 $
                     BS.drop (bank + tileIdx * 16) chr
         (_, c1, c2, c3) <- liftIO $ getSpritePalette (ppuPointers bus) paletteIdx
-        forR [0 .. 7] $ \y -> Render.do
+        for_ [0 .. 7] $ \y -> Render.do
             let upper = BS.index tile y
                 lower = BS.index tile (y + 8)
-            forR (reverse [0 .. 7]) $ \x -> Render.do
+            for_ (reverse [0 .. 7]) $ \x -> Render.do
                 let value =
                         ((1 .&. (lower `shiftR` (7 - x))) `shiftL` 1)
                             .|. (1 .&. (upper `shiftR` (7 - x)))
@@ -72,12 +74,13 @@ getSpritePalette ptrs paletteIdx = do
 -- | Merges the sprite buffer with the pixel buffer, using the priority atteched to pixels
 applySprites :: Render BGAndSpritesDrawn Renderable r ()
 applySprites = Render.do
-    forR [0 .. bufferLength - 1] $ \i -> Render.do
-        spritePixel <- withFrameState $ bufferGetOffset i . spriteBuffer
-        bgPixel <- withFrameState $ bufferGetOffset i . pixelBuffer
-        case (spritePixel, bgPixel) of
-            (Nothing, _) -> Render.return ()
-            (Just (c, Back), (_, TransparentBG)) -> withFrameState $ bufferSetOffset (c, Sprite) i . pixelBuffer
-            (Just (_, Back), _) -> Render.return ()
-            (Just (c, Front), _) -> withFrameState $ bufferSetOffset (c, Sprite) i . pixelBuffer
+    withFrameState $ \st -> V.iforM_ (unBuffer $ spriteBuffer st) $ \i spritePixel -> do
+        case spritePixel of
+            Nothing -> pure ()
+            (Just (c, Back)) -> do
+                (_, pixelType) <- bufferGetOffset i $ pixelBuffer st
+                case pixelType of
+                    TransparentBG -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
+                    _ -> pure ()
+            (Just (c, Front)) -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
     unsafeStep

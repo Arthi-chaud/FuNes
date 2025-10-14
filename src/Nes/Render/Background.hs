@@ -4,6 +4,7 @@ import Data.Bits
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
+import Data.Foldable
 import Foreign
 import Nes.Bus
 import Nes.Memory
@@ -11,7 +12,7 @@ import Nes.Memory.Unsafe ()
 import Nes.PPU.Pointers
 import Nes.PPU.State hiding (ScrollRegister (..))
 import qualified Nes.PPU.State as Scroll (ScrollRegister (..))
-import Nes.Render.Frame2
+import Nes.Render.Frame
 import Nes.Render.Monad
 import qualified Nes.Render.Monad as Render
 import Nes.Render.Palette
@@ -54,7 +55,7 @@ renderNameTable bus nametable vp (shiftX, shiftY) = Render.do
     let chr = chrRom . cartridge $ bus
         bank = addrToInt . getBackgroundPatternAddr . controlRegister . ppuState $ bus
         attrTable = BS.drop 0x3c0 nametable
-    forR [0 .. 0x3c0] $ \i -> Render.do
+    for_ [0 .. 0x3c0] $ \i -> Render.do
         let tileOffset = fromIntegral $ BS.index nametable i
             tileCol = i `mod` 32
             tileRow = i `div` 32
@@ -65,10 +66,10 @@ renderNameTable bus nametable vp (shiftX, shiftY) = Render.do
         renderTile palette tile tileCol tileRow
     unsafeStep
   where
-    renderTile (c0, c1, c2, c3) tile tileCol tileRow = forR [0 .. 7] $ \y -> do
+    renderTile (c0, c1, c2, c3) tile tileCol tileRow = for_ [0 .. 7] $ \y -> do
         let upper = BS.index tile y
             lower = BS.index tile (y + 8)
-        forR (reverse [0 .. 7]) $ \x -> do
+        for_ (reverse [0 .. 7]) $ \x -> do
             let value =
                     ((1 .&. (lower `shiftR` (7 - x))) `shiftL` 1)
                         .|. (1 .&. (upper `shiftR` (7 - x)))
