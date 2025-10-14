@@ -88,10 +88,11 @@ bufferSet pixel coord = bufferSetOffset pixel (bufferCoordToOffset coord)
 {-# INLINE bufferSetOffset #-}
 bufferSetOffset :: a -> Int -> Buffer a -> IO ()
 bufferSetOffset pixel offset (MkBuffer fb) =
-    V.write
-        fb
-        offset
-        pixel
+    when (inRange (0, bufferWidth * bufferHeight - 1) offset) $
+        V.write
+            fb
+            offset
+            pixel
 
 {-# INLINE bufferGet #-}
 bufferGet :: Coord -> Buffer a -> IO a
