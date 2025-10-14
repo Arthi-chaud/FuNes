@@ -25,6 +25,9 @@ default-extensions:
   - TupleSections
   - TypeFamilies
   - BangPatterns
+  - DeriveFunctor
+  - DataKinds
+  - QualifiedDo
 
 ghc-options:
   - -Wall

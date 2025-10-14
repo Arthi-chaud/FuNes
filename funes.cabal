@@ -57,7 +57,8 @@ library
       Nes.PPU.State
       Nes.Render
       Nes.Render.Background
-      Nes.Render.Frame
+      Nes.Render.Frame2
+      Nes.Render.Monad
       Nes.Render.Palette
       Nes.Render.Sprite
       Nes.Rom
@@ -75,6 +76,9 @@ library
       TupleSections
       TypeFamilies
       BangPatterns
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       array
@@ -100,6 +104,9 @@ executable fake-snake
       TupleSections
       TypeFamilies
       BangPatterns
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -129,6 +136,9 @@ executable funes-exe
       TupleSections
       TypeFamilies
       BangPatterns
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -157,6 +167,9 @@ test-suite nestest
       TupleSections
       TypeFamilies
       BangPatterns
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -198,6 +211,9 @@ test-suite unit
       TupleSections
       TypeFamilies
       BangPatterns
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
