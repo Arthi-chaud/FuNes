@@ -3,7 +3,7 @@ module Nes.Render.Sprite (renderSprites, applySprites) where
 import Data.Bits
 import qualified Data.ByteString as BS
 import Data.Foldable (for_)
-import qualified Data.Vector.Mutable as V
+import Data.Map.Strict
 import Nes.Bus
 import Nes.Memory
 import Nes.PPU.Constants
@@ -49,13 +49,17 @@ renderSprites bus = Render.do
                         2 -> Just $ systemPalette !! c2
                         3 -> Just $ systemPalette !! c3
                         _ -> Nothing
-                    coord =
-                        ( flipCoord tileCol x flipHorizontal
-                        , flipCoord tileRow y flipVertical
-                        )
-                case (color, priority) of
-                    (Nothing, _) -> Render.return ()
-                    (Just c, prio) -> withFrameState $ bufferSet (Just (c, prio)) coord . spriteBuffer
+                case color of
+                    Nothing -> Render.return ()
+                    (Just c) ->
+                        let
+                            coord =
+                                ( flipCoord tileCol x flipHorizontal
+                                , flipCoord tileRow y flipVertical
+                                )
+                            offset = bufferCoordToOffset coord
+                         in
+                            updateSpritePixels $ insert offset (c, priority)
 
     unsafeStep
   where
@@ -74,13 +78,16 @@ getSpritePalette ptrs paletteIdx = do
 -- | Merges the sprite buffer with the pixel buffer, using the priority atteched to pixels
 applySprites :: Render BGAndSpritesDrawn Renderable r ()
 applySprites = Render.do
-    withFrameState $ \st -> V.iforM_ (unBuffer $ spriteBuffer st) $ \i spritePixel -> do
-        case spritePixel of
-            Nothing -> pure ()
-            (Just (c, Back)) -> do
-                (_, pixelType) <- bufferGetOffset i $ pixelBuffer st
-                case pixelType of
-                    TransparentBG -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
-                    _ -> pure ()
-            (Just (c, Front)) -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
+    withFrameState $ \st ->
+        foldlWithKey
+            ( \rest i value -> flip (Prelude.>>) rest $ case value of
+                (c, Front) -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
+                (c, Back) -> do
+                    (_, pixelType) <- bufferGetOffset i $ pixelBuffer st
+                    case pixelType of
+                        TransparentBG -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
+                        _ -> pure ()
+            )
+            (Prelude.return ())
+            (spritePixels st)
     unsafeStep

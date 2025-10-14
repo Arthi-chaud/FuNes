@@ -6,6 +6,7 @@ module Nes.Render.Monad (
     RenderStep (..),
     runRender,
     withFrameState,
+    updateSpritePixels,
     (>>=),
     (>>),
     return,
@@ -32,9 +33,9 @@ newtype Render (s0 :: RenderStep) (s1 :: RenderStep) r a = MkRender {unRender ::
 instance Applicative (Render s0 s1 r) where
     pure a = MkRender $ \st cont -> cont st a
     liftA2 f (MkRender a) (MkRender b) = MkRender $ \st cont ->
-        a st $ \_ a' ->
-            b st $ \_ b' ->
-                cont st (f a' b')
+        a st $ \st' a' ->
+            b st' $ \st'' b' ->
+                cont st'' (f a' b')
 
 {-# INLINE runRender #-}
 runRender :: Render DirtyFrame Rendered r r -> FrameState -> IO r
@@ -43,6 +44,10 @@ runRender (MkRender f) st = f st $ \_ res -> pure res
 {-# INLINE withFrameState #-}
 withFrameState :: (FrameState -> IO a) -> Render b b r a
 withFrameState f = MkRender $ \st cont -> f st IO.>>= \(!i) -> cont st i
+
+{-# INLINE updateSpritePixels #-}
+updateSpritePixels :: (SpritePixels -> SpritePixels) -> Render b b r ()
+updateSpritePixels f = MkRender $ \st cont -> cont (withSpritePixels f st) ()
 
 {-# INLINE toSDL2ByteString #-}
 toSDL2ByteString :: Render Rendered Rendered r ByteString

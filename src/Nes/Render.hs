@@ -2,6 +2,7 @@ module Nes.Render (
     render,
 ) where
 
+import Data.Map.Strict (empty)
 import Data.Vector.Mutable
 import Nes.Bus
 import Nes.Render.Background
@@ -20,9 +21,9 @@ render bus = Render.do
 
 clearAll :: Render a DirtyFrame r ()
 clearAll = Render.do
-    withFrameState $ \st -> do
+    withFrameState $ \st ->
         set (unBuffer $ pixelBuffer st) ((0, 0, 0), TransparentBG)
-        set (unBuffer $ spriteBuffer st) Nothing
+    updateSpritePixels $ const empty
     unsafeStep
 
 -- | Pulls pixels from 'pixelBuffer' to 'sdl2Frame'

@@ -22,6 +22,10 @@ module Nes.Render.Frame (
     bufferGetOffset,
     bufferSetOffset,
 
+    -- * Sprite Pixel
+    SpritePixels,
+    withSpritePixels,
+
     -- * Pixel
     Coord,
     Color,
@@ -33,6 +37,7 @@ module Nes.Render.Frame (
 
 import Control.Monad
 import Data.Array (Ix (..))
+import Data.Map.Strict
 import Data.Vector.Mutable
 import qualified Data.Vector.Mutable as V
 import Foreign hiding (new)
@@ -106,18 +111,24 @@ bufferGetOffset offset (MkBuffer fb) = V.read fb offset
 bufferCoordToOffset :: Coord -> Int
 bufferCoordToOffset (x, y) = y * frameWidth + x
 
+{-# INLINE withSpritePixels #-}
+withSpritePixels :: (SpritePixels -> SpritePixels) -> FrameState -> FrameState
+withSpritePixels f st = st{spritePixels = f (spritePixels st)}
+
 data FrameState = MkFrameState
     { sdl2Frame :: {-# UNPACK #-} !MemoryPointer
     , pixelBuffer :: {-# UNPACK #-} !(Buffer (Color, PixelType))
-    , spriteBuffer :: {-# UNPACK #-} !(Buffer (Maybe (Color, SpritePriority)))
+    , spritePixels :: {-# UNPACK #-} !SpritePixels
     }
+
+type SpritePixels = Map Int (Color, SpritePriority)
 
 -- | Allocates the buffers and frame
 newFrameState :: IO FrameState
 newFrameState = do
     !sdl2Frame <- callocForeignPtr frameLength
     !pixelBuffer <- MkBuffer <$> V.replicate bufferLength ((0, 0, 0), TransparentBG)
-    !spriteBuffer <- MkBuffer <$> V.replicate bufferLength Nothing
+    let !spritePixels = empty
     return $ MkFrameState{..}
 
 newtype Buffer a = MkBuffer {unBuffer :: IOVector a}
