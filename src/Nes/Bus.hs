@@ -28,9 +28,13 @@ data Bus = Bus
     , controller :: {-# UNPACK #-} !Controller
     -- ^ Aka Joypad
     , cycles :: {-# UNPACK #-} !Integer
-    -- ^ The number of ellapsed cycles
-    , cycleCallback :: Int -> IO ()
-    -- ^ The function executed on tick (the arg is the number of ellapsed ticks)
+    , unsleptCycles :: {-# UNPACK #-} !Int
+    -- ^ The number of cycles that we need to call 'threadDelay' for
+    , cycleCallback :: Int -> IO Int
+    -- ^ The function to call 'threadDelay' according to 'unsleptCycles' (> 'unsleptCyclesThreshold')
+    -- The return value is the new number of unslept cycles
+    , unsleptCyclesThreshold :: {-# UNPACK #-} !Int
+    -- ^ the minimum number of 'unsleptCycles' to wait for before calling 'cycleCallback'
     , ppuState :: {-# UNPACK #-} !PPUState
     -- ^ The state of the PPU
     , ppuPointers :: {-# UNPACK #-} !PPUPointers
@@ -38,8 +42,8 @@ data Bus = Bus
     , onNewFrame :: Bus -> IO Bus
     }
 
-newBus :: Rom -> (Bus -> IO Bus) -> (Int -> IO ()) -> IO Bus
-newBus rom_ onNewFrame_ tickCallback_ = do
+newBus :: Rom -> (Bus -> IO Bus) -> Int -> (Int -> IO Int) -> IO Bus
+newBus rom_ onNewFrame_ tickThreshold_ tickCallback_ = do
     fptr <- callocForeignPtr vramSize
     ppuPtrs <- newPPUPointers
     let ppuSt = newPPUState (mirroring rom_)
@@ -49,7 +53,9 @@ newBus rom_ onNewFrame_ tickCallback_ = do
             rom_
             newController
             0
+            0
             tickCallback_
+            tickThreshold_
             ppuSt
             ppuPtrs
             onNewFrame_

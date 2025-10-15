@@ -18,7 +18,7 @@ import qualified SDL.Raw as Raw
 import System.CPUTime (getCPUTime)
 import System.Environment
 
-data TickRef = MkTickRef {tickRemainder :: {-# UNPACK #-} !Int, lastSleepTime :: {-# UNPACK #-} !Double}
+newtype TickRef = MkTickRef {lastSleepTime :: Double}
 
 main :: IO ()
 main = do
@@ -49,34 +49,30 @@ main = do
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
     frame <- newFrameState
-    tickRef <- newIORef . MkTickRef 0 =<< getCPUTimeUs
-    bus <- newBus rom (onDrawFrame frame texture renderer) (tickCallback tickRef)
+    tickRef <- newIORef . MkTickRef =<< getCPUTimeUs
+    bus <- newBus rom (onDrawFrame frame texture renderer) 10000 (tickCallback tickRef)
     void $ runProgram bus (pure ())
     destroyRenderer renderer
 
-tickCallback :: IORef TickRef -> Int -> IO ()
+tickCallback :: IORef TickRef -> Int -> IO Int
 tickCallback ref ticks_ = do
-    MkTickRef remainingTicks lastSleep <- readIORef ref
-    let !totalTicks = remainingTicks + ticks_
-    if totalTicks < 1000
-        then
-            writeIORef ref $! MkTickRef totalTicks lastSleep
-        else do
-            !currentTime <- getCPUTimeUs
-            let !totalTickDurationUs = tickDurationUs * fromIntegral totalTicks
-                !deltaTimeUs = currentTime - lastSleep
-                !sleepUs = deltaTimeUs - totalTickDurationUs
-            if sleepUs > 100 -- Arbitrary
-                then do
-                    let !intSleepUs = floor sleepUs
-                        !remainingSleepUs = sleepUs - fromIntegral intSleepUs
-                        !residualTicks = floor $ remainingSleepUs / tickDurationUs
-                    writeIORef ref $! MkTickRef residualTicks currentTime
-                    threadDelay intSleepUs
-                else
-                    writeIORef ref $! MkTickRef totalTicks lastSleep
+    st <- readIORef ref
+    !currentTime <- getCPUTimeUs
+    let !totalTickDurationUs = tickDurationUs * fromIntegral ticks_
+        !deltaTimeUs = currentTime - lastSleepTime st
+        !sleepUs = totalTickDurationUs - deltaTimeUs
+    if sleepUs > 100 -- Arbitrary
+        then do
+            let !intSleepUs = floor sleepUs
+                !remainingSleepUs = sleepUs - fromIntegral intSleepUs
+                !residualTicks = floor $ remainingSleepUs / tickDurationUs
+            threadDelay intSleepUs
+            writeIORef ref . MkTickRef =<< getCPUTimeUs
+            return residualTicks
+        else
+            -- If neg, we are late
+            return $ if sleepUs < 0 then 0 else ticks_
   where
-    -- Duration of a tick, in microsecond
     tickDurationUs = (1000000 / cpuFrequency) :: Double
     -- Frequency in Hz
     cpuFrequency = 1.789773 * 1000000
