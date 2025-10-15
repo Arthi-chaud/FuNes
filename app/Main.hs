@@ -15,7 +15,10 @@ import Nes.Rom
 import SDL
 import SDL.Internal.Types
 import qualified SDL.Raw as Raw
+import System.CPUTime (getCPUTime)
 import System.Environment
+
+data TickRef = MkTickRef {tickRemainder :: {-# UNPACK #-} !Int, lastSleepTime :: {-# UNPACK #-} !Double}
 
 main :: IO ()
 main = do
@@ -27,7 +30,6 @@ main = do
     rom <- do
         res <- fromFile romPath
         either fail return res
-    tickRef <- newIORef (0 :: Int)
     initializeAll
     let windowConfig =
             defaultWindow
@@ -47,17 +49,37 @@ main = do
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
     frame <- newFrameState
+    tickRef <- newIORef . MkTickRef 0 =<< getCPUTimeUs
     bus <- newBus rom (onDrawFrame frame texture renderer) (tickCallback tickRef)
     void $ runProgram bus (pure ())
     destroyRenderer renderer
 
-tickCallback :: IORef Int -> Int -> IO ()
+tickCallback :: IORef TickRef -> Int -> IO ()
 tickCallback ref ticks_ = do
-    old <- readIORef ref
-    let res = old + ticks_
-        microsecondsToSleep = res `div` 179
-    writeIORef ref (res `mod` 179)
-    when (microsecondsToSleep > 0) $ threadDelay microsecondsToSleep
+    MkTickRef remainingTicks lastSleep <- readIORef ref
+    let !totalTicks = remainingTicks + ticks_
+    if totalTicks < 1000
+        then
+            writeIORef ref $! MkTickRef totalTicks lastSleep
+        else do
+            !currentTime <- getCPUTimeUs
+            let !totalTickDurationUs = tickDurationUs * fromIntegral totalTicks
+                !deltaTimeUs = currentTime - lastSleep
+                !sleepUs = deltaTimeUs - totalTickDurationUs
+            if sleepUs > 100 -- Arbitrary
+                then do
+                    let !intSleepUs = floor sleepUs
+                        !remainingSleepUs = sleepUs - fromIntegral intSleepUs
+                        !residualTicks = floor $ remainingSleepUs / tickDurationUs
+                    writeIORef ref $! MkTickRef residualTicks currentTime
+                    threadDelay intSleepUs
+                else
+                    writeIORef ref $! MkTickRef totalTicks lastSleep
+  where
+    -- Duration of a tick, in microsecond
+    tickDurationUs = (1000000 / cpuFrequency) :: Double
+    -- Frequency in Hz
+    cpuFrequency = 1.789773 * 1000000
 
 onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO Bus
 onDrawFrame frame texture renderer bus = do
@@ -66,3 +88,7 @@ onDrawFrame frame texture renderer bus = do
     copy renderer texture Nothing Nothing
     present renderer
     snd <$> runBusM bus handleEvents
+
+{-# INLINE getCPUTimeUs #-}
+getCPUTimeUs :: IO Double
+getCPUTimeUs = (/ 1000000) . fromIntegral <$> getCPUTime
