@@ -25,6 +25,7 @@ cpx = compareWithRegister X
 cpy :: AddressingMode -> CPU r ()
 cpy = compareWithRegister Y
 
+{-# INLINE compareWithRegister #-}
 compareWithRegister :: Register -> AddressingMode -> CPU r ()
 compareWithRegister reg mode = do
     value <- getOperandAddr mode >>= flip readByte ()

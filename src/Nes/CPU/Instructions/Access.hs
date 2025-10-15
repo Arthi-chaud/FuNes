@@ -35,6 +35,7 @@ ldx = loadRegisterFromMemory X
 ldy :: AddressingMode -> CPU r ()
 ldy = loadRegisterFromMemory Y
 
+{-# INLINE loadRegisterFromMemory #-}
 loadRegisterFromMemory :: Register -> AddressingMode -> CPU r ()
 loadRegisterFromMemory register mode = do
     argAddr <- getOperandAddr mode
@@ -60,6 +61,7 @@ stx = storeRegisterInMemory X
 sty :: AddressingMode -> CPU r ()
 sty = storeRegisterInMemory Y
 
+{-# INLINE storeRegisterInMemory #-}
 storeRegisterInMemory :: Register -> AddressingMode -> CPU r ()
 storeRegisterInMemory reg mode = do
     (addr, crosses) <- getOperandAddr' mode

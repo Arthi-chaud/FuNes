@@ -69,6 +69,7 @@ ora = applyLogicOnRegisterA (.|.)
 eor :: AddressingMode -> CPU r ()
 eor = applyLogicOnRegisterA (.^.)
 
+{-# INLINE applyLogicOnRegisterA #-}
 applyLogicOnRegisterA :: (Byte -> Byte -> Byte) -> AddressingMode -> CPU r ()
 applyLogicOnRegisterA op mode = do
     value <- getOperandAddr mode >>= flip readByte ()
@@ -82,6 +83,7 @@ rol mode = do
     _ <- rol_ mode
     when (mode == AbsoluteX) tickOnce
 
+{-# INLINE rol_ #-}
 rol_ :: AddressingMode -> CPU r Byte
 rol_ =
     rotate
@@ -99,6 +101,7 @@ ror mode = do
     _ <- ror_ mode
     when (mode == AbsoluteX) tickOnce
 
+{-# INLINE ror_ #-}
 ror_ :: AddressingMode -> CPU r Byte
 ror_ =
     rotate
@@ -136,6 +139,7 @@ anc =
 asl :: AddressingMode -> CPU r ()
 asl mode = asl_ mode >> when (mode == AbsoluteX) tickOnce
 
+{-# INLINE asl_ #-}
 asl_ :: AddressingMode -> CPU r Byte
 asl_ mode = withOperand mode $ \value -> do
     let carry = testBit value 7
@@ -150,6 +154,7 @@ asl_ mode = withOperand mode $ \value -> do
 lsr :: AddressingMode -> CPU r ()
 lsr mode = lsr_ mode >> when (mode == AbsoluteX) tickOnce
 
+{-# INLINE lsr_ #-}
 lsr_ :: AddressingMode -> CPU r Byte
 lsr_ mode =
     withOperand
@@ -207,6 +212,7 @@ xaa mode = do
     byte <- flip readByte () =<< getOperandAddr mode
     void $ modifyRegisterA (.&. byte)
 
+{-# INLINE withOperand #-}
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
 withOperand Accumulator f = do
     a <- withCPUState $ getRegister A
@@ -224,6 +230,7 @@ withOperand mode f = do
     writeByte res addr ()
     return res
 
+{-# INLINE modifyRegisterA #-}
 modifyRegisterA :: (Byte -> Byte) -> CPU r Byte
 modifyRegisterA f = do
     regA <- withCPUState $ getRegister A

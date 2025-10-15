@@ -106,6 +106,7 @@ getOperandAddr'' = \case
         return (deref, crossesPage deref derefBase)
     None -> fail $ printf "Mode not supported: %s" $ show None
 
+{-# INLINE zeroPageAddressing #-}
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r (Addr, Bool)
 zeroPageAddressing getter = do
     pos <- getPC >>= flip readByte ()
@@ -113,15 +114,18 @@ zeroPageAddressing getter = do
     tickOnce
     return (byteToAddr $ pos + regVal, False)
 
+{-# INLINE absoluteAddressing #-}
 absoluteAddressing :: (CPUState -> Byte) -> CPU r (Addr, Bool)
 absoluteAddressing getter = do
     base <- getPC >>= flip readAddr ()
     addr <- withCPUState $ (+ base) . byteToAddr . getter
     return (addr, crossesPage base addr)
 
+{-# INLINE crossesPage #-}
 crossesPage :: Addr -> Addr -> Bool
 crossesPage (Addr addr1) (Addr addr2) = addr1 .&. 0xFF00 /= addr2 .&. 0xFF00
 
+{-# INLINE getOperandSize #-}
 getOperandSize :: AddressingMode -> Int
 getOperandSize = \case
     Immediate -> 1

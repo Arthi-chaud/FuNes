@@ -19,6 +19,7 @@ render bus = Render.do
     applySprites
     renderPixels
 
+{-# INLINE clearAll #-}
 clearAll :: Render a DirtyFrame r ()
 clearAll = Render.do
     withFrameState $ \st ->
@@ -27,6 +28,7 @@ clearAll = Render.do
     unsafeStep
 
 -- | Pulls pixels from 'pixelBuffer' to 'sdl2Frame'
+{-# INLINE renderPixels #-}
 renderPixels :: Render Renderable Rendered r ()
 renderPixels = Render.do
     withFrameState $ \st -> iforM_ (unBuffer $ pixelBuffer st) $ \offset (color, _) ->

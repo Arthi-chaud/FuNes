@@ -54,6 +54,7 @@ bmi = branchOverIf (getFlag Negative . status)
 bpl :: AddressingMode -> CPU r ()
 bpl = branchOverIf (not . getFlag Negative . status)
 
+{-# INLINE branchOverIf #-}
 branchOverIf :: (CPUState -> Bool) -> AddressingMode -> CPU r ()
 branchOverIf check mode = do
     doBranch <- withCPUState check

@@ -61,6 +61,7 @@ interpretWithCallback callback = do
         when (forceMultiByte && newCycleCount - 1 == oldCycleCount) tickOnce
         interpretWithCallback callback
   where
+    {-# INLINE go #-}
     go opcode = case Data.Map.lookup opcode opcodeMap of
         Just (mnemo, f, mode, _) -> f mode $> (mnemo /= "KIL")
         Nothing -> do

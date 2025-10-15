@@ -29,7 +29,14 @@ instance (MonadIO m) => MemoryInterface (Ptr a) m where
         writeWord8OffPtr (castPtr ptr) (intIdx + 1) (fromIntegral $ unAddr $ shiftR addr 8)
 
 instance (MonadIO m) => MemoryInterface (ForeignPtr a) m where
+    {-# INLINE readByte #-}
     readByte idx fptr = liftIO $ unsafeWithForeignPtr fptr (readByte idx)
+
+    {-# INLINE readAddr #-}
     readAddr idx fptr = liftIO $ unsafeWithForeignPtr fptr (readAddr idx)
+
+    {-# INLINE writeByte #-}
     writeByte byte idx fptr = liftIO $ unsafeWithForeignPtr fptr (writeByte byte idx)
+
+    {-# INLINE writeAddr #-}
     writeAddr addr idx fptr = liftIO $ unsafeWithForeignPtr fptr (writeAddr addr idx)

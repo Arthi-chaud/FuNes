@@ -68,6 +68,7 @@ ahx mode = do
     let byte' = a .&. mask .&. ((unsafeAddrToByte (shiftR addr 8)))
     writeByte byte' addr ()
 
+{-# INLINE sh #-}
 sh :: Register -> AddressingMode -> CPU r ()
 sh reg mode = do
     mask <- withCPUState $ getRegister reg
