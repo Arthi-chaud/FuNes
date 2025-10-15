@@ -16,6 +16,7 @@ dependencies:
   - mtl
   - containers
   - array
+  - vector
 
 default-extensions:
   - BinaryLiterals
@@ -25,6 +26,9 @@ default-extensions:
   - TupleSections
   - TypeFamilies
   - BangPatterns
+  - DeriveFunctor
+  - DataKinds
+  - QualifiedDo
 
 ghc-options:
   - -Wall
@@ -36,6 +40,7 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wpartial-fields
   - -Wredundant-constraints
+  - -O2
 
 library:
   source-dirs: src

@@ -58,6 +58,7 @@ library
       Nes.Render
       Nes.Render.Background
       Nes.Render.Frame
+      Nes.Render.Monad
       Nes.Render.Palette
       Nes.Render.Sprite
       Nes.Rom
@@ -75,13 +76,17 @@ library
       TupleSections
       TypeFamilies
       BangPatterns
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2
   build-depends:
       array
     , base >=4.7 && <5
     , bytestring
     , containers
     , mtl
+    , vector
   default-language: Haskell2010
 
 executable fake-snake
@@ -100,7 +105,10 @@ executable fake-snake
       TupleSections
       TypeFamilies
       BangPatterns
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -110,6 +118,7 @@ executable fake-snake
     , mtl
     , random
     , sdl2
+    , vector
   default-language: Haskell2010
 
 executable funes-exe
@@ -129,7 +138,10 @@ executable funes-exe
       TupleSections
       TypeFamilies
       BangPatterns
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -138,6 +150,7 @@ executable funes-exe
     , funes
     , mtl
     , sdl2
+    , vector
   default-language: Haskell2010
 
 test-suite nestest
@@ -157,7 +170,10 @@ test-suite nestest
       TupleSections
       TypeFamilies
       BangPatterns
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -166,6 +182,7 @@ test-suite nestest
     , funes
     , hspec
     , mtl
+    , vector
   default-language: Haskell2010
 
 test-suite unit
@@ -198,7 +215,10 @@ test-suite unit
       TupleSections
       TypeFamilies
       BangPatterns
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+      DeriveFunctor
+      DataKinds
+      QualifiedDo
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -207,4 +227,5 @@ test-suite unit
     , funes
     , hspec
     , mtl
+    , vector
   default-language: Haskell2010

@@ -1,8 +1,8 @@
 module Nes.Render.Palette (systemPalette) where
 
-import Nes.Render.Frame (PixelColor)
+import Nes.Render.Frame (Color)
 
-systemPalette :: [PixelColor]
+systemPalette :: [Color]
 systemPalette =
     [ (0x80, 0x80, 0x80)
     , (0x00, 0x3D, 0xA6)

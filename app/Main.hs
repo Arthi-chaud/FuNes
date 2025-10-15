@@ -9,6 +9,8 @@ import Nes.Bus.Monad (runBusM)
 import Nes.CPU.Interpreter
 import Nes.Render
 import Nes.Render.Frame
+import Nes.Render.Monad (runRender, toSDL2ByteString)
+import qualified Nes.Render.Monad as R
 import Nes.Rom
 import SDL
 import SDL.Internal.Types
@@ -44,9 +46,8 @@ main = do
     _ <- setHintWithPriority NormalPriority HintRenderVSync DisableVSync
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
-    frame <- newFrame
-    frameBuffer <- newFrameBuffer
-    bus <- newBus rom (onDrawFrame frame frameBuffer texture renderer) (tickCallback tickRef)
+    frame <- newFrameState
+    bus <- newBus rom (onDrawFrame frame texture renderer) (tickCallback tickRef)
     void $ runProgram bus (pure ())
     destroyRenderer renderer
 
@@ -58,11 +59,10 @@ tickCallback ref ticks_ = do
     writeIORef ref (res `mod` 179)
     when (microsecondsToSleep > 0) $ threadDelay microsecondsToSleep
 
-onDrawFrame :: Frame -> FrameBuffer -> Texture -> Renderer -> Bus -> IO Bus
-onDrawFrame frame fb texture renderer bus = do
-    render fb bus
-    renderFrameBuffer fb frame
-    updateTexture texture Nothing (frameToByteString frame) (256 * 3)
+onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO Bus
+onDrawFrame frame texture renderer bus = do
+    bs <- runRender (render bus R.>> toSDL2ByteString) frame
+    updateTexture texture Nothing bs (256 * 3)
     copy renderer texture Nothing Nothing
     present renderer
     snd <$> runBusM bus handleEvents
