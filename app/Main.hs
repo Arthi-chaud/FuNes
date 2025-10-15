@@ -1,6 +1,5 @@
 module Main (main) where
 
-import Control.Concurrent (threadDelay)
 import Control.Monad
 import Events
 import Nes.Bus
@@ -14,7 +13,6 @@ import Nes.Rom
 import SDL
 import SDL.Internal.Types
 import qualified SDL.Raw as Raw
-import System.CPUTime (getCPUTime)
 import System.Environment
 
 main :: IO ()
@@ -51,31 +49,32 @@ main = do
     destroyRenderer renderer
 
 tickCallback :: Double -> Int -> IO (Double, Int)
-tickCallback lastSleepTime ticks_ = do
-    !currentTime <- getCPUTimeUs
-    let !totalTickDurationUs = tickDurationUs * fromIntegral ticks_
-        !deltaTimeUs = currentTime - lastSleepTime
-        !sleepUs = totalTickDurationUs - deltaTimeUs
-    if ticks_ < 100
-        then return (lastSleepTime, ticks_)
-        else
-            if sleepUs > 500
-                then do
-                    let !intSleepUs = floor sleepUs
-                        !remainingSleepUs = sleepUs - fromIntegral intSleepUs
-                        !residualTicks = floor $ remainingSleepUs / tickDurationUs
-                    threadDelay intSleepUs
-                    (,residualTicks) <$> getCPUTimeUs
-                else
-                    if sleepUs < 0
-                        then do
-                            return (currentTime, 0)
-                        else do
-                            return (lastSleepTime, ticks_)
-  where
-    tickDurationUs = (1000000 / cpuFrequency) :: Double
-    -- Frequency in Hz
-    cpuFrequency = 1.789773 * 1000000
+tickCallback lastSleepTime_ ticks_ = return (lastSleepTime_, ticks_)
+
+--   !currentTime <- getCPUTimeUs
+--   let !totalTickDurationUs = tickDurationUs * fromIntegral ticks_
+--       !deltaTimeUs = currentTime - lastSleepTime
+--       !sleepUs = totalTickDurationUs - deltaTimeUs
+--   if ticks_ < 100
+--       then return (lastSleepTime, ticks_)
+--       else
+--           if sleepUs > 500
+--               then do
+--                   let !intSleepUs = floor sleepUs
+--                       !remainingSleepUs = sleepUs - fromIntegral intSleepUs
+--                       !residualTicks = floor $ remainingSleepUs / tickDurationUs
+--                   -- threadDelay intSleepUs
+--                   return (currentTime, residualTicks)
+--               else
+--                   if sleepUs < 0
+--                       then do
+--                           return (currentTime, 0)
+--                       else do
+--                           return (lastSleepTime, ticks_)
+-- where
+--   tickDurationUs = (1000000 / cpuFrequency) :: Double
+--   -- Frequency in Hz
+--   cpuFrequency = 1.789773 * 1000000
 
 onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO Bus
 onDrawFrame frame texture renderer bus = do
@@ -85,6 +84,6 @@ onDrawFrame frame texture renderer bus = do
     present renderer
     snd <$> runBusM bus handleEvents
 
-{-# INLINE getCPUTimeUs #-}
-getCPUTimeUs :: IO Double
-getCPUTimeUs = (/ 1000000) . fromIntegral <$> getCPUTime
+-- {-# INLINE getCPUTimeUs #-}
+-- getCPUTimeUs :: IO Double
+-- getCPUTimeUs = (/ 1000000) . fromIntegral <$> getCPUTime
