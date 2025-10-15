@@ -67,17 +67,15 @@ withController f = MkBusM $ \bus cont ->
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     let unsleptCycles_ = n + unsleptCycles bus
-    newUnsleptCycles <-
-        if unsleptCycles_ >= unsleptCyclesThreshold bus
-            then cycleCallback bus unsleptCycles_
-            else return unsleptCycles_
+    (newLastSleepTime, newUnsleptCycles) <-
+        cycleCallback bus (lastSleepTime bus) unsleptCycles_
     ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
         before <- withPPUState nmiInterrupt
         isNewFrame <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
         return (isNewFrame, before, after)
 
-    let bus' = bus{unsleptCycles = newUnsleptCycles, ppuState = ppuSt, Nes.Bus.cycles = fromIntegral n + Nes.Bus.cycles bus}
+    let bus' = bus{unsleptCycles = newUnsleptCycles, ppuState = ppuSt, Nes.Bus.cycles = fromIntegral n + Nes.Bus.cycles bus, lastSleepTime = newLastSleepTime}
     if not nmiBefore && nmiAfter
         then onNewFrame bus' bus' >>= flip cont ()
         else

@@ -30,11 +30,10 @@ data Bus = Bus
     , cycles :: {-# UNPACK #-} !Integer
     , unsleptCycles :: {-# UNPACK #-} !Int
     -- ^ The number of cycles that we need to call 'threadDelay' for
-    , cycleCallback :: Int -> IO Int
+    , cycleCallback :: Double -> Int -> IO (Double, Int)
     -- ^ The function to call 'threadDelay' according to 'unsleptCycles' (> 'unsleptCyclesThreshold')
     -- The return value is the new number of unslept cycles
-    , unsleptCyclesThreshold :: {-# UNPACK #-} !Int
-    -- ^ the minimum number of 'unsleptCycles' to wait for before calling 'cycleCallback'
+    , lastSleepTime :: {-# UNPACK #-} !Double
     , ppuState :: {-# UNPACK #-} !PPUState
     -- ^ The state of the PPU
     , ppuPointers :: {-# UNPACK #-} !PPUPointers
@@ -42,8 +41,8 @@ data Bus = Bus
     , onNewFrame :: Bus -> IO Bus
     }
 
-newBus :: Rom -> (Bus -> IO Bus) -> Int -> (Int -> IO Int) -> IO Bus
-newBus rom_ onNewFrame_ tickThreshold_ tickCallback_ = do
+newBus :: Rom -> (Bus -> IO Bus) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
+newBus rom_ onNewFrame_ tickCallback_ = do
     fptr <- callocForeignPtr vramSize
     ppuPtrs <- newPPUPointers
     let ppuSt = newPPUState (mirroring rom_)
@@ -55,7 +54,7 @@ newBus rom_ onNewFrame_ tickThreshold_ tickCallback_ = do
             0
             0
             tickCallback_
-            tickThreshold_
+            0
             ppuSt
             ppuPtrs
             onNewFrame_
