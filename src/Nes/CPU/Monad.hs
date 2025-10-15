@@ -57,41 +57,54 @@ newtype CPU r a = MkCPU
     deriving (Functor)
 
 instance Applicative (CPU r) where
+    {-# INLINE pure #-}
     pure a = MkCPU $ \st prog cont -> cont st prog a
+    {-# INLINE (<*>) #-}
     (MkCPU f) <*> (MkCPU a) = MkCPU $ \st prog cont -> f st prog $
         \st' prog' f' -> a st' prog' $
             \st'' prog'' a' -> cont st'' prog'' $ f' a'
 
 instance Monad (CPU r) where
+    {-# INLINE (>>=) #-}
     (MkCPU a) >>= next = MkCPU $ \st prog cont -> a st prog $
         \st' prog' a' -> unCPU (next a') st' prog' cont
 
 instance MonadFail (CPU r) where
+    {-# INLINE fail #-}
     fail s = MkCPU $ \_ _ _ -> fail s
 
 instance MonadIO (CPU r) where
+    {-# INLINE liftIO #-}
     liftIO io = MkCPU $ \st prog cont -> io >>= cont st prog
 
+{-# INLINE modifyCPUState #-}
 modifyCPUState :: (CPUState -> CPUState) -> CPU r ()
 modifyCPUState f = MkCPU $ \st prog cont -> cont (f st) prog ()
 
+{-# INLINE withCPUState #-}
 withCPUState :: (CPUState -> a) -> CPU r a
 withCPUState f = MkCPU $ \st prog cont -> cont st prog (f st)
 
+{-# INLINE getCycles #-}
 getCycles :: CPU r Integer
 getCycles = MkCPU $ \st bus cont -> cont st bus (cycles bus)
+
+{-# INLINE getPC #-}
 
 -- | Returns the value of the Program counter as an Addr
 getPC :: CPU r Addr
 getPC = withCPUState programCounter
 
+{-# INLINE setPC #-}
 setPC :: Addr -> CPU r ()
 setPC addr = modifyCPUState $ \st -> st{programCounter = addr}
 
+{-# INLINE incrementPC #-}
 incrementPC :: CPU r ()
 incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
 
 -- | Read Word8 from memory, using the program counter as offset
+{-# INLINE readAtPC #-}
 readAtPC :: CPU r Byte
 readAtPC = getPC >>= flip readByte ()
 
@@ -101,6 +114,7 @@ popStackByte = do
     modifyCPUState $ setRegister S newRegS
     readByte (stackAddr + byteToAddr newRegS) ()
 
+{-# INLINE popStackAddr #-}
 popStackAddr :: CPU r Addr
 popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
 
@@ -110,6 +124,7 @@ pushByteStack byte = do
     writeByte byte (stackAddr + byteToAddr regS) ()
     modifyCPUState $ setRegister S (regS - 1)
 
+{-# INLINE pushAddrStack #-}
 pushAddrStack :: Addr -> CPU r ()
 pushAddrStack addr = do
     let high = unsafeAddrToByte (shiftR addr 8)
@@ -117,6 +132,7 @@ pushAddrStack addr = do
     pushByteStack high
     pushByteStack low
 
+{-# INLINE withBus #-}
 withBus :: BusM (a, Bus) a -> CPU r a
 withBus f = MkCPU $ \st bus cont -> do
     (res, bus') <- runBusM bus f
@@ -126,6 +142,7 @@ withBus f = MkCPU $ \st bus cont -> do
 --
 -- When using it, ticks ARE NOT taken into account.
 -- For testing purposes
+{-# INLINE unsafeWithBus #-}
 unsafeWithBus :: BusM (a, Bus) a -> CPU r a
 unsafeWithBus f = MkCPU $ \st bus cont -> do
     (res, _) <- runBusM bus f
@@ -153,28 +170,34 @@ interrupt signal = do
     setPC =<< readAddr (getVectorAddr signal) ()
 
 instance MemoryInterface () (CPU r) where
+    {-# INLINE readByte #-}
     readByte n () = do
         res <- withBus (Nes.Memory.readByte n ())
         tickOnce
         return res
 
+    {-# INLINE readAddr #-}
     readAddr n () = do
         res <- withBus (Nes.Memory.readAddr n ())
         tick 2
         return res
 
+    {-# INLINE writeByte #-}
     writeByte byte dest () = do
         withBus (Nes.Memory.writeByte byte dest ())
         tickOnce
 
+    {-# INLINE writeAddr #-}
     writeAddr byte dest () = do
         withBus (Nes.Memory.writeAddr byte dest ())
         tick 2
 
+{-# INLINE tick #-}
 tick :: Int -> CPU r ()
 tick n = MkCPU $ \st bus cont -> do
     ((), newbus) <- runBusM bus $ BusM.tick n
     cont st newbus ()
 
+{-# INLINE tickOnce #-}
 tickOnce :: CPU r ()
 tickOnce = Nes.CPU.Monad.tick 1

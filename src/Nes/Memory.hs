@@ -22,24 +22,30 @@ newtype Byte = Byte {unByte :: Word8} deriving (Eq, Show, Num, Bits, Ord)
 
 newtype Addr = Addr {unAddr :: Word16} deriving (Eq, Show, Num, Bits, Ord, Ix)
 
+{-# INLINE byteToAddr #-}
 byteToAddr :: Byte -> Addr
 byteToAddr = Addr . fromIntegral . unByte
 
+{-# INLINE byteToInt #-}
 byteToInt :: Byte -> Int
 byteToInt = fromIntegral . unByte
 
 -- | Safely negates a byte, handles underflow
+{-# INLINE negateByte #-}
 negateByte :: Byte -> Byte
 negateByte (Byte byte) = Byte (fromIntegral (-(fromIntegral byte :: Int8) - 1) :: Word8)
 
+{-# INLINE addrToInt #-}
 addrToInt :: Addr -> Int
 addrToInt = fromIntegral . unAddr
 
 -- | Unsafe: Casts a Word16 to Word8
+{-# INLINE unsafeAddrToByte #-}
 unsafeAddrToByte :: Addr -> Byte
 unsafeAddrToByte (Addr a) = Byte $ fromIntegral a
 
 -- | First byte is low-end, second is high-end
+{-# INLINE bytesToAddr #-}
 bytesToAddr :: Byte -> Byte -> Addr
 bytesToAddr low high = shiftL (byteToAddr high) 8 .|. byteToAddr low
 

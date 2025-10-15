@@ -7,6 +7,7 @@ import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Memory
 
+{-# INLINE setZeroAndNegativeFlags #-}
 setZeroAndNegativeFlags :: Byte -> CPU r ()
 setZeroAndNegativeFlags res =
     modifyCPUState $

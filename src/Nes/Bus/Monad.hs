@@ -22,31 +22,41 @@ import Nes.Rom
 newtype BusM r a = MkBusM {unBusM :: Bus -> (Bus -> a -> IO r) -> IO r} deriving (Functor)
 
 instance Applicative (BusM r) where
+    {-# INLINE pure #-}
     pure a = MkBusM $ \bus cont -> cont bus a
+
+    {-# INLINE liftA2 #-}
     liftA2 f (MkBusM a) (MkBusM b) = MkBusM $ \bus cont ->
         a bus $ \bus' a' -> b bus' $ \bus'' b' -> cont bus'' (f a' b')
 
 instance Monad (BusM r) where
+    {-# INLINE (>>=) #-}
     (MkBusM a) >>= next = MkBusM $ \bus cont ->
         a bus $ \bus' a' -> unBusM (next a') bus' $ \bus'' res -> cont bus'' res
 
 instance MonadIO (BusM r) where
+    {-# INLINE liftIO #-}
     liftIO io = MkBusM $ \bus cont -> io >>= cont bus
 
 instance MonadFail (BusM r) where
+    {-# INLINE fail #-}
     fail = liftIO . fail
 
+{-# INLINE runBusM #-}
 runBusM :: Bus -> BusM (a, Bus) a -> IO (a, Bus)
 runBusM bus f = unBusM f bus (\bus' a -> return (a, bus'))
 
+{-# INLINE withBus #-}
 withBus :: (Bus -> a) -> BusM r a
 withBus f = MkBusM $ \bus cont -> cont bus (f bus)
 
+{-# INLINE withPPU #-}
 withPPU :: PPU (a, PPUState) a -> BusM r a
 withPPU f = MkBusM $ \bus cont -> do
     (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) f
     cont (bus{ppuState = ppuSt}) res
 
+{-# INLINE withController #-}
 withController :: ControllerM (a, Controller) a -> BusM r a
 withController f = MkBusM $ \bus cont ->
     let
@@ -158,9 +168,11 @@ instance MemoryInterface () (BusM r) where
         writeByte low idx ()
         writeByte high (idx + 1) ()
 
+{-# INLINE guardReadBound #-}
 guardReadBound :: (MonadFail m) => Addr -> m Byte -> m Byte
 guardReadBound idx cont = if idx >= memorySize then return 0 else cont
 
+{-# INLINE guardWriteBound #-}
 guardWriteBound :: (MonadFail m) => Addr -> m () -> m ()
 guardWriteBound idx = when (idx < memorySize)
 

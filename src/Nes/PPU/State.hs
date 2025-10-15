@@ -64,18 +64,23 @@ data PPUState = MkPPUState
     , nmiInterrupt :: {-# UNPACK #-} !Bool
     }
 
+{-# INLINE modifyControlRegister #-}
 modifyControlRegister :: (ControlRegister -> ControlRegister) -> PPUState -> PPUState
 modifyControlRegister f st = st{controlRegister = f $ controlRegister st}
 
+{-# INLINE modifyAddressRegister #-}
 modifyAddressRegister :: (AddressRegister -> AddressRegister) -> PPUState -> PPUState
 modifyAddressRegister f st = st{addressRegister = f $ addressRegister st}
 
+{-# INLINE modifyStatusRegister #-}
 modifyStatusRegister :: (StatusRegister -> StatusRegister) -> PPUState -> PPUState
 modifyStatusRegister f st = st{statusRegister = f $ statusRegister st}
 
+{-# INLINE modifyScrollRegister #-}
 modifyScrollRegister :: (ScrollRegister -> ScrollRegister) -> PPUState -> PPUState
 modifyScrollRegister f st = st{scrollRegister = f $ scrollRegister st}
 
+{-# INLINE modifyMaskRegister #-}
 modifyMaskRegister :: (MaskRegister -> MaskRegister) -> PPUState -> PPUState
 modifyMaskRegister f st = st{maskRegister = f $ maskRegister st}
 
@@ -103,6 +108,7 @@ newAddressRegister :: AddressRegister
 newAddressRegister = AddressRegister 0 0 True
 
 -- | Sets an Addr to the AddressRegister's value
+{-# INLINE addressRegisterSet #-}
 addressRegisterSet :: Addr -> AddressRegister -> AddressRegister
 addressRegisterSet (Addr bytes) ar = ar{low = low, high = high}
   where
@@ -111,6 +117,7 @@ addressRegisterSet (Addr bytes) ar = ar{low = low, high = high}
 
 -- | Sets the high or lower byte of the AddressRegister's value,
 -- depending on the highPtr state
+{-# INLINE addressRegisterUpdate #-}
 addressRegisterUpdate :: Byte -> AddressRegister -> AddressRegister
 addressRegisterUpdate byte ar0 =
     let
@@ -126,6 +133,7 @@ addressRegisterUpdate byte ar0 =
         ar2{highPtr = not $ highPtr ar2}
 
 -- | Increment the AddressRegister's value by the given Byte
+{-# INLINE addressRegisterIncrement #-}
 addressRegisterIncrement :: Byte -> AddressRegister -> AddressRegister
 addressRegisterIncrement byte ar =
     let
@@ -137,10 +145,12 @@ addressRegisterIncrement byte ar =
         ar3
 
 -- | Set highPtr to True
+{-# INLINE addressRegisterResetLatch #-}
 addressRegisterResetLatch :: AddressRegister -> AddressRegister
 addressRegisterResetLatch ar = ar{highPtr = True}
 
 -- | Get the AddressRegister's value as an Addr
+{-# INLINE addressRegisterGet #-}
 addressRegisterGet :: AddressRegister -> Addr
 addressRegisterGet (AddressRegister low high _) = bytesToAddr low high
 
@@ -183,22 +193,26 @@ instance FlagRegister ControlRegister where
     toByte = unCR
     flagToBitOffset = fromEnum
 
+{-# INLINE vramAddrIncrement #-}
 vramAddrIncrement :: ControlRegister -> Byte
 vramAddrIncrement st =
     if getFlag VramAddIncrement st then 32 else 1
 
+{-# INLINE getBackgroundPatternAddr #-}
 getBackgroundPatternAddr :: ControlRegister -> Addr
 getBackgroundPatternAddr st =
     if getFlag BackgroundPatternAddr st
         then 0x1000
         else 0
 
+{-# INLINE getSpritePatternAddr #-}
 getSpritePatternAddr :: ControlRegister -> Addr
 getSpritePatternAddr st =
     if getFlag SpritePatternAddr st
         then 0x1000
         else 0
 
+{-# INLINE getNametableAddr #-}
 getNametableAddr :: ControlRegister -> Addr
 getNametableAddr st = case unCR st .&. 0b11 of
     0 -> 0x2000
@@ -231,6 +245,7 @@ data ScrollRegister = MkScrollR {x :: Byte, y :: Byte, latch :: Bool}
 newScrollRegister :: ScrollRegister
 newScrollRegister = MkScrollR 0 0 False
 
+{-# INLINE scrollRegisterWrite #-}
 scrollRegisterWrite :: Byte -> ScrollRegister -> ScrollRegister
 scrollRegisterWrite byte sr =
     let
@@ -239,6 +254,7 @@ scrollRegisterWrite byte sr =
      in
         sr2
 
+{-# INLINE scrollRegisterResetLatch #-}
 scrollRegisterResetLatch :: ScrollRegister -> ScrollRegister
 scrollRegisterResetLatch st = st{latch = False}
 

@@ -36,6 +36,7 @@ data CPUState = MkCPUState
 -- | Enumeration of the CPU's registers
 data Register = A | X | Y | S deriving (Eq, Show)
 
+{-# INLINE getRegister #-}
 getRegister :: Register -> CPUState -> Byte
 getRegister = \case
     A -> registerA
@@ -43,6 +44,7 @@ getRegister = \case
     Y -> registerY
     S -> registerS
 
+{-# INLINE setRegister #-}
 setRegister :: Register -> Byte -> CPUState -> CPUState
 setRegister reg byte st = case reg of
     A -> st{registerA = byte}
@@ -88,5 +90,6 @@ instance FlagRegister StatusRegister where
     toByte = unSR
     flagToBitOffset = fromEnum
 
+{-# INLINE modifyStatusRegister #-}
 modifyStatusRegister :: (StatusRegister -> StatusRegister) -> CPUState -> CPUState
 modifyStatusRegister f st = st{status = f $ status st}

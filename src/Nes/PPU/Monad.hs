@@ -65,27 +65,35 @@ newtype PPU r a = MkPPU
     }
     deriving (Functor)
 
+{-# INLINE runPPU #-}
 runPPU :: PPUState -> PPUPointers -> Rom -> PPU (a, PPUState) a -> IO (a, PPUState)
 runPPU st ptrs rom f = unPPU op st ptrs rom $ \_ _ a -> return a
   where
     op = f >>= \a -> withPPUState (a,)
 
 instance Applicative (PPU r) where
+    {-# INLINE pure #-}
     pure a = MkPPU $ \st ptr _ cont -> cont st ptr a
+
+    {-# INLINE liftA2 #-}
     liftA2 f (MkPPU a) (MkPPU b) = MkPPU $ \st ptr rom cont ->
         a st ptr rom $ \st' ptr' aRes ->
             b st' ptr' rom $ \st'' ptr'' bRes ->
                 cont st'' ptr'' (f aRes bRes)
 
 instance Monad (PPU r) where
+    {-# INLINE (>>=) #-}
     (MkPPU a) >>= next = MkPPU $ \st ptr rom cont ->
         a st ptr rom $ \st' ptr' aRes ->
             unPPU (next aRes) st' ptr' rom cont
+
 instance (MonadIO (PPU r)) where
+    {-# INLINE liftIO #-}
     liftIO io = MkPPU $ \st ptr _ cont ->
         io >>= cont st ptr
 
 instance (MonadFail (PPU r)) where
+    {-# INLINE fail #-}
     fail s = liftIO $ fail s
 
 tick :: Int -> PPU r Bool
@@ -118,6 +126,7 @@ tick cycles_ = do
                 else return False
         else return False
 
+{-# INLINE setCycles #-}
 setCycles :: (Int -> Int) -> PPU r ()
 setCycles f = modifyPPUState $ \st -> st{cycles = f (cycles st)}
 
@@ -129,18 +138,22 @@ isSpriteZeroHit cycle_ = do
     showSprites <- withPPUState $ getFlag ShowSprites . maskRegister
     return $ (line == scanline_) && col <= cycle_ && showSprites
 
+{-# INLINE withPointers #-}
 withPointers :: (PPUPointers -> a) -> PPU r a
 withPointers f = MkPPU $ \st ptr _ cont ->
     cont st ptr (f ptr)
 
+{-# INLINE withPPUState #-}
 withPPUState :: (PPUState -> a) -> PPU r a
 withPPUState f = MkPPU $ \st ptr _ cont ->
     cont st ptr (f st)
 
+{-# INLINE modifyPPUState #-}
 modifyPPUState :: (PPUState -> PPUState) -> PPU r ()
 modifyPPUState f = MkPPU $ \st ptr _ cont ->
     cont (f st) ptr ()
 
+{-# INLINE incrementVramAddr #-}
 incrementVramAddr :: PPU r ()
 incrementVramAddr = modifyPPUState $ \st ->
     st
@@ -172,9 +185,11 @@ writeOamData byte = do
     writeByte byte (byteToAddr addr) oam
     setOamOffset (addr + 1)
 
+{-# INLINE writeListToOam #-}
 writeListToOam :: [Byte] -> PPU r ()
 writeListToOam = foldlM (\_ item -> writeOamData item) ()
 
+{-# INLINE writeToAddressRegister #-}
 writeToAddressRegister :: Byte -> PPU r ()
 writeToAddressRegister byte =
     modifyPPUState $
@@ -191,18 +206,22 @@ writeToControlRegister byte = do
         modifyPPUState $
             \st -> st{nmiInterrupt = True}
 
+{-# INLINE setMaskRegister #-}
 setMaskRegister :: Byte -> PPU r ()
 setMaskRegister byte = modifyPPUState $ \st -> st{maskRegister = MkMR byte}
 
+{-# INLINE setOamOffset #-}
 setOamOffset :: Byte -> PPU r ()
 setOamOffset byte = modifyPPUState $ \st -> st{oamOffset = byte}
 
+{-# INLINE setScrollRegister #-}
 setScrollRegister :: Byte -> PPU r ()
 setScrollRegister byte =
     modifyPPUState $
         modifyScrollRegister $
             scrollRegisterWrite byte
 
+{-# INLINE withCartridge #-}
 withCartridge :: (Rom -> a) -> PPU r a
 withCartridge f = MkPPU $ \st ptrs rom cont -> cont st ptrs (f rom)
 
@@ -261,6 +280,7 @@ writeData byte = do
             liftIO $ writeByte byte (addr1 - 0x3f00) plt
         | otherwise = liftIO $ putStrLn "Unexpected access to mirrored space"
 
+{-# INLINE mirrorVramAddr #-}
 mirrorVramAddr :: Mirroring -> Addr -> Addr
 mirrorVramAddr mirr addr = case (mirr, nameTable) of
     (Vertical, 2) -> vramIndex - 0x800

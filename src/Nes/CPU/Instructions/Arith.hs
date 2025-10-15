@@ -49,6 +49,7 @@ sbc mode = do
 -- | Does the computation and sets Carry and Overflow accordingly
 --
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L261
+{-# INLINE addToRegisterA #-}
 addToRegisterA :: Byte -> CPU r ()
 addToRegisterA value = do
     carry <- withCPUState $ getFlag Carry . status
@@ -90,6 +91,7 @@ dec mode = do
     void $ modifyValueInMemory (+ (-1)) mode
     when (mode == AbsoluteX) tickOnce
 
+{-# INLINE modifyValueInMemory #-}
 modifyValueInMemory :: (Byte -> Byte) -> AddressingMode -> CPU r Byte
 modifyValueInMemory f mode = do
     addr <- getOperandAddr mode
@@ -111,6 +113,7 @@ dex = decrementRegister X
 dey :: CPU r ()
 dey = decrementRegister Y
 
+{-# INLINE decrementRegister #-}
 decrementRegister :: Register -> CPU r ()
 decrementRegister reg = do
     res <- (\y -> y - 1) <$> withCPUState (getRegister reg)
@@ -129,6 +132,7 @@ inx = incrementRegister X
 iny :: CPU r ()
 iny = incrementRegister Y
 
+{-# INLINE incrementRegister #-}
 incrementRegister :: Register -> CPU r ()
 incrementRegister reg = do
     newRegY <- (+ 1) <$> withCPUState (getRegister reg)
