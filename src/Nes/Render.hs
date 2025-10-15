@@ -23,7 +23,7 @@ clearAll :: Render a DirtyFrame r ()
 clearAll = Render.do
     withFrameState $ \st ->
         set (unBuffer $ pixelBuffer st) ((0, 0, 0), TransparentBG)
-    updateSpritePixels $ const empty
+    modifyFrameState $ \st -> st{spritePixels = empty}
     unsafeStep
 
 -- | Pulls pixels from 'pixelBuffer' to 'sdl2Frame'

@@ -3,7 +3,6 @@ module Nes.Render.Sprite (renderSprites, applySprites) where
 import Data.Bits
 import qualified Data.ByteString as BS
 import Data.Foldable (for_)
-import Data.Map.Strict
 import Nes.Bus
 import Nes.Memory
 import Nes.PPU.Constants
@@ -57,9 +56,8 @@ renderSprites bus = Render.do
                                 ( flipCoord tileCol x flipHorizontal
                                 , flipCoord tileRow y flipVertical
                                 )
-                            offset = bufferCoordToOffset coord
                          in
-                            updateSpritePixels $ insert offset (c, priority)
+                            modifyFrameState $ addSpritePixel coord (c, priority)
 
     unsafeStep
   where
@@ -79,8 +77,8 @@ getSpritePalette ptrs paletteIdx = do
 applySprites :: Render BGAndSpritesDrawn Renderable r ()
 applySprites = Render.do
     withFrameState $ \st ->
-        foldlWithKey
-            ( \rest i value -> flip (Prelude.>>) rest $ case value of
+        foreachSpritePixel
+            ( \i value -> case value of
                 (c, Front) -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
                 (c, Back) -> do
                     (_, pixelType) <- bufferGetOffset i $ pixelBuffer st
@@ -88,6 +86,5 @@ applySprites = Render.do
                         TransparentBG -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
                         _ -> pure ()
             )
-            (Prelude.return ())
-            (spritePixels st)
+            st
     unsafeStep

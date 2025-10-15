@@ -23,8 +23,10 @@ module Nes.Render.Frame (
     bufferSetOffset,
 
     -- * Sprite Pixel
+    SpritePixel,
     SpritePixels,
-    withSpritePixels,
+    addSpritePixel,
+    foreachSpritePixel,
 
     -- * Pixel
     Coord,
@@ -37,7 +39,7 @@ module Nes.Render.Frame (
 
 import Control.Monad
 import Data.Array (Ix (..))
-import Data.Map.Strict
+import Data.Map.Strict as M
 import Data.Vector.Mutable
 import qualified Data.Vector.Mutable as V
 import Foreign hiding (new)
@@ -111,9 +113,13 @@ bufferGetOffset offset (MkBuffer fb) = V.read fb offset
 bufferCoordToOffset :: Coord -> Int
 bufferCoordToOffset (x, y) = y * frameWidth + x
 
-{-# INLINE withSpritePixels #-}
-withSpritePixels :: (SpritePixels -> SpritePixels) -> FrameState -> FrameState
-withSpritePixels f st = st{spritePixels = f (spritePixels st)}
+{-# INLINE addSpritePixel #-}
+addSpritePixel :: Coord -> SpritePixel -> FrameState -> FrameState
+addSpritePixel coord pixel st = st{spritePixels = M.insert (bufferCoordToOffset coord) pixel (spritePixels st)}
+
+{-# INLINE foreachSpritePixel #-}
+foreachSpritePixel :: (Monad m) => (Int -> SpritePixel -> m ()) -> FrameState -> m ()
+foreachSpritePixel f = M.foldrWithKey' (\key pixel rest -> f key pixel >> rest) (pure ()) . spritePixels
 
 data FrameState = MkFrameState
     { sdl2Frame :: {-# UNPACK #-} !MemoryPointer
@@ -121,7 +127,8 @@ data FrameState = MkFrameState
     , spritePixels :: {-# UNPACK #-} !SpritePixels
     }
 
-type SpritePixels = Map Int (Color, SpritePriority)
+type SpritePixels = Map Int SpritePixel
+type SpritePixel = (Color, SpritePriority)
 
 -- | Allocates the buffers and frame
 newFrameState :: IO FrameState
