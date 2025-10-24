@@ -102,12 +102,16 @@ bufferSetOffset pixel offset (MkBuffer fb) =
             pixel
 
 {-# INLINE bufferGet #-}
-bufferGet :: Coord -> Buffer a -> IO a
+bufferGet :: Coord -> Buffer a -> IO (Maybe a)
 bufferGet coord = bufferGetOffset (bufferCoordToOffset coord)
 
 {-# INLINE bufferGetOffset #-}
-bufferGetOffset :: Int -> Buffer a -> IO a
-bufferGetOffset offset (MkBuffer fb) = V.read fb offset
+bufferGetOffset :: Int -> Buffer a -> IO (Maybe a)
+bufferGetOffset offset (MkBuffer fb) =
+    if inRange (0, bufferWidth * bufferHeight - 1) offset
+        then
+            Just <$> V.read fb offset
+        else return Nothing
 
 {-# INLINE bufferCoordToOffset #-}
 bufferCoordToOffset :: Coord -> Int

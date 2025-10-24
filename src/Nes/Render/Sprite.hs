@@ -81,9 +81,9 @@ applySprites = Render.do
             ( \i value -> case value of
                 (c, Front) -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
                 (c, Back) -> do
-                    (_, pixelType) <- bufferGetOffset i $ pixelBuffer st
-                    case pixelType of
-                        TransparentBG -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
+                    mpixeltype <- fmap snd <$> bufferGetOffset i (pixelBuffer st)
+                    case mpixeltype of
+                        Just TransparentBG -> bufferSetOffset (c, Sprite) i $ pixelBuffer st
                         _ -> pure ()
             )
             st
