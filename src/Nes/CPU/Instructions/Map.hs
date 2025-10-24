@@ -265,6 +265,7 @@ opcodeMap =
         , (0x6b, ("ARR", arr, Immediate, Unofficial))
         , (0x8b, ("XAA", xaa, Immediate, Unofficial))
         , (0x9e, ("SHX", shx, AbsoluteY, Unofficial))
+        , (0x9b, ("SHS", shs, AbsoluteY, Unofficial))
         , (0x9c, ("SHY", shy, AbsoluteX, Unofficial))
         , (0x93, ("AHX", ahx, IndirectY, Unofficial))
         , (0x9f, ("AHX", ahx, AbsoluteY, Unofficial))

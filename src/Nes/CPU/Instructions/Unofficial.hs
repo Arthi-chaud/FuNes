@@ -3,7 +3,7 @@
 {-# HLINT ignore "Redundant bracket" #-}
 
 -- | Unofficial instructions that are combinations of official ones
-module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra, ahx, shx, shy, lxa, axs) where
+module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra, ahx, shx, shy, shs, lxa, axs) where
 
 import Control.Monad
 import Data.Bits
@@ -58,36 +58,36 @@ rra mode = do
 
 -- | Source: https://forums.nesdev.org/viewtopic.php?t=8107
 shx :: AddressingMode -> CPU r ()
-shx mode = do
-    addr <- getOperandAddr mode
-    x <- withCPUState $ getRegister X
-    y <- withCPUState $ getRegister Y
-    let value = (x .&. unsafeAddrToByte (((shiftR addr 8) + 1)))
-        tmp = (addr - (byteToAddr y)) .&. 0xff
-    if ((byteToAddr y) + tmp <= 0xff)
-        then writeByte value addr ()
-        else do
-            res <- readByte addr ()
-            writeByte res addr ()
+shx = sh X Y
 
 shy :: AddressingMode -> CPU r ()
-shy = sh Y
+shy = sh Y X
+
+shs :: AddressingMode -> CPU r ()
+shs = sh S X
+
+{-# INLINE sh #-}
+sh :: Register -> Register -> AddressingMode -> CPU r ()
+sh reg reg' mode = do
+    pc <- getPC
+    addr <- getOperandAddr mode
+    mask <- withCPUState $ getRegister reg
+    off <- withCPUState $ getRegister reg'
+    let value = unsafeAddrToByte ((byteToAddr mask .&. (((shiftR addr 8) + 1))) .&. 0xff)
+    tmp <- readAddr (pc + 1) ()
+    when ((byteToAddr off) + tmp <= 0xff) $
+        writeByte value addr ()
 
 ahx :: AddressingMode -> CPU r ()
 ahx mode = do
     a <- withCPUState $ getRegister A
-    mask <- withCPUState $ getRegister X
-    addr <- getOperandAddr mode
-    let byte' = a .&. mask .&. ((unsafeAddrToByte (shiftR addr 8)))
-    writeByte byte' addr ()
-
-{-# INLINE sh #-}
-sh :: Register -> AddressingMode -> CPU r ()
-sh reg mode = do
-    mask <- withCPUState $ getRegister reg
-    addr <- getOperandAddr mode
-    let byte' = mask .&. ((unsafeAddrToByte (shiftR addr 8)))
-    writeByte byte' addr ()
+    x <- withCPUState $ getRegister X
+    y <- withCPUState $ getRegister Y
+    eff <- ((byteToAddr y) +) <$> getOperandAddr mode
+    let high = unsafeAddrToByte (eff `shiftR` 8)
+        mask = high + 1
+        value = (a .&. x) .&. mask
+    writeByte value eff ()
 
 lxa :: AddressingMode -> CPU r ()
 lxa = lda >=> const tax
