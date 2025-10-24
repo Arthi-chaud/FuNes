@@ -8,9 +8,13 @@ module Nes.CPU.Instructions.Access (
     sta,
     stx,
     sty,
+
+    -- * Unofficial
+    las,
 ) where
 
 import Control.Monad
+import Data.Bits
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
@@ -71,3 +75,15 @@ storeRegisterInMemory reg mode = do
     when (crosses || mode == AbsoluteX) tickOnce
     when (mode == IndirectY || mode == AbsoluteY) tickOnce
     writeByte value addr ()
+
+las :: AddressingMode -> CPU r ()
+las mode = do
+    addr <- getOperandAddr mode
+    byte <- readByte addr ()
+    s <- withCPUState $ getRegister S
+    let res = byte .&. s
+    modifyCPUState $
+        setRegister A res
+            . setRegister X res
+            . setRegister S res
+    setZeroAndNegativeFlags res

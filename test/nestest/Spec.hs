@@ -3,7 +3,7 @@
 module Main (main) where
 
 import Control.Exception
-import Control.Monad (forM, forM_)
+import Control.Monad (forM, forM_, when)
 import Control.Monad.IO.Class
 import Data.Bits
 import Data.ByteString (ByteString)
@@ -60,6 +60,8 @@ toRawTrace (T stack _) = pack <$> reverse stack
 
 trace :: IORef Trace -> CPU r ()
 trace traceRef = do
+    pc <- getPC
+    when (pc == 0x0088) $ fail "End" -- TODO should not be needed
     newEntry <- getTrace
     liftIO $ modifyIORef traceRef (push newEntry)
   where
