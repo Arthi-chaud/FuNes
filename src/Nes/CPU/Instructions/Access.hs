@@ -78,7 +78,7 @@ storeRegisterInMemory reg mode = do
 
 las :: AddressingMode -> CPU r ()
 las mode = do
-    (addr, _) <- getOperandAddr' mode
+    addr <- getOperandAddr mode
     byte <- readByte addr ()
     s <- withCPUState $ getRegister S
     let res = byte .&. s
