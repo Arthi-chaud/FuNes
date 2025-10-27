@@ -3,9 +3,6 @@
 module Nes.APU.State.Pulse (
     -- * Pulse definition
     Pulse (..),
-    PulseByte (..),
-    setPulseByte,
-    withPulseByte,
 
     -- * Fields
     PulseField,
@@ -23,41 +20,15 @@ module Nes.APU.State.Pulse (
 
 import Data.Bits (Bits (..))
 import Data.Word (Word16)
+import Nes.APU.State.Channel
 import Nes.APU.State.Internal
 import Nes.Memory (Addr (unAddr), Byte (..), byteToAddr)
 
-data Pulse = MkPulse
-    { byte1 :: Byte
-    -- ^ The first register byte of the pulse. E.g. if this is the first pulse register, Bus should be able to access it at 0x4000
-    , byte2 :: Byte
-    , byte3 :: Byte
-    , byte4 :: Byte
-    }
-    deriving (Eq, Show)
+newtype Pulse = MkPulse {unPulse :: Channel} deriving (Eq, Show)
 
--- | Enum to get a single byte from a 'Pulse'
-data PulseByte
-    = Byte1
-    | Byte2
-    | Byte3
-    | Byte4
-    deriving (Eq, Show)
-
--- | Update a given byte from a 'Pulse'
-setPulseByte :: PulseByte -> (Byte -> Byte) -> Pulse -> Pulse
-setPulseByte n f pulse = case n of
-    Byte1 -> pulse{byte1 = f $ byte1 pulse}
-    Byte2 -> pulse{byte2 = f $ byte2 pulse}
-    Byte3 -> pulse{byte3 = f $ byte3 pulse}
-    Byte4 -> pulse{byte4 = f $ byte4 pulse}
-
--- | Get a byte (and optionally do something with it) from a 'Pulse'
-withPulseByte :: PulseByte -> (Byte -> a) -> Pulse -> a
-withPulseByte n f pulse = case n of
-    Byte1 -> f $ byte1 pulse
-    Byte2 -> f $ byte2 pulse
-    Byte3 -> f $ byte3 pulse
-    Byte4 -> f $ byte4 pulse
+instance IsChannel Pulse where
+    fromChannel = MkPulse
+    toChannel = unPulse
 
 type PulseField a = BitField a Pulse
 
@@ -70,11 +41,11 @@ duty :: PulseField Byte
 duty = MkBitField{..}
   where
     get =
-        withPulseByte
+        withChannelByte
             Byte1
             (`shiftR` 6)
     set byte =
-        setPulseByte
+        setChannelByte
             Byte1
             (setBit' high 7 . setBit' low 6)
       where
@@ -101,8 +72,8 @@ volumeIsConst = singleBitField Byte1 4
 volume :: PulseField Byte
 volume = MkBitField{..}
   where
-    get = withPulseByte Byte1 first4bits
-    set vol = setPulseByte Byte1 $ \b -> (b .&. 0b11110000) .|. first4bits vol
+    get = withChannelByte Byte1 first4bits
+    set vol = setChannelByte Byte1 $ \b -> (b .&. 0b11110000) .|. first4bits vol
     first4bits b = b .&. 0b1111
 
 -- | Sweep is enabled. On bit 7 of byte 2 of Pulse
@@ -127,8 +98,8 @@ sweepNegate = singleBitField Byte2 3
 sweepPeriod :: PulseField Byte
 sweepPeriod = MkBitField{..}
   where
-    get = withPulseByte Byte2 $ \b -> (b `shiftR` 4) .&. 0b111
-    set vol = setPulseByte Byte2 $
+    get = withChannelByte Byte2 $ \b -> (b `shiftR` 4) .&. 0b111
+    set vol = setChannelByte Byte2 $
         \b -> (b .&. 0b10001111) .|. ((vol .&. 0b111) `shiftL` 4)
 
 -- | Sweep Shift. On bits 0-2 of byte 2 of Pulse
@@ -139,8 +110,8 @@ sweepPeriod = MkBitField{..}
 sweepShift :: PulseField Byte
 sweepShift = MkBitField{..}
   where
-    get = withPulseByte Byte2 $ \b -> b .&. 0b111
-    set shiftCount = setPulseByte Byte2 $
+    get = withChannelByte Byte2 $ \b -> b .&. 0b111
+    set shiftCount = setChannelByte Byte2 $
         \b -> (b .&. 0b11111000) .|. (shiftCount .&. 0b111)
 
 -- | Timer. On byte 3 of Pulse (low) and bits 0-2 of byte 4 (high)
@@ -151,8 +122,8 @@ timer = MkBitField{..}
   where
     get pulse =
         let
-            low = unAddr . byteToAddr $ withPulseByte Byte3 id pulse
-            high = unAddr . byteToAddr $ withPulseByte Byte4 (.&. 0b111) pulse
+            low = unAddr . byteToAddr $ withChannelByte Byte3 id pulse
+            high = unAddr . byteToAddr $ withChannelByte Byte4 (.&. 0b111) pulse
          in
             (high `shiftL` 8) .|. low
     set w =
@@ -160,8 +131,8 @@ timer = MkBitField{..}
             low = Byte . fromIntegral $ w .&. 0b11111111
             high = Byte . fromIntegral $ (w `shiftR` 8) .&. 0b111
          in
-            setPulseByte Byte4 (\b -> (b .&. 0b11111000) .|. high)
-                . setPulseByte Byte3 (const low)
+            setChannelByte Byte4 (\b -> (b .&. 0b11111000) .|. high)
+                . setChannelByte Byte3 (const low)
 
 -- | Length counter load. On bits 3-7 of byte 4 of Pulse
 --
@@ -169,14 +140,14 @@ timer = MkBitField{..}
 lengthCounterLoad :: PulseField Byte
 lengthCounterLoad = MkBitField{..}
   where
-    get = withPulseByte Byte4 $ \b -> (b .&. 0b11111000) `shiftR` 3
-    set l = setPulseByte Byte4 $ \b -> (l `shiftL` 3) .|. (b .&. 0b111)
+    get = withChannelByte Byte4 $ \b -> (b .&. 0b11111000) `shiftR` 3
+    set l = setChannelByte Byte4 $ \b -> (l `shiftL` 3) .|. (b .&. 0b111)
 
 -- | Util for single-bit fields
-singleBitField :: PulseByte -> Int -> PulseField Bool
+singleBitField :: ChannelByte -> Int -> PulseField Bool
 singleBitField byte off
     | off < 0 || off >= 8 = error "Invalid bit offset in byte"
     | otherwise = MkBitField{..}
   where
-    get = withPulseByte byte $ toBool . getBit' off
-    set b = setPulseByte byte $ setBit' (fromBool b) off
+    get = withChannelByte byte $ toBool . getBit' off
+    set b = setChannelByte byte $ setBit' (fromBool b) off

@@ -25,6 +25,7 @@ source-repository head
 library
   exposed-modules:
       Nes.APU.State
+      Nes.APU.State.Channel
       Nes.APU.State.Internal
       Nes.APU.State.Pulse
       Nes.Bus
