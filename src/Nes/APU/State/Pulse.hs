@@ -33,6 +33,7 @@ data Pulse = MkPulse
     , byte3 :: Byte
     , byte4 :: Byte
     }
+    deriving (Eq, Show)
 
 -- | Enum to get a single byte from a 'Pulse'
 data PulseByte
@@ -101,7 +102,7 @@ volume :: PulseField Byte
 volume = MkBitField{..}
   where
     get = withPulseByte Byte1 first4bits
-    set vol = setPulseByte Byte1 $ \b -> (b .&. 0b00001111) .|. first4bits vol
+    set vol = setPulseByte Byte1 $ \b -> (b .&. 0b11110000) .|. first4bits vol
     first4bits b = b .&. 0b1111
 
 -- | Sweep is enabled. On bit 7 of byte 2 of Pulse
@@ -127,7 +128,7 @@ sweepPeriod :: PulseField Byte
 sweepPeriod = MkBitField{..}
   where
     get = withPulseByte Byte2 $ \b -> (b `shiftR` 4) .&. 0b111
-    set vol = setPulseByte Byte1 $
+    set vol = setPulseByte Byte2 $
         \b -> (b .&. 0b10001111) .|. ((vol .&. 0b111) `shiftL` 4)
 
 -- | Sweep Shift. On bits 0-2 of byte 2 of Pulse
@@ -139,7 +140,7 @@ sweepShift :: PulseField Byte
 sweepShift = MkBitField{..}
   where
     get = withPulseByte Byte2 $ \b -> b .&. 0b111
-    set shiftCount = setPulseByte Byte1 $
+    set shiftCount = setPulseByte Byte2 $
         \b -> (b .&. 0b11111000) .|. (shiftCount .&. 0b111)
 
 -- | Timer. On byte 3 of Pulse (low) and bits 0-2 of byte 4 (high)
@@ -159,7 +160,7 @@ timer = MkBitField{..}
             low = Byte . fromIntegral $ w .&. 0b11111111
             high = Byte . fromIntegral $ (w `shiftR` 8) .&. 0b111
          in
-            setPulseByte Byte4 (\b -> (b .&. 0b11111000) .&. high)
+            setPulseByte Byte4 (\b -> (b .&. 0b11111000) .|. high)
                 . setPulseByte Byte3 (const low)
 
 -- | Length counter load. On bits 3-7 of byte 4 of Pulse

@@ -192,6 +192,7 @@ test-suite unit
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      APU.PulseSpec
       CPU.Instructions.AccessSpec
       CPU.Instructions.ArithSpec
       CPU.Instructions.BitwiseSpec
