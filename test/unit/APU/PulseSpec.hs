@@ -1,7 +1,7 @@
 module APU.PulseSpec (spec) where
 
+import Nes.APU.State.BitField
 import Nes.APU.State.Channel
-import Nes.APU.State.Internal
 import Nes.APU.State.Pulse
 import Test.Hspec
 

@@ -1,4 +1,4 @@
-module Nes.APU.State.Internal (
+module Nes.APU.State.BitField (
     BitField (..),
     Bit (..),
     fromBool,

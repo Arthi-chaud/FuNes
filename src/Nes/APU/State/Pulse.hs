@@ -20,8 +20,8 @@ module Nes.APU.State.Pulse (
 
 import Data.Bits (Bits (..))
 import Data.Word (Word16)
+import Nes.APU.State.BitField
 import Nes.APU.State.Channel
-import Nes.APU.State.Internal
 import Nes.Memory (Addr (unAddr), Byte (..), byteToAddr)
 
 newtype Pulse = MkPulse {unPulse :: Channel} deriving (Eq, Show)
