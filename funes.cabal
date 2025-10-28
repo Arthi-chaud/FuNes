@@ -27,7 +27,9 @@ library
       Nes.APU.State
       Nes.APU.State.BitField
       Nes.APU.State.Channel
+      Nes.APU.State.Common
       Nes.APU.State.Pulse
+      Nes.APU.State.Triangle
       Nes.Bus
       Nes.Bus.Constants
       Nes.Bus.Monad
@@ -197,7 +199,7 @@ test-suite unit
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      APU.PulseSpec
+      APU.ChannelSpec
       CPU.Instructions.AccessSpec
       CPU.Instructions.ArithSpec
       CPU.Instructions.BitwiseSpec

@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Nes.APU.State.Pulse (
     -- * Pulse definition
     Pulse (..),
@@ -19,10 +17,10 @@ module Nes.APU.State.Pulse (
 ) where
 
 import Data.Bits (Bits (..))
-import Data.Word (Word16)
 import Nes.APU.State.BitField
 import Nes.APU.State.Channel
-import Nes.Memory (Addr (unAddr), Byte (..), byteToAddr)
+import Nes.APU.State.Common
+import Nes.Memory (Byte (..))
 
 newtype Pulse = MkPulse {unPulse :: Channel} deriving (Eq, Show)
 
@@ -31,6 +29,10 @@ instance IsChannel Pulse where
     toChannel = unPulse
 
 type PulseField a = BitField a Pulse
+
+instance HasTimer Pulse
+
+instance HasLengthCounterLoad Pulse
 
 -- | Duty cycles. Is on bits 6 and 7 of byte 1 of Pulse
 --
@@ -113,41 +115,3 @@ sweepShift = MkBitField{..}
     get = withChannelByte Byte2 $ \b -> b .&. 0b111
     set shiftCount = setChannelByte Byte2 $
         \b -> (b .&. 0b11111000) .|. (shiftCount .&. 0b111)
-
--- | Timer. On byte 3 of Pulse (low) and bits 0-2 of byte 4 (high)
---
--- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
-timer :: PulseField Word16
-timer = MkBitField{..}
-  where
-    get pulse =
-        let
-            low = unAddr . byteToAddr $ withChannelByte Byte3 id pulse
-            high = unAddr . byteToAddr $ withChannelByte Byte4 (.&. 0b111) pulse
-         in
-            (high `shiftL` 8) .|. low
-    set w =
-        let
-            low = Byte . fromIntegral $ w .&. 0b11111111
-            high = Byte . fromIntegral $ (w `shiftR` 8) .&. 0b111
-         in
-            setChannelByte Byte4 (\b -> (b .&. 0b11111000) .|. high)
-                . setChannelByte Byte3 (const low)
-
--- | Length counter load. On bits 3-7 of byte 4 of Pulse
---
--- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
-lengthCounterLoad :: PulseField Byte
-lengthCounterLoad = MkBitField{..}
-  where
-    get = withChannelByte Byte4 $ \b -> (b .&. 0b11111000) `shiftR` 3
-    set l = setChannelByte Byte4 $ \b -> (l `shiftL` 3) .|. (b .&. 0b111)
-
--- | Util for single-bit fields
-singleBitField :: ChannelByte -> Int -> PulseField Bool
-singleBitField byte off
-    | off < 0 || off >= 8 = error "Invalid bit offset in byte"
-    | otherwise = MkBitField{..}
-  where
-    get = withChannelByte byte (`testBit` off)
-    set b = setChannelByte byte $ setBit' b off
