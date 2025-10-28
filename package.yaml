@@ -29,6 +29,7 @@ default-extensions:
   - DeriveFunctor
   - DataKinds
   - QualifiedDo
+  - RecordWildCards
 
 ghc-options:
   - -Wall

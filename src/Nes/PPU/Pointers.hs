@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Nes.PPU.Pointers (
     PPUPointers (paletteTable, vram, oamData),
     newPPUPointers,

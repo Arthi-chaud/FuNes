@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Nes.Render.Frame (
     -- * State
     FrameState (..),
