@@ -49,8 +49,8 @@ duty = MkBitField{..}
             Byte1
             (setBit' high 7 . setBit' low 6)
       where
-        high = fromBool $ testBit byte 1
-        low = fromBool $ testBit byte 0
+        high = testBit byte 1
+        low = testBit byte 0
 
 -- | Envelope loop. Is on bit 5 of byte 1 of Pulse
 --
@@ -149,5 +149,5 @@ singleBitField byte off
     | off < 0 || off >= 8 = error "Invalid bit offset in byte"
     | otherwise = MkBitField{..}
   where
-    get = withChannelByte byte $ toBool . getBit' off
-    set b = setChannelByte byte $ setBit' (fromBool b) off
+    get = withChannelByte byte (`testBit` off)
+    set b = setChannelByte byte $ setBit' b off
