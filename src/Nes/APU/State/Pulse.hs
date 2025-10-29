@@ -31,8 +31,9 @@ instance IsChannel Pulse where
 type PulseField a = BitField a Pulse
 
 instance HasTimer Pulse
-
 instance HasLengthCounterLoad Pulse
+instance HasVolume Pulse
+instance HasLoop Pulse
 
 -- | Duty cycles. Is on bits 6 and 7 of byte 1 of Pulse
 --
@@ -53,30 +54,6 @@ duty = MkBitField{..}
       where
         high = testBit byte 1
         low = testBit byte 0
-
--- | Envelope loop. Is on bit 5 of byte 1 of Pulse
---
--- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
-loops :: PulseField Bool
-loops = singleBitField Byte1 5
-
--- | Volume is const . Is on bit 4 of byte 1 of Pulse
---
--- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
-volumeIsConst :: PulseField Bool
-volumeIsConst = singleBitField Byte1 4
-
--- | Volume envelope. On first 4 bits of byte 1 of Pulse
---
--- Note: Only the 4 first bits of input are taken
---
--- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
-volume :: PulseField Byte
-volume = MkBitField{..}
-  where
-    get = withChannelByte Byte1 first4bits
-    set vol = setChannelByte Byte1 $ \b -> (b .&. 0b11110000) .|. first4bits vol
-    first4bits b = b .&. 0b1111
 
 -- | Sweep is enabled. On bit 7 of byte 2 of Pulse
 --

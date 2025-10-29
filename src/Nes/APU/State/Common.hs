@@ -7,6 +7,15 @@ module Nes.APU.State.Common (
     HasLengthCounterLoad,
     lengthCounterLoad,
 
+    -- * Noise
+    HasVolume,
+    volume,
+    volumeIsConst,
+
+    -- * Loop
+    HasLoop,
+    loops,
+
     -- * Util
     singleBitField,
 ) where
@@ -49,6 +58,34 @@ lengthCounterLoad = MkBitField{..}
   where
     get = withChannelByte Byte4 $ \b -> (b .&. 0b11111000) `shiftR` 3
     set l = setChannelByte Byte4 $ \b -> (l `shiftL` 3) .|. (b .&. 0b111)
+
+class (IsChannel a) => HasVolume a
+
+-- | Volume envelope. On first 4 bits of byte 1 of channel
+--
+-- Note: Only the 4 first bits of input are taken
+--
+-- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
+volume :: (HasVolume a) => BitField Byte a
+volume = MkBitField{..}
+  where
+    get = withChannelByte Byte1 first4bits
+    set vol = setChannelByte Byte1 $ \b -> (b .&. 0b11110000) .|. first4bits vol
+    first4bits b = b .&. 0b1111
+
+-- | Volume is const . Is on bit 4 of byte 1 of channel
+--
+-- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
+volumeIsConst :: (HasVolume a) => BitField Bool a
+volumeIsConst = singleBitField Byte1 4
+
+class (IsChannel a) => HasLoop a
+
+-- | Envelope loop. Is on bit 5 of byte 1 of channel
+--
+-- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
+loops :: (HasLoop a) => BitField Bool a
+loops = singleBitField Byte1 5
 
 -- | Util for single-bit fields
 singleBitField :: (IsChannel a) => ChannelByte -> Int -> BitField Bool a
