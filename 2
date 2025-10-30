@@ -1,0 +1,33 @@
+-- | Source: https://www.nesdev.org/wiki/APU#DMC_($4010–$4013)
+module Nes.APU.State.DMC where
+
+import Data.Bits
+import Nes.APU.State.BitField
+import Nes.APU.State.Channel
+import Nes.APU.State.Common (singleBitField)
+import Nes.Memory
+
+newtype DMC = MkDMC {unDMC :: Channel} deriving (Eq, Show)
+
+instance IsChannel DMC where
+    toChannel = unDMC
+    fromChannel = MkDMC
+
+type DMCField a = BitField a DMC
+
+-- | IRQ enabled flag. If clear, the interrupt flag is cleared.
+irqEnable :: DMCField Bool
+irqEnable = singleBitField Byte1 7
+
+-- | Like 'loops' but specific to DMC
+loopsDMC :: DMCField Bool
+loopsDMC = singleBitField Byte1 6
+
+-- | Bit 0-3 of byte 1
+--
+-- Only the first 4 bits of the value will be used
+frequency :: DMCField Byte
+frequency = MkBitField{..}
+  where
+    get = withChannelByte Byte1 (.&. 0b1111)
+    set byte = setChannelByte $ \b -> (b .&. 0b11110000) .|. (byte .&. 0b1111))

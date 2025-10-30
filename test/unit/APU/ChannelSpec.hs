@@ -4,9 +4,10 @@ module APU.ChannelSpec (spec) where
 
 import Nes.APU.State.BitField
 import Nes.APU.State.Channel
-import Nes.APU.State.Noise (noiseMode, noisePeriod)
+import Nes.APU.State.DMC
+import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
-import Nes.APU.State.Triangle (linearCounterControl, linearCounterLoad)
+import Nes.APU.State.Triangle
 import Test.Hspec
 
 spec :: Spec
@@ -70,6 +71,31 @@ spec = do
         describe "Noise Period" $ do
             testGet noisePeriod (mkChannel 0 0 0b11110111 0) 0b111
             testSet noisePeriod 0b1010 (mkChannel 0 0 0b11110000 0) (mkChannel 0 0 0b11111010 0)
+
+    describe "DMC" $ do
+        describe "IRQ Enable" $ do
+            testGet irqEnable (mkChannel 0b10000000 0 0 0) True
+            testSet irqEnable True (mkChannel 0 0 0 0) (mkChannel 0b10000000 0 0 0)
+
+        describe "Loop" $ do
+            testGet loopsDMC (mkChannel 0b01000000 0 0 0) True
+            testSet loopsDMC True (mkChannel 0 0 0 0) (mkChannel 0b01000000 0 0 0)
+
+        describe "Frequency" $ do
+            testGet frequency (mkChannel 0b1011 0 0 0) 0b1011
+            testSet frequency 0b1100 (mkChannel 0b10000000 0 0 0) (mkChannel 0b10001100 0 0 0)
+
+        describe "Load Counter" $ do
+            testGet loadCounter (mkChannel 0 0b01011111 0 0) 0b1011111
+            testSet loadCounter 0xff (mkChannel 0 0 0 0) (mkChannel 0 0b01111111 0 0)
+
+        describe "Sample Address" $ do
+            testGet sampleAddress (mkChannel 0 0 0b10101010 0) 0b10101010
+            testSet sampleAddress 123 (mkChannel 0 0 0 0) (mkChannel 0 0 123 0)
+
+        describe "Sample Length" $ do
+            testGet sampleLength (mkChannel 0 0 0 0b10101010) 0b10101010
+            testSet sampleLength 0xff (mkChannel 0 0 0 0) (mkChannel 0 0 0 0xff)
   where
     testGet getter pulse expected = it "Get" $ get getter pulse `shouldBe` expected
     testSet field newval pulse expected = it "Set" $ set field newval pulse `shouldBe` expected

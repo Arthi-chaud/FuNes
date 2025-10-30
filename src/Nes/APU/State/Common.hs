@@ -18,6 +18,7 @@ module Nes.APU.State.Common (
 
     -- * Util
     singleBitField,
+    singleByteField,
 ) where
 
 import Data.Bits
@@ -95,3 +96,10 @@ singleBitField byte off
   where
     get = withChannelByte byte (`testBit` off)
     set b = setChannelByte byte $ setBit' b off
+
+-- | Util for fields that take exactly one byte
+singleByteField :: (IsChannel a) => ChannelByte -> BitField Byte a
+singleByteField byte = MkBitField{..}
+  where
+    get = withChannelByte byte id
+    set b = setChannelByte byte $ const b
