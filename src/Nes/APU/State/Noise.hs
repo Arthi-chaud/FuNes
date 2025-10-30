@@ -1,3 +1,4 @@
+-- | Source: https://www.nesdev.org/wiki/APU#Noise_($400C–$400F)
 module Nes.APU.State.Noise (Noise (..), noiseMode, noisePeriod) where
 
 import Data.Bits
@@ -19,16 +20,12 @@ instance HasVolume Noise
 instance HasLoop Noise
 
 -- | Bit 7 of byte 3
---
--- Source: https://www.nesdev.org/wiki/APU#Noise_($400C–$400F)
 noiseMode :: NoiseField Bool
 noiseMode = singleBitField Byte3 7
 
 -- | Bits 0-3 of byte 3
 --
 --  Only first 4 bits of input are used
---
--- Source: https://www.nesdev.org/wiki/APU#Noise_($400C–$400F)
 noisePeriod :: NoiseField Byte
 noisePeriod = MkBitField{..}
   where

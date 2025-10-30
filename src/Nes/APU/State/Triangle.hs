@@ -1,3 +1,4 @@
+-- | Source: https://www.nesdev.org/wiki/APU_Triangle
 module Nes.APU.State.Triangle (
     -- * Tiangle Definition
     Triangle (..),
@@ -27,14 +28,13 @@ type TriangleField a = BitField a Triangle
 instance HasTimer Triangle
 instance HasLengthCounterLoad Triangle
 
+-- | Bit 7 of byte 1
 linearCounterControl :: TriangleField Bool
 linearCounterControl = singleBitField Byte1 7
 
 -- | On bits 0-6 of byte 1
 --
 -- only the first 7 bits of the input will be used
---
--- Source: https://www.nesdev.org/wiki/APU_Triangle
 linearCounterLoad :: TriangleField Byte
 linearCounterLoad = MkBitField{..}
   where

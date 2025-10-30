@@ -1,3 +1,4 @@
+-- | Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
 module Nes.APU.State.Pulse (
     -- * Pulse definition
     Pulse (..),
@@ -38,8 +39,6 @@ instance HasLoop Pulse
 -- | Duty cycles. Is on bits 6 and 7 of byte 1 of Pulse
 --
 -- Note: Only the first 2 bits of the input Byte are considered
---
--- Source: https://www.nesdev.org/wiki/APU#Pulse_($4000–$4007)
 duty :: PulseField Byte
 duty = MkBitField{..}
   where
@@ -56,14 +55,10 @@ duty = MkBitField{..}
         low = testBit byte 0
 
 -- | Sweep is enabled. On bit 7 of byte 2 of Pulse
---
--- Source: https://www.nesdev.org/wiki/APU_Sweep
 sweepEnabled :: PulseField Bool
 sweepEnabled = singleBitField Byte2 7
 
 -- | Sweep is negated. On bit 3 of byte 2 of Pulse
---
--- Source: https://www.nesdev.org/wiki/APU_Sweep
 sweepNegate :: PulseField Bool
 sweepNegate = singleBitField Byte2 3
 
@@ -72,8 +67,6 @@ sweepNegate = singleBitField Byte2 3
 -- The divider's period is P + 1 half-frames
 --
 -- Note: Only the first 3 bits are taken
---
--- Source: https://www.nesdev.org/wiki/APU_Sweep
 sweepPeriod :: PulseField Byte
 sweepPeriod = MkBitField{..}
   where
@@ -84,8 +77,6 @@ sweepPeriod = MkBitField{..}
 -- | Sweep Shift. On bits 0-2 of byte 2 of Pulse
 --
 -- Note: Only the first 3 bits are taken
---
--- Source: https://www.nesdev.org/wiki/APU_Sweep
 sweepShift :: PulseField Byte
 sweepShift = MkBitField{..}
   where
