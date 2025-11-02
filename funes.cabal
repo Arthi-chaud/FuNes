@@ -29,8 +29,10 @@ library
       Nes.APU.State.Channel
       Nes.APU.State.Common
       Nes.APU.State.DMC
+      Nes.APU.State.FrameCounter
       Nes.APU.State.Noise
       Nes.APU.State.Pulse
+      Nes.APU.State.StatusRegister
       Nes.APU.State.Triangle
       Nes.Bus
       Nes.Bus.Constants
