@@ -50,6 +50,10 @@ runBusM bus f = unBusM f bus (\bus' a -> return (a, bus'))
 withBus :: (Bus -> a) -> BusM r a
 withBus f = MkBusM $ \bus cont -> cont bus (f bus)
 
+{-# INLINE modifyBus #-}
+modifyBus :: (Bus -> Bus) -> BusM r ()
+modifyBus f = MkBusM $ \bus cont -> cont (f bus) ()
+
 {-# INLINE withPPU #-}
 withPPU :: PPU (a, PPUState) a -> BusM r a
 withPPU f = MkBusM $ \bus cont -> do
@@ -82,7 +86,10 @@ tick n = MkBusM $ \bus cont -> do
             cont bus' ()
 
 instance MemoryInterface () (BusM r) where
-    readByte idx () = guardReadBound idx go
+    readByte idx () = do
+        res <- go
+        modifyBus $ \b -> b{lastReadByte = res}
+        return res
       where
         go
             | inRange ramRange idx = do
@@ -114,9 +121,8 @@ instance MemoryInterface () (BusM r) where
             | idx == 0x4014 = return 0
             | idx == 0x4016 = withController readButtonStatus
             | idx == 0x4017 = return 0 -- Second joypad, ignore
-            | otherwise = do
-                -- liftIO $ printf "Invalid read at %4x\n" $ unAddr idx
-                return 0
+            | otherwise = withBus lastReadByte
+
     writeByte byte idx () = guardWriteBound idx go
       where
         go
@@ -169,10 +175,6 @@ instance MemoryInterface () (BusM r) where
             high = unsafeAddrToByte (addr `shiftR` 8)
         writeByte low idx ()
         writeByte high (idx + 1) ()
-
-{-# INLINE guardReadBound #-}
-guardReadBound :: (MonadFail m) => Addr -> m Byte -> m Byte
-guardReadBound idx cont = if idx >= memorySize then return 0 else cont
 
 {-# INLINE guardWriteBound #-}
 guardWriteBound :: (MonadFail m) => Addr -> m () -> m ()

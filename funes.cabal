@@ -199,6 +199,7 @@ test-suite unit
       CPU.Instructions.MiscSpec
       CPU.Instructions.StackSpec
       CPU.Instructions.TransferSpec
+      CPU.OpenBusSpec
       Internal
       PPUSpec
       RomSpec
