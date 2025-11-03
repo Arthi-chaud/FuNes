@@ -39,6 +39,7 @@ data Bus = Bus
     , ppuPointers :: {-# UNPACK #-} !PPUPointers
     -- ^ Memory dedicated to PPU
     , onNewFrame :: Bus -> IO Bus
+    , lastReadByte :: Byte
     }
 
 newBus :: Rom -> (Bus -> IO Bus) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
@@ -58,3 +59,4 @@ newBus rom_ onNewFrame_ tickCallback_ = do
             ppuSt
             ppuPtrs
             onNewFrame_
+            0
