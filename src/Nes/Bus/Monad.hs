@@ -1,7 +1,15 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Nes.Bus.Monad (BusM (..), runBusM, tick, withBus, withPPU, withController) where
+module Nes.Bus.Monad (
+    BusM (..),
+    runBusM,
+    tick,
+    withBus,
+    withPPU,
+    withAPU,
+    withController,
+) where
 
 import Control.Monad
 import Control.Monad.IO.Class
@@ -9,6 +17,11 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
 import Data.Ix
 import Foreign
+import Nes.APU.Monad
+import Nes.APU.State
+import Nes.APU.State.Channel
+import Nes.APU.State.FrameCounter
+import Nes.APU.State.StatusRegister
 import Nes.Bus
 import Nes.Bus.Constants
 import Nes.Controller
@@ -60,6 +73,12 @@ withPPU :: PPU (a, PPUState) a -> BusM r a
 withPPU f = MkBusM $ \bus cont -> do
     (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) f
     cont (bus{ppuState = ppuSt}) res
+
+{-# INLINE withAPU #-}
+withAPU :: APU (a, APUState) a -> BusM r a
+withAPU f = MkBusM $ \bus cont -> do
+    (res, apuSt) <- unAPU f (apuState bus) (\st a -> return (a, st))
+    cont (bus{apuState = apuSt}) res
 
 {-# INLINE withController #-}
 withController :: ControllerM (a, Controller) a -> BusM r a
@@ -123,9 +142,23 @@ instance MemoryInterface () (BusM r) where
             | inRange prgRomRange idx = do
                 rom <- withBus cartridge
                 readPrgRomAddr (idx - fst prgRomRange) rom readByte
+            | (0x4000, 0x4013) `inRange` idx =
+                let
+                    byteIdx = toEnum ((addrToInt idx - 0x4000) `mod` 4)
+                    getByte :: (IsChannel c) => (APUState -> c) -> BusM r Byte
+                    getByte f = withAPU $ withAPUState $ getChannelByte byteIdx . f
+                 in
+                    case () of
+                        _
+                            | idx < 0x4004 -> getByte pulse1
+                            | idx < 0x4008 -> getByte pulse2
+                            | idx < 0x400C -> getByte triangle
+                            | idx < 0x4010 -> getByte noise
+                            | otherwise -> getByte dmc
             | idx == 0x4014 = return 0
+            | idx == 0x4015 = withAPU $ withAPUState $ Nes.APU.State.StatusRegister.unSR . status
             | idx == 0x4016 = withController readButtonStatus
-            | idx == 0x4017 = return 0 -- Second joypad, ignore
+            | idx == 0x4017 = withAPU $ withAPUState $ unFC . frameCounter
             | otherwise = withBus lastReadByte
 
     writeByte byte idx () = guardWriteBound idx go
@@ -158,6 +191,19 @@ instance MemoryInterface () (BusM r) where
                     7 -> withPPU $ writeData byte
                     _ -> error "Cannot happen"
             | inRange prgRomRange idx = liftIO $ putStrLn "Cannot write to catridge"
+            | (0x4000, 0x4013) `inRange` idx =
+                let
+                    byteIdx = toEnum ((addrToInt idx - 0x4000) `mod` 4)
+                    setByte :: (IsChannel c) => ((c -> c) -> APUState -> APUState) -> BusM r ()
+                    setByte f = withAPU $ modifyAPUState $ \st -> f (setChannelByte byteIdx (const byte)) st
+                 in
+                    case () of
+                        _
+                            | idx < 0x4004 -> setByte modifyPulse1
+                            | idx < 0x4008 -> setByte modifyPulse2
+                            | idx < 0x400C -> setByte modifyTriangle
+                            | idx < 0x4010 -> setByte modifyNoise
+                            | otherwise -> setByte modifyDMC
             | idx == 0x4014 = do
                 let high = byteToAddr byte `shiftL` 8
                 bytes <- forM [0 .. oamDataSize - 1] $ \i -> do
@@ -167,8 +213,9 @@ instance MemoryInterface () (BusM r) where
                 -- TODO 1) ticks should be done 256 * 2 (as it's a writting operarion) times
                 -- TODO 2) Not sure about about the tick count
                 tick (513 + fromEnum (odd cycles_))
+            | idx == 0x4015 = withAPU $ modifyAPUState $ modifyStatus (const $ Nes.APU.State.StatusRegister.MkSR byte)
+            | idx == 0x4017 = withAPU $ modifyAPUState $ modifyFrameCounter (const $ MkFC byte)
             | idx == 0x4016 = withController $ setStrobe byte
-            | idx == 0x4017 = pure () -- Second joypad, ignore
             | otherwise = pure () -- liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()

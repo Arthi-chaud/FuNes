@@ -9,6 +9,7 @@ module Nes.APU.State.Channel (
     -- * Use bytes
     setChannelByte,
     withChannelByte,
+    getChannelByte,
 ) where
 
 import Nes.Memory
@@ -29,7 +30,7 @@ data ChannelByte
     | Byte2
     | Byte3
     | Byte4
-    deriving (Eq, Show)
+    deriving (Eq, Show, Enum)
 
 -- | Interface for data types that internally have a 'Channel'
 class IsChannel a where
@@ -58,3 +59,6 @@ withChannelByte n f obj = case n of
     Byte4 -> f $ byte4 chan
   where
     chan = toChannel obj
+
+getChannelByte :: (IsChannel c) => ChannelByte -> c -> Byte
+getChannelByte n = withChannelByte n id
