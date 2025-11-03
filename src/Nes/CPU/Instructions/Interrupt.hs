@@ -8,5 +8,6 @@ import Nes.Interrupt
 
 brk :: CPU r ()
 brk = do
+    incrementPC
     interruptDisable <- withCPUState $ getFlag InterruptDisable . status
     unless interruptDisable $ interrupt BRK
