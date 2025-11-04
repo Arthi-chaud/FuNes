@@ -72,8 +72,8 @@ storeRegisterInMemory reg mode = do
     value <- withCPUState $ getRegister reg
     -- https://www.nesdev.org/wiki/Cycle_counting
     -- assumes the worst case of page crossing and always spends 1 extra read cycle.
-    when (crosses || mode == AbsoluteX) tickOnce
-    when (mode == IndirectY || mode == AbsoluteY) tickOnce
+    let shouldDummyRead = (crosses && (mode /= AbsoluteX)) || (not crosses && (mode == AbsoluteX || mode == AbsoluteY || mode == IndirectY))
+    when shouldDummyRead $ void $ readByte addr () -- NOTE Not sure addr is correct
     writeByte value addr ()
 
 las :: AddressingMode -> CPU r ()
