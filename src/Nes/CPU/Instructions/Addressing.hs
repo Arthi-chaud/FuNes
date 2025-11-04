@@ -42,7 +42,7 @@ data AddressingMode
 getOperandAddr :: AddressingMode -> CPU r Addr
 getOperandAddr mode = do
     (res, crosses) <- getOperandAddr' mode
-    when crosses tickOnce
+    when (crosses && mode /= IndirectY && mode /= AbsoluteY && mode /= AbsoluteX) tickOnce
     return res
 
 -- | Gives the address of the current op code's parameter
@@ -103,6 +103,11 @@ getOperandAddr'' = \case
         y <- withCPUState $ getRegister Y
         let derefBase = bytesToAddr low high
             deref = derefBase + byteToAddr y
+            crosses = crossesPage deref derefBase
+        when crosses $ do
+            let bogusAddr = (byteToAddr high `shiftL` 8) .|. byteToAddr (y + low)
+            _ <- readByte bogusAddr ()
+            return ()
         return (deref, crossesPage deref derefBase)
     None -> fail $ printf "Mode not supported: %s" $ show None
 
@@ -118,8 +123,16 @@ zeroPageAddressing getter = do
 absoluteAddressing :: (CPUState -> Byte) -> CPU r (Addr, Bool)
 absoluteAddressing getter = do
     base <- getPC >>= flip readAddr ()
-    addr <- withCPUState $ (+ base) . byteToAddr . getter
-    return (addr, crossesPage base addr)
+    offset <- withCPUState getter
+    let addr = byteToAddr offset + base
+    let crosses = crossesPage base addr
+    -- Dummy read
+    when crosses $ do
+        let bogusAddr = (base .&. 0xff00) .|. byteToAddr (offset + unsafeAddrToByte (base .&. 0xff))
+        _ <- readByte bogusAddr ()
+        return ()
+    --
+    return (addr, crosses)
 
 {-# INLINE crossesPage #-}
 crossesPage :: Addr -> Addr -> Bool

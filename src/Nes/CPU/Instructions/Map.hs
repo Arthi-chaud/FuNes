@@ -272,7 +272,7 @@ opcodeMap =
         , (0xbb, ("LAS", las, AbsoluteY, Unofficial))
         , (0xab, ("LXA", lxa, Immediate, Unofficial))
         , (0xcb, ("AXS", axs, Immediate, Unofficial))
-        , (0x00, ("BRK", const brk, None, Official))
+        , (0x00, ("BRK", const brk, Immediate, Official))
         , (0x02, ("KIL", const kil, None, Unofficial))
         , (0x12, ("KIL", const kil, None, Unofficial))
         , (0x22, ("KIL", const kil, None, Unofficial))
