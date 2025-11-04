@@ -12,6 +12,7 @@ import Foreign
 import Nes.Bus
 import Nes.Bus.Constants
 import Nes.Controller
+import Nes.FlagRegister (clearFlag)
 import Nes.Memory
 import Nes.PPU.Constants (oamDataSize)
 import Nes.PPU.Monad hiding (tick)
@@ -108,7 +109,11 @@ instance MemoryInterface () (BusM r) where
                                  in
                                     readByte addr1 ()
                     1 -> onInvalidRead
-                    2 -> withPPU readStatus
+                    2 -> withPPU $ do
+                        st <- readStatus
+                        -- https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS_-_Rendering_events_($2002_read)
+                        modifyPPUState $ modifyStatusRegister $ clearFlag VBlankStarted
+                        return st
                     3 -> onInvalidRead
                     4 -> withPPU readOamData
                     5 -> onInvalidRead
