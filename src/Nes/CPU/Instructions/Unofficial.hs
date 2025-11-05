@@ -3,7 +3,7 @@
 {-# HLINT ignore "Redundant bracket" #-}
 
 -- | Unofficial instructions that are combinations of official ones
-module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra, ahx, shx, shy, shs, lxa, axs) where
+module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra, sha, shx, shy, shs, lxa, axs) where
 
 import Control.Monad
 import Data.Bits
@@ -58,36 +58,50 @@ rra mode = do
 
 -- | Source: https://forums.nesdev.org/viewtopic.php?t=8107
 shx :: AddressingMode -> CPU r ()
-shx = sh X Y
+shx = sh X
 
 shy :: AddressingMode -> CPU r ()
-shy = sh Y X
-
-shs :: AddressingMode -> CPU r ()
-shs = sh S X
+shy = sh Y
 
 {-# INLINE sh #-}
-sh :: Register -> Register -> AddressingMode -> CPU r ()
-sh reg reg' mode = do
-    pc <- getPC
-    addr <- getOperandAddr mode
-    mask <- withCPUState $ getRegister reg
-    off <- withCPUState $ getRegister reg'
-    let value = unsafeAddrToByte ((byteToAddr mask .&. (((shiftR addr 8) + 1))) .&. 0xff)
-    tmp <- readAddr (pc + 1) ()
-    when ((byteToAddr off) + tmp <= 0xff) $
-        writeByte value addr ()
+-- https://github.com/100thCoin/AccuracyCoin/blob/9f7de1130d8d590baf7a7add0cc33ccd04137ada/AccuracyCoin.asm#L2866
+sh :: Register -> AddressingMode -> CPU r ()
+sh reg mode = do
+    x <- withCPUState $ getRegister reg
+    operand <- getPC >>= flip readAddr ()
+    unchangedDest <- getOperandAddr mode
+    let high = unsafeAddrToByte (operand `shiftR` 8)
+        destHigh = (high + 1) .&. x
+        value = destHigh
+        dest = ((byteToAddr destHigh) `shiftL` 8) .|. (unchangedDest .&. 0xff)
+    writeByte value dest ()
 
-ahx :: AddressingMode -> CPU r ()
-ahx mode = do
+sha :: AddressingMode -> CPU r ()
+sha mode = do
     a <- withCPUState $ getRegister A
     x <- withCPUState $ getRegister X
     y <- withCPUState $ getRegister Y
-    eff <- ((byteToAddr y) +) <$> getOperandAddr mode
-    let high = unsafeAddrToByte (eff `shiftR` 8)
-        mask = high + 1
-        value = (a .&. x) .&. mask
-    writeByte value eff ()
+    originalDest <- getOperandAddr mode
+    let destWithoutY = originalDest - byteToAddr y
+        high = unsafeAddrToByte (destWithoutY `shiftR` 8)
+        value = (high + 1) .&. a .&. x
+        destHigh = a .&. x
+        dest = ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
+    writeByte value dest ()
+
+shs :: AddressingMode -> CPU r ()
+shs mode = do
+    a <- withCPUState $ getRegister A
+    x <- withCPUState $ getRegister X
+    operand <- getPC >>= flip readAddr ()
+    let s = a .&. x
+    modifyCPUState $ setRegister S s
+    unchangedDest <- getOperandAddr mode
+    let high = unsafeAddrToByte (operand `shiftR` 8)
+        destHigh = (high + 1) .&. a .&. x
+        value = (high + 1) .&. s
+        dest = ((byteToAddr destHigh) `shiftL` 8) .|. (unchangedDest .&. 0xff)
+    writeByte value dest ()
 
 lxa :: AddressingMode -> CPU r ()
 lxa = lda >=> const tax
