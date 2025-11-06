@@ -69,11 +69,14 @@ sh :: Register -> AddressingMode -> CPU r ()
 sh reg mode = do
     x <- withCPUState $ getRegister reg
     operand <- getPC >>= flip readAddr ()
-    unchangedDest <- getOperandAddr mode
+    (originalDest, crosses) <- getOperandAddr' mode
     let high = unsafeAddrToByte (operand `shiftR` 8)
         destHigh = (high + 1) .&. x
         value = destHigh
-        dest = ((byteToAddr destHigh) `shiftL` 8) .|. (unchangedDest .&. 0xff)
+        dest =
+            if crosses
+                then ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
+                else originalDest
     writeByte value dest ()
 
 sha :: AddressingMode -> CPU r ()
@@ -81,12 +84,15 @@ sha mode = do
     a <- withCPUState $ getRegister A
     x <- withCPUState $ getRegister X
     y <- withCPUState $ getRegister Y
-    originalDest <- getOperandAddr mode
+    (originalDest, crosses) <- getOperandAddr' mode
     let destWithoutY = originalDest - byteToAddr y
         high = unsafeAddrToByte (destWithoutY `shiftR` 8)
         value = (high + 1) .&. a .&. x
-        destHigh = a .&. x
-        dest = ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
+        destHigh = (high + 1) .&. a .&. x
+        dest =
+            if crosses
+                then ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
+                else originalDest
     writeByte value dest ()
 
 shs :: AddressingMode -> CPU r ()
@@ -96,11 +102,14 @@ shs mode = do
     operand <- getPC >>= flip readAddr ()
     let s = a .&. x
     modifyCPUState $ setRegister S s
-    unchangedDest <- getOperandAddr mode
+    (originalDest, crosses) <- getOperandAddr' mode
     let high = unsafeAddrToByte (operand `shiftR` 8)
         destHigh = (high + 1) .&. a .&. x
         value = (high + 1) .&. s
-        dest = ((byteToAddr destHigh) `shiftL` 8) .|. (unchangedDest .&. 0xff)
+        dest =
+            if crosses
+                then ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
+                else originalDest
     writeByte value dest ()
 
 lxa :: AddressingMode -> CPU r ()
