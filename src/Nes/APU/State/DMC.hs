@@ -17,7 +17,7 @@ module Nes.APU.State.DMC (
 import Data.Array
 import Data.Bits
 import Data.List ((!?))
-import Data.Maybe (fromMaybe, isNothing)
+import Data.Maybe (fromMaybe)
 import Nes.Bus.SideEffect
 import Nes.FlagRegister
 import Nes.Memory
@@ -108,10 +108,14 @@ onOutputCycleEnd :: DMC -> (DMC, CPUSideEffect)
 onOutputCycleEnd dmc = (dmc1, sideEffect)
   where
     dmc0 = dmc{remainingBits = 8}
-    dmc1 = case sampleBuffer dmc0 of
-        Nothing -> dmc0{silentFlag = True}
-        Just b -> dmc0{shiftRegister = b, sampleBuffer = Nothing}
-    sideEffect = setFlag' DMCDMA (isNothing (sampleBuffer dmc1) && sampleBytesRemaining dmc1 > 0) mempty
+    (shouldDMA, dmc1) = case sampleBuffer dmc0 of
+        Nothing -> (False, dmc0{silentFlag = True})
+        Just b -> (sampleBytesRemaining dmc0 > 0, dmc0{shiftRegister = b, sampleBuffer = Nothing})
+    sideEffect =
+        setFlag'
+            DMCDMA
+            shouldDMA
+            mempty
 
 -- | Loads the byte into the sample buffer and shift the sample buffer-related values
 loadSampleBuffer :: Byte -> DMC -> (DMC, CPUSideEffect)

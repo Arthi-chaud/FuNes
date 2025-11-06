@@ -9,10 +9,12 @@ module Nes.APU.Monad (
     withSideEffect,
 ) where
 
+import Control.Monad
 import Control.Monad.IO.Class
 import Nes.APU.State
 import Nes.APU.State.Filter.Chain (FilterChain)
 import Nes.Bus.SideEffect
+import Nes.FlagRegister (getFlag)
 
 newtype APU r a = MkAPU
     { unAPU :: APUState -> CPUSideEffect -> (APUState -> CPUSideEffect -> a -> IO r) -> IO r
@@ -41,8 +43,9 @@ instance MonadFail (APU r) where
     fail = liftIO . fail
 
 {-# INLINE runAPU #-}
-runAPU :: APUState -> APU (a, APUState, CPUSideEffect) a -> IO (a, APUState, CPUSideEffect)
-runAPU !st f = unAPU f st mempty $ \(!st') (!cpuEff) a -> return (a, st', cpuEff)
+runAPU :: APUState -> CPUSideEffect -> APU (a, APUState, CPUSideEffect) a -> IO (a, APUState, CPUSideEffect)
+runAPU !st se f = unAPU f st se $ \(!st') (!cpuEff) a -> do
+    return (a, st', cpuEff)
 
 {-# INLINE modifyAPUState #-}
 modifyAPUState :: (APUState -> APUState) -> APU r ()
@@ -51,7 +54,8 @@ modifyAPUState f = MkAPU $ \(!st) (!cpuEff) cont -> cont (f st) cpuEff ()
 {-# INLINE modifyAPUStateWithSideEffect #-}
 modifyAPUStateWithSideEffect :: (APUState -> (APUState, CPUSideEffect)) -> APU r ()
 modifyAPUStateWithSideEffect f = MkAPU $ \(!st) !cpuEff cont ->
-    let (st', sideEff) = f st in cont st' (cpuEff <> sideEff) ()
+    let (st', sideEff) = f st
+     in cont st' (cpuEff <> sideEff) ()
 
 {-# INLINE withAPUState #-}
 withAPUState :: (APUState -> a) -> APU r a
