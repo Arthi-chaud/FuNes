@@ -24,6 +24,7 @@ source-repository head
 
 library
   exposed-modules:
+      Nes.APU.Mixer
       Nes.APU.Monad
       Nes.APU.State
       Nes.APU.State.BitField

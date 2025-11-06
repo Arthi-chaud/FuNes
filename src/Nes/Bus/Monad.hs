@@ -91,6 +91,7 @@ withController f = MkBusM $ \bus cont ->
 tick :: Int -> BusM r ()
 tick n = MkBusM $ \bus cont -> do
     let unsleptCycles_ = n + unsleptCycles bus
+    -- TODO Tick APU
     (newLastSleepTime, newUnsleptCycles) <-
         cycleCallback bus (lastSleepTime bus) unsleptCycles_
     ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
@@ -143,6 +144,7 @@ instance MemoryInterface () (BusM r) where
                 rom <- withBus cartridge
                 readPrgRomAddr (idx - fst prgRomRange) rom readByte
             | (0x4000, 0x4013) `inRange` idx =
+                -- TODO Reading Pulse is open bus
                 let
                     byteIdx = toEnum ((addrToInt idx - 0x4000) `mod` 4)
                     getByte :: (IsChannel c) => (APUState -> c) -> BusM r Byte
@@ -156,6 +158,7 @@ instance MemoryInterface () (BusM r) where
                             | idx < 0x4010 -> getByte noise
                             | otherwise -> getByte dmc
             | idx == 0x4014 = return 0
+            -- TODO bit 5 is open bus
             | idx == 0x4015 = withAPU $ withAPUState $ Nes.APU.State.StatusRegister.unSR . status
             | idx == 0x4016 = withController readButtonStatus
             | idx == 0x4017 = withAPU $ withAPUState $ unFC . frameCounter

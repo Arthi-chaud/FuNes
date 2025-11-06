@@ -2,6 +2,7 @@ module Nes.APU.Monad (
     APU (..),
     modifyAPUState,
     withAPUState,
+    tick,
 ) where
 
 import Control.Monad.IO.Class
@@ -37,3 +38,9 @@ modifyAPUState f = MkAPU $ \st cont -> cont (f st) ()
 {-# INLINE withAPUState #-}
 withAPUState :: (APUState -> a) -> APU r a
 withAPUState f = MkAPU $ \st cont -> cont st (f st)
+
+tick :: Int -> APU r ()
+tick n = return ()
+
+-- TODO Update Status register when 'a sound has finished playing'
+-- TODO Start playing if status register bit is set to one
