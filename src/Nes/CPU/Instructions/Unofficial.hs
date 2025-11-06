@@ -58,42 +58,23 @@ rra mode = do
 
 -- | Source: https://forums.nesdev.org/viewtopic.php?t=8107
 shx :: AddressingMode -> CPU r ()
-shx = sh X
+shx mode = do
+    x <- withCPUState $ getRegister X
+    operand <- getPC >>= flip readAddr ()
+    sh' (const operand) (.&. x) (.&. x) mode
 
 shy :: AddressingMode -> CPU r ()
-shy = sh Y
-
-{-# INLINE sh #-}
--- https://github.com/100thCoin/AccuracyCoin/blob/9f7de1130d8d590baf7a7add0cc33ccd04137ada/AccuracyCoin.asm#L2866
-sh :: Register -> AddressingMode -> CPU r ()
-sh reg mode = do
-    x <- withCPUState $ getRegister reg
+shy mode = do
+    y <- withCPUState $ getRegister Y
     operand <- getPC >>= flip readAddr ()
-    (originalDest, crosses) <- getOperandAddr' mode
-    let high = unsafeAddrToByte (operand `shiftR` 8)
-        destHigh = (high + 1) .&. x
-        value = destHigh
-        dest =
-            if crosses
-                then ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
-                else originalDest
-    writeByte value dest ()
+    sh' (const operand) (.&. y) (.&. y) mode
 
 sha :: AddressingMode -> CPU r ()
 sha mode = do
     a <- withCPUState $ getRegister A
     x <- withCPUState $ getRegister X
     y <- withCPUState $ getRegister Y
-    (originalDest, crosses) <- getOperandAddr' mode
-    let destWithoutY = originalDest - byteToAddr y
-        high = unsafeAddrToByte (destWithoutY `shiftR` 8)
-        value = (high + 1) .&. a .&. x
-        destHigh = (high + 1) .&. a .&. x
-        dest =
-            if crosses
-                then ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
-                else originalDest
-    writeByte value dest ()
+    sh' (\addr -> addr - byteToAddr y) (\h -> h .&. a .&. x) (\v -> v .&. a .&. x) mode
 
 shs :: AddressingMode -> CPU r ()
 shs mode = do
@@ -102,10 +83,19 @@ shs mode = do
     operand <- getPC >>= flip readAddr ()
     let s = a .&. x
     modifyCPUState $ setRegister S s
+    sh' (const operand) (\h -> h .&. a .&. x) (.&. s) mode
+
+sh' ::
+    (Addr -> Addr) -> -- Return value from which H will be extracted. Arg is operand addr
+    (Byte -> Byte) -> -- Compute the high byte of the destination addr. Arg is H + 1
+    (Byte -> Byte) -> -- Compute the value to write. Arg is H + 1
+    AddressingMode ->
+    CPU r ()
+sh' getHigh getDestHigh getValue mode = do
     (originalDest, crosses) <- getOperandAddr' mode
-    let high = unsafeAddrToByte (operand `shiftR` 8)
-        destHigh = (high + 1) .&. a .&. x
-        value = (high + 1) .&. s
+    let high = 1 + unsafeAddrToByte ((getHigh originalDest) `shiftR` 8)
+        destHigh = getDestHigh high
+        value = getValue high
         dest =
             if crosses
                 then ((byteToAddr destHigh) `shiftL` 8) .|. (originalDest .&. 0xff)
