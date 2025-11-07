@@ -23,6 +23,7 @@ import Data.Bits
 import Nes.APU.Monad
 import Nes.APU.Monad.FrameCounter
 import Nes.APU.State
+import Nes.APU.State.Envelope (Envelope (constantVolume, loopFlag, useConstantVolume), withEnvelope)
 import Nes.APU.State.FrameCounter
 import Nes.APU.State.LengthCounter
 import Nes.APU.State.Pulse
@@ -75,12 +76,9 @@ writePulseFirstByte setter byte = do
         constVol = byte `testBit` 4
         vol = byte .&. 0b1111
     modifyAPUState $ setter $ \p ->
-        withLengthCounter (\lc -> lc{isHalted = haltLC}) $
-            p
-                { dutyIndex = fromIntegral $ unByte duty
-                , volume = fromIntegral $ unByte vol
-                , volumeIsConstant = constVol
-                }
+        withEnvelope (\e -> e{constantVolume = fromIntegral $ unByte vol, useConstantVolume = constVol, loopFlag = haltLC}) $
+            withLengthCounter (\lc -> lc{isHalted = haltLC}) $
+                p{dutyIndex = fromIntegral $ unByte duty}
 
 write4001 :: Byte -> APU r ()
 write4001 = writePulseSecondByte modifyPulse1

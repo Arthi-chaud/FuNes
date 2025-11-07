@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Nes.APU.State.Pulse (
     -- * Pulse
     Pulse (..),
@@ -12,12 +14,13 @@ module Nes.APU.State.Pulse (
     updateTargetPeriod,
 
     -- * Output
-    getOutput,
+    getPulseOutput,
 ) where
 
 import Data.Bits
 import Data.List ((!?))
 import Data.Maybe (fromMaybe)
+import Nes.APU.State.Envelope
 import Nes.APU.State.LengthCounter
 
 data Pulse = MkP
@@ -30,14 +33,21 @@ data Pulse = MkP
     -- ^ Max value of the timer
     , timer :: Int
     -- ^ Decreases each tick, from 'period' to 0 and loops
-    , volume :: Int
-    , volumeIsConstant :: Bool
     , sweepUnit :: SweepUnit
+    , envelope :: Envelope
     }
 
 -- | Args is true if building pulse 1
 newPulse :: Bool -> Pulse
-newPulse isPulseOne = MkP 0 0 newLengthCounter 0 0 0 False (MkSU False 0 0 False 0 0 False isPulseOne)
+newPulse isPulseOne = MkP{..}
+  where
+    dutyIndex = 0
+    dutyStep = 0
+    lengthCounter = newLengthCounter
+    period = 0
+    timer = 0
+    sweepUnit = MkSU False 0 0 False 0 0 False isPulseOne
+    envelope = newEnvelope
 
 --
 
@@ -112,8 +122,12 @@ instance HasLengthCounter Pulse where
     getLengthCounter = lengthCounter
     setLengthCounter lc a = a{lengthCounter = lc}
 
-getOutput :: Pulse -> Int
-getOutput p =
+instance HasEnvelope Pulse where
+    getEnvelope = envelope
+    setEnvelope e a = a{envelope = e}
+
+getPulseOutput :: Pulse -> Int
+getPulseOutput p =
     let dutyValue = fromMaybe 0 ((dutySequences !? dutyIndex p) >>= (!? dutyStep p))
         periodOverflows = (targetPeriod . sweepUnit) p > 0x7ff
         isSilenced =
@@ -123,7 +137,7 @@ getOutput p =
                 || periodOverflows
      in if isSilenced
             then 0
-            else volume p
+            else getEnvelopeOutput (envelope p)
 
 dutySequences :: [[Int]]
 dutySequences =

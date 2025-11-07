@@ -36,8 +36,6 @@ loadLengthCounter idx lc = case lengthTable !? idx of
     Just l -> lc{remainingLength = l, tableIndex = idx}
     Nothing -> lc -- Index is invalid
 
--- TODO When enabled bit is cleared (via $4015), set length counter to 0
-
 class HasLengthCounter a where
     getLengthCounter :: a -> LengthCounter
     setLengthCounter :: LengthCounter -> a -> a
