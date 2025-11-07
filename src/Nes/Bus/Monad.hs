@@ -9,6 +9,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
 import Data.Ix
 import Foreign
+import Nes.APU.BusInterface
 import Nes.APU.Monad
 import Nes.APU.State
 import qualified Nes.APU.Tick as APU
@@ -184,7 +185,8 @@ instance MemoryInterface () (BusM r) where
                 -- TODO 2) Not sure about about the tick count
                 tick (513 + fromEnum (odd cycles_))
             | idx == 0x4016 = withController $ setStrobe byte
-            | idx == 0x4017 = pure () -- Second joypad, ignore
+            -- APU
+            | idx == 0x4017 = withAPU $ write4017 byte
             | otherwise = pure () -- liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()
