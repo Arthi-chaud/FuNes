@@ -54,12 +54,12 @@ write4015 byte = do
     unless enablePulse1Lc $
         modifyAPUState $
             modifyPulse1 $
-                withLengthCounter clockLengthCounter
+                withLengthCounter clearLengthCounter
 
     unless enablePulse2Lc $
         modifyAPUState $
             modifyPulse2 $
-                withLengthCounter clockLengthCounter
+                withLengthCounter clearLengthCounter
 
 write4000 :: Byte -> APU r ()
 write4000 = writePulseFirstByte modifyPulse1
@@ -90,7 +90,25 @@ write4005 = writePulseSecondByte modifyPulse2
 
 {-# INLINE writePulseSecondByte #-}
 writePulseSecondByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
-writePulseSecondByte setter byte = return () -- TODO Sweep Unit
+writePulseSecondByte setter byte = do
+    let enabledFlag = byte `testBit` 7
+        divPeriod = (byte `shiftR` 4) .&. 0b111
+        negateFlag = byte `testBit` 3
+        shiftC = byte .&. 0b111
+        sweepIsEnabled = enabledFlag && shiftC > 0
+    modifyAPUState $
+        setter $
+            updateTargetPeriod
+                . modifySweep
+                    ( \s ->
+                        s
+                            { reloadFlag = True
+                            , enabled = sweepIsEnabled
+                            , dividerPeriod = byteToInt divPeriod
+                            , negateDelta = negateFlag
+                            , shiftCount = byteToInt shiftC
+                            }
+                    )
 
 write4002 :: Byte -> APU r ()
 write4002 = writePulseThirdByte modifyPulse1
@@ -102,22 +120,25 @@ write4006 = writePulseThirdByte modifyPulse2
 writePulseThirdByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
 writePulseThirdByte setter byte = modifyAPUState $ setter $ \p ->
     let newPeriod = (period p .&. 0b11100000000) .|. byteToInt byte
-     in p{period = newPeriod}
+     in updateTargetPeriod $ p{period = newPeriod}
 
 write4003 :: Byte -> APU r ()
-write4003 = writePulseFourByte modifyPulse1
+write4003 = writePulseFourthByte modifyPulse1
 
 write4007 :: Byte -> APU r ()
-write4007 = writePulseFourByte modifyPulse2
+write4007 = writePulseFourthByte modifyPulse2
 
-{-# INLINE writePulseFourByte #-}
-writePulseFourByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
-writePulseFourByte setter byte = modifyAPUState $ setter $ \p ->
+{-# INLINE writePulseFourthByte #-}
+writePulseFourthByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
+writePulseFourthByte setter byte = modifyAPUState $ setter $ \p ->
     let newPeriod = ((byteToInt byte .&. 0b111) `shiftL` 8) .|. (period p .&. 0b11111111)
         newLCLoad = byteToInt byte `shiftR` 3
-     in withLengthCounter
-            (loadLengthCounter newLCLoad)
-            p
-                { period = newPeriod
-                , dutyStep = 0 -- TODO Not sure
-                }
+     in updateTargetPeriod $
+            withLengthCounter
+                (loadLengthCounter newLCLoad)
+                p
+                    { period = newPeriod
+                    , dutyStep = 0
+                    -- TODO Not sure
+                    -- https://www.nesdev.org/wiki/APU_Pulse#Registers
+                    }

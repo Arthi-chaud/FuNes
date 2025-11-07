@@ -29,7 +29,7 @@ data APUState = MkAPUState
 
 newAPUState :: APUState
 newAPUState =
-    MkAPUState newFrameCounter newPulse newPulse
+    MkAPUState newFrameCounter (newPulse True) (newPulse False)
 
 -- { pulse1 = mkChannel 0 0 0 0
 -- , pulse2 = mkChannel 0 0 0 0
