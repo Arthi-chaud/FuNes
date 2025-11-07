@@ -28,6 +28,7 @@ library
       Nes.APU.Monad
       Nes.APU.Monad.FrameCounter
       Nes.APU.State
+      Nes.APU.State.Envelope
       Nes.APU.State.FrameCounter
       Nes.APU.State.LengthCounter
       Nes.APU.State.Pulse

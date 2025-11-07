@@ -13,6 +13,7 @@ module Nes.APU.Monad.FrameCounter (
 import Control.Monad
 import Nes.APU.Monad
 import Nes.APU.State
+import Nes.APU.State.Envelope (clockEnvelope, withEnvelope)
 import Nes.APU.State.FrameCounter
 import Nes.APU.State.Pulse (clockSweepUnit)
 
@@ -45,7 +46,10 @@ clockFrameCounterFiveStep = do
 
 runQuarterFrameEvent :: APU r ()
 -- TODO clock all envelopes and triangle counter
-runQuarterFrameEvent = return ()
+runQuarterFrameEvent = do
+    modifyAPUState $
+        modifyPulse1 (withEnvelope clockEnvelope)
+            . modifyPulse2 (withEnvelope clockEnvelope)
 
 runHalfFrameEvent :: APU r ()
 -- TODO clock all lengthcounters
