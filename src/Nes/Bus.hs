@@ -10,6 +10,7 @@ module Nes.Bus (
     newBus,
 ) where
 
+import Nes.APU.State (APUState, newAPUState)
 import Nes.Controller
 import Nes.Internal
 import Nes.Memory
@@ -40,6 +41,8 @@ data Bus = Bus
     -- ^ Memory dedicated to PPU
     , onNewFrame :: Bus -> IO Bus
     , lastReadByte :: Byte
+    -- ^ For open bus behaviour. Can be seen as data bus
+    , apuState :: !APUState
     }
 
 newBus :: Rom -> (Bus -> IO Bus) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
@@ -60,3 +63,4 @@ newBus rom_ onNewFrame_ tickCallback_ = do
             ppuPtrs
             onNewFrame_
             0
+            newAPUState
