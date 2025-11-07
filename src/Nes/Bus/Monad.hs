@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Nes.Bus.Monad (BusM (..), runBusM, tick, withBus, withPPU, withController) where
+module Nes.Bus.Monad (BusM (..), runBusM, tick, withBus, withPPU, withAPU, withController) where
 
 import Control.Monad
 import Control.Monad.IO.Class
@@ -9,6 +9,9 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
 import Data.Ix
 import Foreign
+import Nes.APU.Monad
+import Nes.APU.State
+import qualified Nes.APU.Tick as APU
 import Nes.Bus
 import Nes.Bus.Constants
 import Nes.Controller
@@ -17,7 +20,7 @@ import Nes.Memory
 import Nes.PPU.Constants (oamDataSize)
 import Nes.PPU.Monad hiding (tick)
 import qualified Nes.PPU.Monad as PPUM
-import Nes.PPU.State
+import Nes.PPU.State hiding (cycles)
 import Nes.Rom
 
 newtype BusM r a = MkBusM {unBusM :: Bus -> (Bus -> a -> IO r) -> IO r} deriving (Functor)
@@ -61,6 +64,12 @@ withPPU f = MkBusM $ \bus cont -> do
     (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) f
     cont (bus{ppuState = ppuSt}) res
 
+{-# INLINE withAPU #-}
+withAPU :: APU (a, APUState) a -> BusM r a
+withAPU f = MkBusM $ \bus cont -> do
+    (res, apuSt) <- runAPU (apuState bus) f
+    cont (bus{apuState = apuSt}) res
+
 {-# INLINE withController #-}
 withController :: ControllerM (a, Controller) a -> BusM r a
 withController f = MkBusM $ \bus cont ->
@@ -79,8 +88,15 @@ tick n = MkBusM $ \bus cont -> do
         isNewFrame <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
         return (isNewFrame, before, after)
-
-    let bus' = bus{unsleptCycles = newUnsleptCycles, ppuState = ppuSt, Nes.Bus.cycles = fromIntegral n + Nes.Bus.cycles bus, lastSleepTime = newLastSleepTime}
+    ((), apuSt) <- runAPU (apuState bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
+    let bus' =
+            bus
+                { unsleptCycles = newUnsleptCycles
+                , ppuState = ppuSt
+                , apuState = apuSt
+                , cycles = fromIntegral n + cycles bus
+                , lastSleepTime = newLastSleepTime
+                }
     if not nmiBefore && nmiAfter
         then onNewFrame bus' bus' >>= flip cont ()
         else
