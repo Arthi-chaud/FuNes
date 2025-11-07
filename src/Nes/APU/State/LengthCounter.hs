@@ -1,5 +1,6 @@
 module Nes.APU.State.LengthCounter (
     LengthCounter (..),
+    newLengthCounter,
     clockLengthCounter,
     loadLengthCounter,
     clearLength,
@@ -13,6 +14,9 @@ module Nes.APU.State.LengthCounter (
 import Data.List ((!?))
 
 data LengthCounter = MkLC {remainingLength :: Int, isHalted :: Bool, tableIndex :: Int}
+
+newLengthCounter :: LengthCounter
+newLengthCounter = MkLC 0 False 0
 
 clockLengthCounter :: LengthCounter -> LengthCounter
 clockLengthCounter lc =

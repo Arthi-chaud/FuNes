@@ -30,6 +30,7 @@ library
       Nes.APU.State
       Nes.APU.State.FrameCounter
       Nes.APU.State.LengthCounter
+      Nes.APU.State.Pulse
       Nes.APU.Tick
       Nes.Bus
       Nes.Bus.Constants
