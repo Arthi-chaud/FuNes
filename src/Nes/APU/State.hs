@@ -2,9 +2,14 @@ module Nes.APU.State (
     -- * Definition
     APUState (..),
     newAPUState,
+
+    -- * Setters
+    modifyFrameCounter,
 ) where
 
-data APUState = MkAPUState
+import Nes.APU.State.FrameCounter
+
+data APUState = MkAPUState {frameCounter :: FrameCounter}
 
 -- { pulse1 :: Pulse
 -- , pulse2 :: Pulse
@@ -17,7 +22,7 @@ data APUState = MkAPUState
 
 newAPUState :: APUState
 newAPUState =
-    MkAPUState
+    MkAPUState newFrameCounter
 
 -- { pulse1 = mkChannel 0 0 0 0
 -- , pulse2 = mkChannel 0 0 0 0
@@ -53,6 +58,6 @@ newAPUState =
 -- modifyStatus :: (StatusRegister -> StatusRegister) -> APUState -> APUState
 -- modifyStatus f st = st{status = f (status st)}
 --
--- {-# INLINE modifyFrameCounter #-}
--- modifyFrameCounter :: (FrameCounter -> FrameCounter) -> APUState -> APUState
--- modifyFrameCounter f st = st{frameCounter = f (frameCounter st)}
+{-# INLINE modifyFrameCounter #-}
+modifyFrameCounter :: (FrameCounter -> FrameCounter) -> APUState -> APUState
+modifyFrameCounter f st = st{frameCounter = f (frameCounter st)}
