@@ -22,3 +22,13 @@ write4017 byte = do
         runHalfFrameEvent
     when inhibit $ do
         setFrameInterruptFlag False
+
+write4015 :: Byte -> APU r ()
+write4015 byte = do
+    let enablePulse1Lc = byte `testBit` 0
+        enablePulse2Lc = byte `testBit` 1
+        enableTriangeLc = byte `testBit` 2
+        enableNoiseLc = byte `testBit` 3
+        enableDmc = byte `testBit` 4
+    -- TODO: For each LC: If enable is false, call 'clearRemainingLength'
+    return ()
