@@ -14,6 +14,7 @@ import Control.Monad
 import Nes.APU.Monad
 import Nes.APU.State
 import Nes.APU.State.FrameCounter
+import Nes.APU.State.Pulse (clockSweepUnit)
 
 -- | Tells the frame counter to clock channels
 --
@@ -47,8 +48,12 @@ runQuarterFrameEvent :: APU r ()
 runQuarterFrameEvent = return ()
 
 runHalfFrameEvent :: APU r ()
--- TODO clock all lengthcounters and sweep units
-runHalfFrameEvent = return ()
+-- TODO clock all lengthcounters
+runHalfFrameEvent = modifyAPUState $ \st ->
+    st
+        { pulse1 = clockSweepUnit (pulse1 st)
+        , pulse2 = clockSweepUnit (pulse2 st)
+        }
 
 -- | Set the Frame Counter's Frame flag
 setFrameInterruptFlag :: Bool -> APU r ()
