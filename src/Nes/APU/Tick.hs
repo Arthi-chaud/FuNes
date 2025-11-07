@@ -9,6 +9,8 @@ module Nes.APU.Tick (
 import Control.Monad
 import Nes.APU.Monad
 import Nes.APU.Monad.FrameCounter (clockFrameCounter)
+import Nes.APU.State (modifyPulse1, modifyPulse2)
+import Nes.APU.State.Pulse (clockPulse)
 
 -- $use
 --     The APU being a part of the CPU, they both tick at the same time. However, some clocks are updated every other CPU cycles.
@@ -28,4 +30,6 @@ tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
     -- TODO Ticks and clocks
     when isAPUCycle $ do
+        modifyAPUState $ modifyPulse1 clockPulse
+        modifyAPUState $ modifyPulse2 clockPulse
         clockFrameCounter

@@ -1,4 +1,22 @@
-module Nes.APU.BusInterface (write4017) where
+module Nes.APU.BusInterface (
+    -- * Pulse 1
+    write4000,
+    write4001,
+    write4002,
+    write4003,
+
+    -- * Pulse 2
+    write4004,
+    write4005,
+    write4006,
+    write4007,
+
+    -- * Status register
+    write4015,
+
+    -- * Frame counter
+    write4017,
+) where
 
 import Control.Monad
 import Data.Bits
@@ -6,7 +24,9 @@ import Nes.APU.Monad
 import Nes.APU.Monad.FrameCounter
 import Nes.APU.State
 import Nes.APU.State.FrameCounter
-import Nes.Memory (Byte)
+import Nes.APU.State.LengthCounter
+import Nes.APU.State.Pulse
+import Nes.Memory (Byte (..), byteToInt)
 
 -- | Callback when a byte is written to 0x4017 through the Bus
 write4017 :: Byte -> APU r ()
@@ -31,4 +51,73 @@ write4015 byte = do
         enableNoiseLc = byte `testBit` 3
         enableDmc = byte `testBit` 4
     -- TODO: For each LC: If enable is false, call 'clearRemainingLength'
-    return ()
+    unless enablePulse1Lc $
+        modifyAPUState $
+            modifyPulse1 $
+                withLengthCounter clockLengthCounter
+
+    unless enablePulse2Lc $
+        modifyAPUState $
+            modifyPulse2 $
+                withLengthCounter clockLengthCounter
+
+write4000 :: Byte -> APU r ()
+write4000 = writePulseFirstByte modifyPulse1
+
+write4004 :: Byte -> APU r ()
+write4004 = writePulseFirstByte modifyPulse2
+
+{-# INLINE writePulseFirstByte #-}
+writePulseFirstByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
+writePulseFirstByte setter byte = do
+    let duty = byte `shiftR` 6
+        haltLC = byte `testBit` 5
+        constVol = byte `testBit` 4
+        vol = byte .&. 0b1111
+    modifyAPUState $ setter $ \p ->
+        withLengthCounter (\lc -> lc{isHalted = haltLC}) $
+            p
+                { dutyIndex = fromIntegral $ unByte duty
+                , volume = fromIntegral $ unByte vol
+                , volumeIsConstant = constVol
+                }
+
+write4001 :: Byte -> APU r ()
+write4001 = writePulseSecondByte modifyPulse1
+
+write4005 :: Byte -> APU r ()
+write4005 = writePulseSecondByte modifyPulse2
+
+{-# INLINE writePulseSecondByte #-}
+writePulseSecondByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
+writePulseSecondByte setter byte = return () -- TODO Sweep Unit
+
+write4002 :: Byte -> APU r ()
+write4002 = writePulseThirdByte modifyPulse1
+
+write4006 :: Byte -> APU r ()
+write4006 = writePulseThirdByte modifyPulse2
+
+{-# INLINE writePulseThirdByte #-}
+writePulseThirdByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
+writePulseThirdByte setter byte = modifyAPUState $ setter $ \p ->
+    let newPeriod = (period p .&. 0b11100000000) .|. byteToInt byte
+     in p{period = newPeriod}
+
+write4003 :: Byte -> APU r ()
+write4003 = writePulseFourByte modifyPulse1
+
+write4007 :: Byte -> APU r ()
+write4007 = writePulseFourByte modifyPulse2
+
+{-# INLINE writePulseFourByte #-}
+writePulseFourByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
+writePulseFourByte setter byte = modifyAPUState $ setter $ \p ->
+    let newPeriod = ((byteToInt byte .&. 0b111) `shiftL` 8) .|. (period p .&. 0b11111111)
+        newLCLoad = byteToInt byte `shiftR` 3
+     in withLengthCounter
+            (loadLengthCounter newLCLoad)
+            p
+                { period = newPeriod
+                , dutyStep = 0 -- TODO Not sure
+                }
