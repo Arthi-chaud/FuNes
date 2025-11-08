@@ -26,7 +26,6 @@ module Nes.APU.BusInterface (
 import Control.Monad
 import Data.Bits
 import Nes.APU.Monad
-import Nes.APU.Monad.FrameCounter
 import Nes.APU.State
 import Nes.APU.State.Envelope
 import Nes.APU.State.FrameCounter
@@ -35,6 +34,7 @@ import Nes.APU.State.Pulse
 import qualified Nes.APU.State.Pulse as Pulse
 import Nes.APU.State.Triangle
 import qualified Nes.APU.State.Triangle as Triangle
+import Nes.APU.Tick
 import Nes.Memory (Byte (..), byteToInt)
 
 -- | Callback when a byte is written to 0x4017 through the Bus
