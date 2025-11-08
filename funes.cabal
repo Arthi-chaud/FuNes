@@ -25,6 +25,10 @@ source-repository head
 library
   exposed-modules:
       Nes.APU.BusInterface
+      Nes.APU.BusInterface.FrameCounter
+      Nes.APU.BusInterface.Pulse
+      Nes.APU.BusInterface.Status
+      Nes.APU.BusInterface.Triangle
       Nes.APU.Monad
       Nes.APU.State
       Nes.APU.State.Envelope
