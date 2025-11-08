@@ -26,6 +26,7 @@ library
   exposed-modules:
       Nes.APU.BusInterface
       Nes.APU.BusInterface.FrameCounter
+      Nes.APU.BusInterface.Noise
       Nes.APU.BusInterface.Pulse
       Nes.APU.BusInterface.Status
       Nes.APU.BusInterface.Triangle
@@ -34,6 +35,7 @@ library
       Nes.APU.State.Envelope
       Nes.APU.State.FrameCounter
       Nes.APU.State.LengthCounter
+      Nes.APU.State.Noise
       Nes.APU.State.Pulse
       Nes.APU.State.Triangle
       Nes.APU.Tick

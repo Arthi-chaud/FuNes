@@ -34,7 +34,7 @@ writePulseFirstByte setter byte = do
         constVol = byte `testBit` 4
         vol = byte .&. 0b1111
     modifyAPUState $ setter $ \p ->
-        withEnvelope (\e -> e{constantVolume = fromIntegral $ unByte vol, useConstantVolume = constVol, loopFlag = haltLC}) $
+        withEnvelope (\e -> e{constantVolume = byteToInt vol, useConstantVolume = constVol, loopFlag = haltLC}) $
             withLengthCounter (\lc -> lc{isHalted = haltLC}) $
                 p{dutyIndex = fromIntegral $ unByte duty}
 
@@ -90,13 +90,14 @@ writePulseFourthByte setter byte = modifyAPUState $ setter $ \p ->
     let newPeriod = ((byteToInt byte .&. 0b111) `shiftL` 8) .|. (period p .&. 0b11111111)
         newLCLoad = byteToInt byte `shiftR` 3
      in updateTargetPeriod $
-            withLengthCounter
-                (loadLengthCounter newLCLoad)
-                p
-                    { period = newPeriod
-                    , dutyStep = 0
-                    -- TODO Not sure
-                    -- https://www.nesdev.org/wiki/APU_Pulse#Registers
-                    }
+            withEnvelope (\e -> e{startFlag = True}) $
+                withLengthCounter
+                    (loadLengthCounter newLCLoad)
+                    p
+                        { period = newPeriod
+                        , dutyStep = 0
+                        -- TODO Not sure
+                        -- https://www.nesdev.org/wiki/APU_Pulse#Registers
+                        }
 
 --

@@ -74,11 +74,11 @@ clockFrameCounterFiveStep = do
     when (step == 1 || step == 4) runHalfFrameEvent
 
 runQuarterFrameEvent :: APU r ()
--- TODO clock all envelopes and triangle counter
 runQuarterFrameEvent = do
     modifyAPUState $
         modifyPulse1 (withEnvelope clockEnvelope)
             . modifyPulse2 (withEnvelope clockEnvelope)
+            . modifyNoise (withEnvelope clockEnvelope)
             . modifyTriangle clockTriangleLinearCounter
 
 runHalfFrameEvent :: APU r ()
@@ -88,6 +88,7 @@ runHalfFrameEvent = modifyAPUState $ \st ->
         { pulse1 = withLengthCounter clockLengthCounter $ clockSweepUnit (pulse1 st)
         , pulse2 = withLengthCounter clockLengthCounter $ clockSweepUnit (pulse2 st)
         , triangle = withLengthCounter clockLengthCounter $ triangle st
+        , noise = withLengthCounter clockLengthCounter $ noise st
         }
 
 -- | Set the Frame Counter's Frame flag
