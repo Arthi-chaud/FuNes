@@ -29,3 +29,8 @@ write4015 byte = do
         modifyAPUState $
             modifyTriangle $
                 withLengthCounter clearLengthCounter
+
+    unless enableNoiseLc $
+        modifyAPUState $
+            modifyNoise $
+                withLengthCounter clearLengthCounter
