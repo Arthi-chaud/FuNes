@@ -11,6 +11,11 @@ module Nes.APU.BusInterface (
     write4006,
     write4007,
 
+    -- * Triangle
+    write4008,
+    write400A,
+    write400B,
+
     -- * Status register
     write4015,
 
@@ -23,10 +28,13 @@ import Data.Bits
 import Nes.APU.Monad
 import Nes.APU.Monad.FrameCounter
 import Nes.APU.State
-import Nes.APU.State.Envelope (Envelope (constantVolume, loopFlag, useConstantVolume), withEnvelope)
+import Nes.APU.State.Envelope
 import Nes.APU.State.FrameCounter
 import Nes.APU.State.LengthCounter
 import Nes.APU.State.Pulse
+import qualified Nes.APU.State.Pulse as Pulse
+import Nes.APU.State.Triangle
+import qualified Nes.APU.State.Triangle as Triangle
 import Nes.Memory (Byte (..), byteToInt)
 
 -- | Callback when a byte is written to 0x4017 through the Bus
@@ -48,7 +56,7 @@ write4015 :: Byte -> APU r ()
 write4015 byte = do
     let enablePulse1Lc = byte `testBit` 0
         enablePulse2Lc = byte `testBit` 1
-        enableTriangeLc = byte `testBit` 2
+        enableTriangleLc = byte `testBit` 2
         enableNoiseLc = byte `testBit` 3
         enableDmc = byte `testBit` 4
     -- TODO: For each LC: If enable is false, call 'clearRemainingLength'
@@ -60,6 +68,11 @@ write4015 byte = do
     unless enablePulse2Lc $
         modifyAPUState $
             modifyPulse2 $
+                withLengthCounter clearLengthCounter
+
+    unless enableTriangleLc $
+        modifyAPUState $
+            modifyTriangle $
                 withLengthCounter clearLengthCounter
 
 write4000 :: Byte -> APU r ()
@@ -100,7 +113,7 @@ writePulseSecondByte setter byte = do
                 . modifySweep
                     ( \s ->
                         s
-                            { reloadFlag = True
+                            { Pulse.reloadFlag = True
                             , enabled = sweepIsEnabled
                             , dividerPeriod = byteToInt divPeriod
                             , negateDelta = negateFlag
@@ -117,8 +130,8 @@ write4006 = writePulseThirdByte modifyPulse2
 {-# INLINE writePulseThirdByte #-}
 writePulseThirdByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
 writePulseThirdByte setter byte = modifyAPUState $ setter $ \p ->
-    let newPeriod = (period p .&. 0b11100000000) .|. byteToInt byte
-     in updateTargetPeriod $ p{period = newPeriod}
+    let newPeriod = (Pulse.period p .&. 0b11100000000) .|. byteToInt byte
+     in updateTargetPeriod $ p{Pulse.period = newPeriod}
 
 write4003 :: Byte -> APU r ()
 write4003 = writePulseFourthByte modifyPulse1
@@ -129,14 +142,41 @@ write4007 = writePulseFourthByte modifyPulse2
 {-# INLINE writePulseFourthByte #-}
 writePulseFourthByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
 writePulseFourthByte setter byte = modifyAPUState $ setter $ \p ->
-    let newPeriod = ((byteToInt byte .&. 0b111) `shiftL` 8) .|. (period p .&. 0b11111111)
+    let newPeriod = ((byteToInt byte .&. 0b111) `shiftL` 8) .|. (Pulse.period p .&. 0b11111111)
         newLCLoad = byteToInt byte `shiftR` 3
      in updateTargetPeriod $
             withLengthCounter
                 (loadLengthCounter newLCLoad)
                 p
-                    { period = newPeriod
+                    { Pulse.period = newPeriod
                     , dutyStep = 0
                     -- TODO Not sure
                     -- https://www.nesdev.org/wiki/APU_Pulse#Registers
                     }
+
+--
+
+write4008 :: Byte -> APU r ()
+write4008 byte = do
+    let control = byte `testBit` 7
+        reload = byteToInt $ byte `clearBit` 7
+    modifyAPUState $
+        modifyTriangle $
+            withLengthCounter (\lc -> lc{isHalted = control})
+                . \t -> t{controlFlag = control, reloadValue = reload}
+
+write400A :: Byte -> APU r ()
+write400A periodLow = modifyAPUState $ modifyTriangle $ \t ->
+    let newPeriod = (Triangle.period t .&. 0b11100000000) .|. byteToInt periodLow
+     in t{Triangle.period = newPeriod}
+
+write400B :: Byte -> APU r ()
+write400B byte = modifyAPUState $ modifyTriangle $ \t ->
+    let timerHigh = byteToInt $ byte .&. 0b111
+        newPeriod = (timerHigh `shiftL` 8) .|. (Triangle.period t .&. 0b11111111)
+        newLcLoad = byteToInt byte `shiftR` 3
+     in withLengthCounter (loadLengthCounter newLcLoad) $
+            t
+                { Triangle.reloadFlag = True
+                , Triangle.period = newPeriod
+                }

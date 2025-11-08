@@ -15,7 +15,9 @@ import Nes.APU.Monad
 import Nes.APU.State
 import Nes.APU.State.Envelope (clockEnvelope, withEnvelope)
 import Nes.APU.State.FrameCounter
+import Nes.APU.State.LengthCounter (clockLengthCounter, withLengthCounter)
 import Nes.APU.State.Pulse (clockSweepUnit)
+import Nes.APU.State.Triangle (clockTriangleLinearCounter)
 
 -- | Tells the frame counter to clock channels
 --
@@ -50,13 +52,15 @@ runQuarterFrameEvent = do
     modifyAPUState $
         modifyPulse1 (withEnvelope clockEnvelope)
             . modifyPulse2 (withEnvelope clockEnvelope)
+            . modifyTriangle clockTriangleLinearCounter
 
 runHalfFrameEvent :: APU r ()
 -- TODO clock all lengthcounters
 runHalfFrameEvent = modifyAPUState $ \st ->
     st
-        { pulse1 = clockSweepUnit (pulse1 st)
-        , pulse2 = clockSweepUnit (pulse2 st)
+        { pulse1 = withLengthCounter clockLengthCounter $ clockSweepUnit (pulse1 st)
+        , pulse2 = withLengthCounter clockLengthCounter $ clockSweepUnit (pulse2 st)
+        , triangle = withLengthCounter clockLengthCounter $ triangle st
         }
 
 -- | Set the Frame Counter's Frame flag

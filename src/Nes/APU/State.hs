@@ -7,15 +7,18 @@ module Nes.APU.State (
     modifyFrameCounter,
     modifyPulse1,
     modifyPulse2,
+    modifyTriangle,
 ) where
 
 import Nes.APU.State.FrameCounter
 import Nes.APU.State.Pulse
+import Nes.APU.State.Triangle
 
 data APUState = MkAPUState
     { frameCounter :: FrameCounter
     , pulse1 :: Pulse
     , pulse2 :: Pulse
+    , triangle :: Triangle
     }
 
 -- { pulse1 :: Pulse
@@ -29,7 +32,7 @@ data APUState = MkAPUState
 
 newAPUState :: APUState
 newAPUState =
-    MkAPUState newFrameCounter (newPulse True) (newPulse False)
+    MkAPUState newFrameCounter (newPulse True) (newPulse False) newTriangle
 
 -- { pulse1 = mkChannel 0 0 0 0
 -- , pulse2 = mkChannel 0 0 0 0
@@ -49,10 +52,10 @@ modifyPulse1 f st = st{pulse1 = f (pulse1 st)}
 modifyPulse2 :: (Pulse -> Pulse) -> APUState -> APUState
 modifyPulse2 f st = st{pulse2 = f (pulse2 st)}
 
--- {-# INLINE modifyTriangle #-}
--- modifyTriangle :: (Triangle -> Triangle) -> APUState -> APUState
--- modifyTriangle f st = st{triangle = f (triangle st)}
---
+{-# INLINE modifyTriangle #-}
+modifyTriangle :: (Triangle -> Triangle) -> APUState -> APUState
+modifyTriangle f st = st{triangle = f (triangle st)}
+
 -- {-# INLINE modifyNoise #-}
 -- modifyNoise :: (Noise -> Noise) -> APUState -> APUState
 -- modifyNoise f st = st{noise = f (noise st)}
