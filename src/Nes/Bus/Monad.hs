@@ -185,8 +185,7 @@ instance MemoryInterface () (BusM r) where
                 -- TODO 2) Not sure about about the tick count
                 tick (513 + fromEnum (odd cycles_))
             | idx == 0x4016 = withController $ setStrobe byte
-            -- APU
-            | idx == 0x4017 = withAPU $ write4017 byte
+            | (0x4000, 0x4017) `inRange` idx = withAPU $ writeToAPU idx byte
             | otherwise = pure () -- liftIO $ printf "Ignoring write at %4x\n" $ unAddr idx
     readAddr idx () = do
         low <- readByte idx ()
