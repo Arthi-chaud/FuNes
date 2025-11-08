@@ -3,7 +3,7 @@ module Nes.APU.State.LengthCounter (
     newLengthCounter,
     clockLengthCounter,
     loadLengthCounter,
-    clearLengthCounter,
+    clearAndHaltLengthCounter,
 
     -- * Class
     HasLengthCounter (..),
@@ -25,8 +25,8 @@ clockLengthCounter lc =
         else lc
 
 -- | Set 'remainingLength' to 0
-clearLengthCounter :: LengthCounter -> LengthCounter
-clearLengthCounter lc = lc{remainingLength = 0}
+clearAndHaltLengthCounter :: LengthCounter -> LengthCounter
+clearAndHaltLengthCounter lc = lc{remainingLength = 0, isHalted = True}
 
 -- | Load Length using the argument a an index in the length table
 --
