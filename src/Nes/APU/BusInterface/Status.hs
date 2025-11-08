@@ -15,22 +15,23 @@ write4015 byte = do
         enableNoiseLc = byte `testBit` 3
         enableDmc = byte `testBit` 4
     -- TODO: For each LC: If enable is false, call 'clearRemainingLength'
+    -- TODO: Handle DMC side effects
     unless enablePulse1Lc $
         modifyAPUState $
             modifyPulse1 $
-                withLengthCounter clearLengthCounter
+                withLengthCounter clearAndHaltLengthCounter
 
     unless enablePulse2Lc $
         modifyAPUState $
             modifyPulse2 $
-                withLengthCounter clearLengthCounter
+                withLengthCounter clearAndHaltLengthCounter
 
     unless enableTriangleLc $
         modifyAPUState $
             modifyTriangle $
-                withLengthCounter clearLengthCounter
+                withLengthCounter clearAndHaltLengthCounter
 
     unless enableNoiseLc $
         modifyAPUState $
             modifyNoise $
-                withLengthCounter clearLengthCounter
+                withLengthCounter clearAndHaltLengthCounter
