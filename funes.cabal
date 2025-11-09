@@ -32,6 +32,7 @@ library
       Nes.APU.BusInterface.Triangle
       Nes.APU.Monad
       Nes.APU.State
+      Nes.APU.State.DMC
       Nes.APU.State.Envelope
       Nes.APU.State.FrameCounter
       Nes.APU.State.LengthCounter
