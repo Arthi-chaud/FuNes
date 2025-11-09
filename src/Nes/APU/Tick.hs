@@ -15,6 +15,7 @@ module Nes.APU.Tick (
 import Control.Monad
 import Nes.APU.Monad
 import Nes.APU.State
+import Nes.APU.State.DMC
 import Nes.APU.State.Envelope
 import Nes.APU.State.FrameCounter
 import qualified Nes.APU.State.FrameCounter as FC
@@ -38,7 +39,7 @@ tick b n = tickOnce b >> tick (not b) (n - 1)
 
 tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
-    -- TODO Ticks and clocks
+    modifyAPUState $ modifyDMC clockDMC
     modifyAPUState $ modifyTriangle clockTriangle
     when isAPUCycle $ do
         modifyAPUState $
