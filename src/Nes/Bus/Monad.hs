@@ -68,7 +68,7 @@ withPPU f = MkBusM $ \bus cont -> do
 {-# INLINE withAPU #-}
 withAPU :: APU (a, APUState) a -> BusM r a
 withAPU f = MkBusM $ \bus cont -> do
-    (res, apuSt) <- runAPU (apuState bus) f
+    (res, apuSt) <- runAPU (apuState bus) bus f
     cont (bus{apuState = apuSt}) res
 
 {-# INLINE withController #-}
@@ -89,7 +89,7 @@ tick n = MkBusM $ \bus cont -> do
         isNewFrame <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
         return (isNewFrame, before, after)
-    ((), apuSt) <- runAPU (apuState bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
+    ((), apuSt) <- runAPU (apuState bus) bus $ APU.tick (odd (Nes.Bus.cycles bus)) n
     let bus' =
             bus
                 { unsleptCycles = newUnsleptCycles
