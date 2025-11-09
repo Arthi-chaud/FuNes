@@ -9,8 +9,8 @@ module Nes.APU.State.Triangle (
     getTriangleOutput,
 
     -- * Clock
-    clockTriangle,
-    clockTriangleLinearCounter,
+    tickTriangle,
+    tickTriangleLinearCounter,
 ) where
 
 import Nes.APU.State.LengthCounter
@@ -51,15 +51,15 @@ instance HasLengthCounter Triangle where
     getLengthCounter = lengthCounter
     setLengthCounter lc t = t{lengthCounter = lc}
 
-clockTriangle :: Triangle -> Triangle
-clockTriangle t = t{timer = newTimer, sequenceStep = newSequenceStep}
+tickTriangle :: Triangle -> Triangle
+tickTriangle t = t{timer = newTimer, sequenceStep = newSequenceStep}
   where
     newTimer = if timer t == 0 then period t else timer t - 1
-    clockSequence = timer t == 0 && linearCounter t /= 0 && remainingLength (lengthCounter t) /= 0
-    newSequenceStep = if clockSequence then (sequenceStep t + 1) `mod` 32 else sequenceStep t
+    tickSequence = timer t == 0 && linearCounter t /= 0 && remainingLength (lengthCounter t) /= 0
+    newSequenceStep = if tickSequence then (sequenceStep t + 1) `mod` 32 else sequenceStep t
 
-clockTriangleLinearCounter :: Triangle -> Triangle
-clockTriangleLinearCounter t = t2
+tickTriangleLinearCounter :: Triangle -> Triangle
+tickTriangleLinearCounter t = t2
   where
     t1 =
         if reloadFlag t

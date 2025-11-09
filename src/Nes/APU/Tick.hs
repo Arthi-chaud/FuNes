@@ -5,8 +5,8 @@ module Nes.APU.Tick (
     tickOnce,
     IsAPUCycle,
 
-    -- * Internal clocking
-    clockFrameCounter,
+    -- * Internal ticking
+    tickFrameCounter,
     runHalfFrameEvent,
     runQuarterFrameEvent,
     setFrameInterruptFlag,
@@ -24,7 +24,7 @@ import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
 
 -- $use
---     The APU being a part of the CPU, they both tick at the same time. However, some clocks are updated every other CPU cycles.
+--     The APU being a part of the CPU, they both tick at the same time. However, some ticks are updated every other CPU cycles.
 --     Here the 'tick' function should be called every CPU tick, and pass as parameter whether the tick is on an even CPU cycle or not.
 --     Same goes for 'tickMany'.
 
@@ -39,27 +39,27 @@ tick b n = tickOnce b >> tick (not b) (n - 1)
 
 tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
-    modifyAPUState $ modifyDMC clockDMC
-    modifyAPUState $ modifyTriangle clockTriangle
+    modifyAPUState $ modifyDMC tickDMC
+    modifyAPUState $ modifyTriangle tickTriangle
     when isAPUCycle $ do
         modifyAPUState $
-            modifyPulse1 clockPulse
-                . modifyPulse2 clockPulse
-        clockFrameCounter
+            modifyPulse1 tickPulse
+                . modifyPulse2 tickPulse
+        tickFrameCounter
 
--- | Tells the frame counter to clock channels
+-- | Tells the frame counter to tick channels
 --
 -- Source: https://www.nesdev.org/wiki/APU_Frame_Counter
-clockFrameCounter :: APU r ()
-clockFrameCounter = do
+tickFrameCounter :: APU r ()
+tickFrameCounter = do
     seqMode <- withAPUState $ sequenceMode . frameCounter
     case seqMode of
-        FourStep -> clockFrameCounterFourStep
-        FiveStep -> clockFrameCounterFiveStep
+        FourStep -> tickFrameCounterFourStep
+        FiveStep -> tickFrameCounterFiveStep
     modifyAPUState $ modifyFrameCounter incrementSequenceStep
 
-clockFrameCounterFourStep :: APU r ()
-clockFrameCounterFourStep = do
+tickFrameCounterFourStep :: APU r ()
+tickFrameCounterFourStep = do
     step <- withAPUState $ FC.sequenceStep . frameCounter
     inhibitFrameInterrupt <- withAPUState $ inhibitInterrupt . frameCounter
 
@@ -68,8 +68,8 @@ clockFrameCounterFourStep = do
     when (step == 3 && not inhibitFrameInterrupt) $
         setFrameInterruptFlag True
 
-clockFrameCounterFiveStep :: APU r ()
-clockFrameCounterFiveStep = do
+tickFrameCounterFiveStep :: APU r ()
+tickFrameCounterFiveStep = do
     step <- withAPUState $ FC.sequenceStep . frameCounter
     when (step < 5) runQuarterFrameEvent
     when (step == 1 || step == 4) runHalfFrameEvent
@@ -77,19 +77,19 @@ clockFrameCounterFiveStep = do
 runQuarterFrameEvent :: APU r ()
 runQuarterFrameEvent = do
     modifyAPUState $
-        modifyPulse1 (withEnvelope clockEnvelope)
-            . modifyPulse2 (withEnvelope clockEnvelope)
-            . modifyNoise (withEnvelope clockEnvelope)
-            . modifyTriangle clockTriangleLinearCounter
+        modifyPulse1 (withEnvelope tickEnvelope)
+            . modifyPulse2 (withEnvelope tickEnvelope)
+            . modifyNoise (withEnvelope tickEnvelope)
+            . modifyTriangle tickTriangleLinearCounter
 
 runHalfFrameEvent :: APU r ()
--- TODO clock all lengthcounters
+-- TODO tick all lengthcounters
 runHalfFrameEvent = modifyAPUState $ \st ->
     st
-        { pulse1 = withLengthCounter clockLengthCounter $ clockSweepUnit (pulse1 st)
-        , pulse2 = withLengthCounter clockLengthCounter $ clockSweepUnit (pulse2 st)
-        , triangle = withLengthCounter clockLengthCounter $ triangle st
-        , noise = withLengthCounter clockLengthCounter $ noise st
+        { pulse1 = withLengthCounter tickLengthCounter $ tickSweepUnit (pulse1 st)
+        , pulse2 = withLengthCounter tickLengthCounter $ tickSweepUnit (pulse2 st)
+        , triangle = withLengthCounter tickLengthCounter $ triangle st
+        , noise = withLengthCounter tickLengthCounter $ noise st
         }
 
 -- | Set the Frame Counter's Frame flag

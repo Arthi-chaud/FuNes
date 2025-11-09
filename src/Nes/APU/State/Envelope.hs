@@ -8,7 +8,7 @@ module Nes.APU.State.Envelope (
     withEnvelope,
 
     -- * Clock
-    clockEnvelope,
+    tickEnvelope,
 
     -- * Output
     getEnvelopeOutput,
@@ -33,14 +33,14 @@ class HasEnvelope a where
 withEnvelope :: (HasEnvelope a) => (Envelope -> Envelope) -> a -> a
 withEnvelope f a = setEnvelope (f $ getEnvelope a) a
 
-clockEnvelope :: Envelope -> Envelope
-clockEnvelope e =
+tickEnvelope :: Envelope -> Envelope
+tickEnvelope e =
     if startFlag e
         then e{startFlag = False, decayLevel = 15, divider = constantVolume e}
-        else clockDivider e
+        else tickDivider e
 
-clockDivider :: Envelope -> Envelope
-clockDivider e =
+tickDivider :: Envelope -> Envelope
+tickDivider e =
     if divider e == 0
         then e{divider = constantVolume e, decayLevel = newDecay}
         else e{divider = divider e - 1}
