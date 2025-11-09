@@ -50,9 +50,9 @@ newDMC = MkDMC{..}
 getPeriodValue :: Int -> Int
 getPeriodValue idx = fromMaybe 428 ([428, 380, 340, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54] !? idx)
 
-clockDMC :: DMC -> DMC
-clockDMC dmc =
-    (if clocks then clockRemainingBits else id)
+tickDMC :: DMC -> DMC
+tickDMC dmc =
+    (if clocks then tickRemainingBits else id)
         dmc
             { timer = newTimer
             , outputLevel = newOutputLevel
@@ -70,8 +70,10 @@ clockDMC dmc =
                  in if (0, 127) `inRange` tmpOutLevel then tmpOutLevel else outputLevel dmc
             else outputLevel dmc
 
-clockRemainingBits :: DMC -> DMC
-clockRemainingBits dmc =
+-- TODO split clock and tick
+
+tickRemainingBits :: DMC -> DMC
+tickRemainingBits dmc =
     dmc
         { remainingBits = newRemainingBits
         , silentFlag = newSilentFlag

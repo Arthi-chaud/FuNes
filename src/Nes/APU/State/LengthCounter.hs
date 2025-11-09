@@ -1,7 +1,7 @@
 module Nes.APU.State.LengthCounter (
     LengthCounter (..),
     newLengthCounter,
-    clockLengthCounter,
+    tickLengthCounter,
     loadLengthCounter,
     clearAndHaltLengthCounter,
 
@@ -18,13 +18,12 @@ data LengthCounter = MkLC {remainingLength :: Int, isHalted :: Bool, tableIndex 
 newLengthCounter :: LengthCounter
 newLengthCounter = MkLC 0 False 0
 
-clockLengthCounter :: LengthCounter -> LengthCounter
-clockLengthCounter lc =
+tickLengthCounter :: LengthCounter -> LengthCounter
+tickLengthCounter lc =
     if remainingLength lc > 0 && not (isHalted lc)
         then lc{remainingLength = remainingLength lc - 1}
         else lc
 
--- | Set 'remainingLength' to 0
 clearAndHaltLengthCounter :: LengthCounter -> LengthCounter
 clearAndHaltLengthCounter lc = lc{remainingLength = 0, isHalted = True}
 

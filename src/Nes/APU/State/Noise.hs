@@ -7,8 +7,8 @@ module Nes.APU.State.Noise (
     getNoiseOutput,
 
     -- * Clock
-    clockPulse,
-    clockShiftRegister,
+    tickPulse,
+    tickShiftRegister,
 
     -- * Utils
     getPeriodValue,
@@ -52,14 +52,14 @@ instance HasEnvelope Noise where
     getEnvelope = envelope
     setEnvelope e t = t{envelope = e}
 
-clockPulse :: Noise -> Noise
-clockPulse n = clockCallback $ n{timer = newTimer}
+tickPulse :: Noise -> Noise
+tickPulse n = tickCallback $ n{timer = newTimer}
   where
     newTimer = if timer n == 0 then period n else timer n - 1
-    clockCallback = if timer n == 0 then clockShiftRegister else id
+    tickCallback = if timer n == 0 then tickShiftRegister else id
 
-clockShiftRegister :: Noise -> Noise
-clockShiftRegister n = n{shiftRegister = shift2}
+tickShiftRegister :: Noise -> Noise
+tickShiftRegister n = n{shiftRegister = shift2}
   where
     shift0 = shiftRegister n
     xorBit = if useBit6ForFeedback n then 6 else 1

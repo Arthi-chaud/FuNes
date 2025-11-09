@@ -4,13 +4,13 @@ module Nes.APU.State.Pulse (
     -- * Pulse
     Pulse (..),
     newPulse,
-    clockPulse,
+    tickPulse,
     modifySweep,
     withSweep,
 
     -- * Sweep Unit
     SweepUnit (..),
-    clockSweepUnit,
+    tickSweepUnit,
     updateTargetPeriod,
 
     -- * Output
@@ -85,14 +85,14 @@ updateTargetPeriod p =
         )
         p
 
-clockPulse :: Pulse -> Pulse
-clockPulse p = p{dutyStep = newDutyStep, timer = newTimer}
+tickPulse :: Pulse -> Pulse
+tickPulse p = p{dutyStep = newDutyStep, timer = newTimer}
   where
     newDutyStep = if timer p == 0 then (dutyStep p + 1) `mod` 8 else dutyStep p
     newTimer = if timer p == 0 then period p else timer p - 1
 
-clockSweepUnit :: Pulse -> Pulse
-clockSweepUnit p = p2
+tickSweepUnit :: Pulse -> Pulse
+tickSweepUnit p = p2
   where
     sweep = sweepUnit p
     p1 =
