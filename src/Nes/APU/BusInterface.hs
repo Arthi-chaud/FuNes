@@ -1,5 +1,6 @@
 module Nes.APU.BusInterface (
     writeToAPU,
+    readFromAPU,
 ) where
 
 import Nes.APU.BusInterface.DMC
@@ -42,4 +43,9 @@ writeToAPU addr = case addr of
     0x4017 -> write4017
     _ -> const (return ())
 
--- TODO Read from APU
+readFromAPU :: Addr -> APU r (Maybe Byte)
+readFromAPU = \case
+    -- TODO Not open bus
+    -- TODO Bit 5 is open bus.
+    0x4015 -> Just <$> read4015
+    _ -> return Nothing

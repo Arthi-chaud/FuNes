@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
+import Data.Functor (($>))
 import Data.Ix
 import Foreign
 import Nes.APU.BusInterface
@@ -106,19 +107,22 @@ tick n = MkBusM $ \bus cont -> do
         else
             cont bus' ()
 
+data BusReadOutput = OpenBus | DataBus Byte | Internal Byte
+
 instance MemoryInterface () (BusM r) where
-    readByte idx () = do
-        res <- go
-        modifyBus $ \b -> b{lastReadByte = res}
-        return res
+    readByte idx () =
+        go >>= \case
+            DataBus byte -> modifyBus (\b -> b{lastReadByte = byte}) $> byte
+            OpenBus -> withBus lastReadByte
+            Internal byte -> return byte
       where
         go
             | inRange ramRange idx = do
                 let mirroredDownAddr = idx .&. 0b11111111111 -- 11 bits
-                liftIO . readByte mirroredDownAddr =<< withBus cpuVram
+                fmap DataBus . liftIO . readByte mirroredDownAddr =<< withBus cpuVram
             | inRange ppuRegisters idx = do
                 let mirroredIdx = Addr . fromIntegral $ addrToInt (idx - fst ppuRegisters) `mod` 8
-                    onInvalidRead = return 0
+                    onInvalidRead = return $ DataBus 0
                 case mirroredIdx of
                     0 ->
                         if idx == 0x2000
@@ -127,26 +131,38 @@ instance MemoryInterface () (BusM r) where
                                 let
                                     addr1 = idx .&. 0b0010000000000111
                                  in
-                                    readByte addr1 ()
+                                    DataBus <$> readByte addr1 ()
                     1 -> onInvalidRead
                     2 -> withPPU $ do
                         st <- readStatus
                         -- https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS_-_Rendering_events_($2002_read)
                         modifyPPUState $ modifyStatusRegister $ clearFlag VBlankStarted
-                        return st
+                        return $ DataBus st
                     3 -> onInvalidRead
-                    4 -> withPPU readOamData
+                    4 -> DataBus <$> withPPU readOamData
                     5 -> onInvalidRead
                     6 -> onInvalidRead
-                    7 -> withPPU readData
+                    7 -> DataBus <$> withPPU readData
                     _ -> error "Cannot happen"
             | inRange prgRomRange idx = do
                 rom <- withBus cartridge
-                readPrgRomAddr (idx - fst prgRomRange) rom readByte
-            | idx == 0x4014 = return 0
-            | idx == 0x4016 = withController readButtonStatus
-            | idx == 0x4017 = return 0 -- Second joypad, ignore
-            | otherwise = withBus lastReadByte
+                DataBus <$> readPrgRomAddr (idx - fst prgRomRange) rom readByte
+            | idx == 0x4014 = return $ DataBus 0
+            | idx == 0x4016 = DataBus <$> withController readButtonStatus
+            | idx == 0x4017 = return $ DataBus 0 -- Second joypad, ignore
+            | (0x4000, 0x4017) `inRange` idx = do
+                res <- withAPU $ readFromAPU idx
+                case res of
+                    Nothing -> return OpenBus
+                    Just b -> do
+                        b' <- do
+                            if idx == 0x4015
+                                then do
+                                    bit5 <- withBus $ (`testBit` 5) . lastReadByte
+                                    return $ if bit5 then b `setBit` 5 else b `clearBit` 5
+                                else return b
+                        return $ Internal b'
+            | otherwise = return OpenBus
 
     writeByte byte idx () = guardWriteBound idx go
       where
