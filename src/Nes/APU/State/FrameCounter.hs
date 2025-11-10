@@ -21,10 +21,10 @@ sequenceModeStepCount = \case
     FiveStep -> 5
 
 data FrameCounter = MkFC
-    { sequenceMode :: SequenceMode
-    , frameInterruptFlag :: Bool
-    , inhibitInterrupt :: Bool
-    , sequenceStep :: Int
+    { sequenceMode :: {-# UNPACK #-} !SequenceMode
+    , frameInterruptFlag :: {-# UNPACK #-} !Bool
+    , inhibitInterrupt :: {-# UNPACK #-} !Bool
+    , sequenceStep :: {-# UNPACK #-} !Int
     }
 
 newFrameCounter :: FrameCounter

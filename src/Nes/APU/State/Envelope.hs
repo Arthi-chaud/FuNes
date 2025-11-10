@@ -15,12 +15,12 @@ module Nes.APU.State.Envelope (
 ) where
 
 data Envelope = MkE
-    { startFlag :: Bool
-    , useConstantVolume :: Bool
-    , constantVolume :: Int
-    , decayLevel :: Int
-    , divider :: Int
-    , loopFlag :: Bool
+    { startFlag :: {-# UNPACK #-} !Bool
+    , useConstantVolume :: {-# UNPACK #-} !Bool
+    , constantVolume :: {-# UNPACK #-} !Int
+    , decayLevel :: {-# UNPACK #-} !Int
+    , divider :: {-# UNPACK #-} !Int
+    , loopFlag :: {-# UNPACK #-} !Bool
     }
 
 newEnvelope :: Envelope
