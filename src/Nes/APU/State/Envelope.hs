@@ -30,6 +30,7 @@ class HasEnvelope a where
     getEnvelope :: a -> Envelope
     setEnvelope :: Envelope -> a -> a
 
+{-# INLINE withEnvelope #-}
 withEnvelope :: (HasEnvelope a) => (Envelope -> Envelope) -> a -> a
 withEnvelope f a = setEnvelope (f $ getEnvelope a) a
 

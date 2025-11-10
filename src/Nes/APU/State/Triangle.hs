@@ -44,6 +44,7 @@ getSequenceValue t = if step <= 15 then 15 - step else step - 16
   where
     step = sequenceStep t
 
+{-# INLINE getTriangleOutput #-}
 getTriangleOutput :: Triangle -> Int
 getTriangleOutput t = if remainingLength (lengthCounter t) /= 0 then getSequenceValue t else 0
 

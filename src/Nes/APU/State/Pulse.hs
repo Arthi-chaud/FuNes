@@ -62,9 +62,11 @@ data SweepUnit = MkSU
     , isPulse1 :: Bool
     }
 
+{-# INLINE modifySweep #-}
 modifySweep :: (SweepUnit -> SweepUnit) -> Pulse -> Pulse
 modifySweep f p = p{sweepUnit = f (sweepUnit p)}
 
+{-# INLINE withSweep #-}
 withSweep :: (SweepUnit -> a) -> Pulse -> a
 withSweep f p = f (sweepUnit p)
 
@@ -126,6 +128,7 @@ instance HasEnvelope Pulse where
     getEnvelope = envelope
     setEnvelope e a = a{envelope = e}
 
+{-# INLINE getPulseOutput #-}
 getPulseOutput :: Pulse -> Int
 getPulseOutput p =
     let dutyValue = fromMaybe 0 ((dutySequences !? dutyIndex p) >>= (!? dutyStep p))
