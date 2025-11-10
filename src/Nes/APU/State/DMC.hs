@@ -22,22 +22,22 @@ import Nes.Bus.SideEffect (CPUSideEffect (setIRQ, startDMCDMA))
 import Nes.Memory
 
 data DMC = MkDMC
-    { irqEnabledFlag :: Bool
-    , loopFlag :: Bool
-    , period :: Int
-    , timer :: Int
-    , sampleOgAddr :: Addr
-    , sampleOgLength :: Int
-    , sampleBufferAddr :: Addr -- Addr in memory of the sample buffer's byte
-    , sampleBytesRemaining :: Int
-    , sampleBuffer :: Maybe Byte
-    , outputLevel :: Int
-    , enableChannel :: Bool
-    , shouldClock :: Bool
-    , sleepingCycles :: Int
-    , shiftRegister :: Byte
-    , remainingBits :: Byte
-    , silentFlag :: Bool
+    { irqEnabledFlag :: {-# UNPACK #-} !Bool
+    , loopFlag :: {-# UNPACK #-} !Bool
+    , period :: {-# UNPACK #-} !Int
+    , timer :: {-# UNPACK #-} !Int
+    , sampleOgAddr :: {-# UNPACK #-} !Addr
+    , sampleOgLength :: {-# UNPACK #-} !Int
+    , sampleBufferAddr :: {-# UNPACK #-} !Addr -- Addr in memory of the sample buffer's byte
+    , sampleBytesRemaining :: {-# UNPACK #-} !Int
+    , sampleBuffer :: {-# UNPACK #-} !(Maybe Byte)
+    , outputLevel :: {-# UNPACK #-} !Int
+    , enableChannel :: {-# UNPACK #-} !Bool
+    , shouldClock :: {-# UNPACK #-} !Bool
+    , sleepingCycles :: {-# UNPACK #-} !Int
+    , shiftRegister :: {-# UNPACK #-} !Byte
+    , remainingBits :: {-# UNPACK #-} !Byte
+    , silentFlag :: {-# UNPACK #-} !Bool
     }
 
 newDMC :: DMC

@@ -13,7 +13,11 @@ module Nes.APU.State.LengthCounter (
 
 import Data.List ((!?))
 
-data LengthCounter = MkLC {remainingLength :: Int, isHalted :: Bool, tableIndex :: Int}
+data LengthCounter = MkLC
+    { remainingLength :: {-# UNPACK #-} !Int
+    , isHalted :: {-# UNPACK #-} !Bool
+    , tableIndex :: {-# UNPACK #-} !Int
+    }
 
 newLengthCounter :: LengthCounter
 newLengthCounter = MkLC 0 False 0

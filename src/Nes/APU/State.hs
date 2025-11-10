@@ -21,12 +21,12 @@ import Nes.APU.State.Triangle
 import Nes.Bus.SideEffect (CPUSideEffect)
 
 data APUState = MkAPUState
-    { frameCounter :: FrameCounter
-    , pulse1 :: Pulse
-    , pulse2 :: Pulse
-    , triangle :: Triangle
-    , noise :: Noise
-    , dmc :: DMC
+    { frameCounter :: {-# UNPACK #-} !FrameCounter
+    , pulse1 :: {-# UNPACK #-} !Pulse
+    , pulse2 :: {-# UNPACK #-} !Pulse
+    , triangle :: {-# UNPACK #-} !Triangle
+    , noise :: {-# UNPACK #-} !Noise
+    , dmc :: {-# UNPACK #-} !DMC
     }
 
 newAPUState :: APUState

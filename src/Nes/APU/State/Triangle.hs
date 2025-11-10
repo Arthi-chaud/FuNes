@@ -16,14 +16,14 @@ module Nes.APU.State.Triangle (
 import Nes.APU.State.LengthCounter
 
 data Triangle = MkT
-    { controlFlag :: Bool
-    , reloadFlag :: Bool
-    , reloadValue :: Int
-    , lengthCounter :: LengthCounter
-    , linearCounter :: Int
-    , period :: Int
-    , timer :: Int
-    , sequenceStep :: Int
+    { controlFlag :: {-# UNPACK #-} !Bool
+    , reloadFlag :: {-# UNPACK #-} !Bool
+    , reloadValue :: {-# UNPACK #-} !Int
+    , lengthCounter :: {-# UNPACK #-} !LengthCounter
+    , linearCounter :: {-# UNPACK #-} !Int
+    , period :: {-# UNPACK #-} !Int
+    , timer :: {-# UNPACK #-} !Int
+    , sequenceStep :: {-# UNPACK #-} !Int
     }
 
 newTriangle :: Triangle

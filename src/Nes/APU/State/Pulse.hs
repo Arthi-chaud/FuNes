@@ -24,17 +24,17 @@ import Nes.APU.State.Envelope
 import Nes.APU.State.LengthCounter
 
 data Pulse = MkP
-    { dutyIndex :: Int
+    { dutyIndex :: {-# UNPACK #-} !Int
     -- ^ Index for the 'dutySequences' table
-    , dutyStep :: Int
+    , dutyStep :: {-# UNPACK #-} !Int
     -- ^ Index for a row's element in the 'dutySequences' table
-    , lengthCounter :: LengthCounter
-    , period :: Int
+    , lengthCounter :: {-# UNPACK #-} !LengthCounter
+    , period :: {-# UNPACK #-} !Int
     -- ^ Max value of the timer
-    , timer :: Int
+    , timer :: {-# UNPACK #-} !Int
     -- ^ Decreases each tick, from 'period' to 0 and loops
-    , sweepUnit :: SweepUnit
-    , envelope :: Envelope
+    , sweepUnit :: {-# UNPACK #-} !SweepUnit
+    , envelope :: {-# UNPACK #-} !Envelope
     }
 
 -- | Args is true if building pulse 1
