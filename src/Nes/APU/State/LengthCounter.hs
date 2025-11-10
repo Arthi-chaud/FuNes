@@ -28,6 +28,7 @@ tickLengthCounter lc =
         then lc{remainingLength = remainingLength lc - 1}
         else lc
 
+{-# INLINE clearAndHaltLengthCounter #-}
 clearAndHaltLengthCounter :: LengthCounter -> LengthCounter
 clearAndHaltLengthCounter lc = lc{remainingLength = 0, isHalted = True}
 
@@ -43,9 +44,11 @@ class HasLengthCounter a where
     getLengthCounter :: a -> LengthCounter
     setLengthCounter :: LengthCounter -> a -> a
 
+{-# INLINE withLengthCounter #-}
 withLengthCounter :: (HasLengthCounter a) => (LengthCounter -> LengthCounter) -> a -> a
 withLengthCounter f a = setLengthCounter (f $ getLengthCounter a) a
 
+{-# INLINE isSilencedByLengthCounter #-}
 isSilencedByLengthCounter :: (HasLengthCounter a) => a -> Bool
 isSilencedByLengthCounter = (== 0) . remainingLength . getLengthCounter
 

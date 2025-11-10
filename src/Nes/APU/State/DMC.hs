@@ -72,6 +72,7 @@ restartSample dmc =
         , shouldClock = sampleOgLength dmc > 0
         }
 
+{-# INLINE getDMCOutput #-}
 getDMCOutput :: DMC -> Int
 getDMCOutput dmc = if silentFlag dmc then 0 else outputLevel dmc
 
