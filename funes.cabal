@@ -25,6 +25,7 @@ source-repository head
 library
   exposed-modules:
       Nes.APU.BusInterface
+      Nes.APU.BusInterface.DMC
       Nes.APU.BusInterface.FrameCounter
       Nes.APU.BusInterface.Noise
       Nes.APU.BusInterface.Pulse
@@ -43,6 +44,7 @@ library
       Nes.Bus
       Nes.Bus.Constants
       Nes.Bus.Monad
+      Nes.Bus.SideEffect
       Nes.Controller
       Nes.CPU.Instructions.Access
       Nes.CPU.Instructions.Addressing

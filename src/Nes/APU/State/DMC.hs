@@ -1,11 +1,24 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Nes.APU.State.DMC where
+module Nes.APU.State.DMC (
+    DMC (..),
+    newDMC,
+    tickDMC,
+    getPeriodValue,
+
+    -- * Actions
+    restartSample,
+    loadSampleBuffer,
+
+    -- * Output
+    getDMCOutput,
+) where
 
 import Data.Array
 import Data.Bits
 import Data.List ((!?))
 import Data.Maybe (fromMaybe, isNothing)
+import Nes.Bus.SideEffect (CPUSideEffect (setIRQ, startDMCDMA))
 import Nes.Memory
 
 data DMC = MkDMC
@@ -50,9 +63,21 @@ newDMC = MkDMC{..}
 getPeriodValue :: Int -> Int
 getPeriodValue idx = fromMaybe 428 ([428, 380, 340, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54] !? idx)
 
-tickDMC :: DMC -> DMC
+-- | When a sample is (re)started, the current address is set to the sample address, and bytes remaining is set to the sample length.
+restartSample :: DMC -> DMC
+restartSample dmc =
+    dmc
+        { sampleBufferAddr = sampleOgAddr dmc
+        , sampleBytesRemaining = sampleOgLength dmc
+        , shouldClock = sampleOgLength dmc > 0
+        }
+
+getDMCOutput :: DMC -> Int
+getDMCOutput dmc = if silentFlag dmc then 0 else outputLevel dmc
+
+tickDMC :: DMC -> (DMC, CPUSideEffect)
 tickDMC dmc =
-    (if clocks then tickRemainingBits else id)
+    (if clocks then tickOutputUnit else (,mempty))
         dmc
             { timer = newTimer
             , outputLevel = newOutputLevel
@@ -70,46 +95,38 @@ tickDMC dmc =
                  in if (0, 127) `inRange` tmpOutLevel then tmpOutLevel else outputLevel dmc
             else outputLevel dmc
 
--- TODO split clock and tick
-
-tickRemainingBits :: DMC -> DMC
-tickRemainingBits dmc =
-    dmc
-        { remainingBits = newRemainingBits
-        , silentFlag = newSilentFlag
-        , shiftRegister = newShiftRegister
-        , sampleBuffer = newSampleBuffer
-        }
+tickOutputUnit :: DMC -> (DMC, CPUSideEffect)
+tickOutputUnit dmc = if isEndOfOutputCycle then onOutputCycleEnd dmc1 else (dmc1, mempty)
   where
-    outputCycleEnds = remainingBits dmc == 1
-    newRemainingBits = if remainingBits dmc == 1 then 8 else remainingBits dmc - 1
-    newSilentFlag = outputCycleEnds && isNothing (sampleBuffer dmc)
-    -- TODO Call loadSampleBuffer if we empty sample buffer
-    (newShiftRegister, newSampleBuffer) = case (outputCycleEnds, sampleBuffer dmc) of
-        (True, Just byte) -> (byte, Nothing)
-        _ -> (shiftRegister dmc, sampleBuffer dmc)
+    newRemainingBits = max 0 (remainingBits dmc - 1)
+    isEndOfOutputCycle = newRemainingBits == 0
+    dmc1 = dmc{remainingBits = newRemainingBits}
 
-reloadSample :: DMC -> DMC
-reloadSample dmc =
-    dmc
-        { sampleBufferAddr = sampleOgAddr dmc
-        , sampleBytesRemaining = sampleOgLength dmc
-        , shouldClock = sampleOgLength dmc > 0
-        }
+onOutputCycleEnd :: DMC -> (DMC, CPUSideEffect)
+onOutputCycleEnd dmc = (dmc1, sideEffect)
+  where
+    dmc0 = dmc{remainingBits = 8}
+    dmc1 = case sampleBuffer dmc0 of
+        Nothing -> dmc0{silentFlag = True}
+        Just b -> dmc0{shiftRegister = b, sampleBuffer = Nothing}
+    sideEffect = mempty{startDMCDMA = isNothing (sampleBuffer dmc1) && sampleBytesRemaining dmc1 > 0}
 
 -- | Loads the byte into the sample buffer and shift the sample buffer-related values
---
--- The first element of the returned tuple ays if the IRQ flag of the CPU should be set
-loadSampleBuffer :: Byte -> DMC -> (Bool, DMC)
-loadSampleBuffer byte dmc
-    | sampleBytesRemaining dmc == 0 = (False, dmc)
-    | otherwise = if shouldRestartSample then (False, reloadSample dmc1) else (shouldIRQ, dmc1)
-  where
-    dmc1 = dmc{sampleBuffer = Just byte, sampleBytesRemaining = newRemainingLength, sampleBufferAddr = newSampleAddr, shouldClock = newRemainingLength > 0}
-    shouldRestartSample = newRemainingLength == 0 && loopFlag dmc
-    shouldIRQ = newRemainingLength == 0 && irqEnabledFlag dmc
-    newRemainingLength = sampleBytesRemaining dmc - 1
-    newSampleAddr = let addr = sampleBufferAddr dmc + 1 in if addr >= 0xffff then addr - 0x8000 else addr
-
-getDMCOutput :: DMC -> Int
-getDMCOutput dmc = if silentFlag dmc then 0 else outputLevel dmc
+loadSampleBuffer :: Byte -> DMC -> (DMC, CPUSideEffect)
+loadSampleBuffer byte dmc =
+    let
+        newSampleBufferAddr = let addr = sampleBufferAddr dmc + 1 in if addr >= 0xffff then addr - 0x8000 else addr
+        newRemainingLength = max 0 (sampleBytesRemaining dmc - 1)
+        dmc1 =
+            dmc
+                { sampleBuffer = Just byte
+                , sampleBytesRemaining = newRemainingLength
+                , sampleBufferAddr = newSampleBufferAddr
+                , shouldClock = newRemainingLength > 0
+                }
+        shouldRestartSample = newRemainingLength == 0 && loopFlag dmc
+        shouldIRQ = newRemainingLength == 0 && irqEnabledFlag dmc
+     in
+        if shouldRestartSample
+            then (restartSample dmc1, mempty)
+            else (dmc1, mempty{setIRQ = shouldIRQ})

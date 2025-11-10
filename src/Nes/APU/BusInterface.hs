@@ -2,6 +2,7 @@ module Nes.APU.BusInterface (
     writeToAPU,
 ) where
 
+import Nes.APU.BusInterface.DMC
 import Nes.APU.BusInterface.FrameCounter
 import Nes.APU.BusInterface.Noise
 import Nes.APU.BusInterface.Pulse
@@ -30,11 +31,15 @@ writeToAPU addr = case addr of
     0x400C -> write400C
     0x400E -> write400E
     0x400F -> write400F
+    -- DMC
+    0x4010 -> write4010
+    0x4011 -> write4011
+    0x4012 -> write4012
+    0x4013 -> write4013
     -- Status
     0x4015 -> write4015
     -- Frame Counter
     0x4017 -> write4017
-    -- TODO: 0x4010, 0x4013
     _ -> const (return ())
 
 -- TODO Read from APU
