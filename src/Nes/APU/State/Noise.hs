@@ -24,8 +24,8 @@ import Nes.APU.State.LengthCounter
 data Noise = MkN
     { useBit6ForFeedback :: {-# UNPACK #-} !Bool
     -- ^ AKA Mode flag
-    , envelope :: {-# UNPACK #-} !Envelope
-    , lengthCounter :: {-# UNPACK #-} !LengthCounter
+    , envelope :: !Envelope
+    , lengthCounter :: !LengthCounter
     , shiftRegister :: {-# UNPACK #-} !Word16
     , period :: {-# UNPACK #-} !Int
     , timer :: {-# UNPACK #-} !Int

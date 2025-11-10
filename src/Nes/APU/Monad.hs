@@ -26,7 +26,7 @@ instance Applicative (APU r) where
 
 instance Monad (APU r) where
     {-# INLINE (>>=) #-}
-    (MkAPU a) >>= next = MkAPU $ \st cpuEff cont ->
+    (MkAPU a) >>= next = MkAPU $ \(!st) !cpuEff cont ->
         a st cpuEff $ \(!st') (!cpuEff') (!a') -> unAPU (next a') st' (cpuEff <> cpuEff') cont
 
 instance MonadIO (APU r) where
@@ -39,19 +39,20 @@ instance MonadFail (APU r) where
 
 {-# INLINE runAPU #-}
 runAPU :: APUState -> APU (a, APUState, CPUSideEffect) a -> IO (a, APUState, CPUSideEffect)
-runAPU st f = unAPU f st mempty $ \(!st') (!cpuEff) a -> return (a, st', cpuEff)
+runAPU !st f = unAPU f st mempty $ \(!st') (!cpuEff) a -> return (a, st', cpuEff)
 
 {-# INLINE modifyAPUState #-}
 modifyAPUState :: (APUState -> APUState) -> APU r ()
-modifyAPUState f = MkAPU $ \st cpuEff cont -> cont (f st) cpuEff ()
+modifyAPUState f = MkAPU $ \(!st) (!cpuEff) cont -> cont (f st) cpuEff ()
 
 {-# INLINE modifyAPUStateWithSideEffect #-}
 modifyAPUStateWithSideEffect :: (APUState -> (APUState, CPUSideEffect)) -> APU r ()
-modifyAPUStateWithSideEffect f = MkAPU $ \st cpuEff cont -> let (st', sideEff) = f st in cont st' (cpuEff <> sideEff) ()
+modifyAPUStateWithSideEffect f = MkAPU $ \(!st) !cpuEff cont ->
+    let (st', sideEff) = f st in cont st' (cpuEff <> sideEff) ()
 
 {-# INLINE withAPUState #-}
 withAPUState :: (APUState -> a) -> APU r a
-withAPUState f = MkAPU $ \st cpuEff cont -> cont st cpuEff (f st)
+withAPUState f = MkAPU $ \(!st) !cpuEff cont -> cont st cpuEff (f st)
 
 setSideEffect :: CPUSideEffect -> APU r ()
-setSideEffect eff = MkAPU $ \st cpuEff cont -> cont st (cpuEff <> eff) ()
+setSideEffect eff = MkAPU $ \(!st) !cpuEff cont -> cont st (cpuEff <> eff) ()

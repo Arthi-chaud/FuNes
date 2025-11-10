@@ -30,7 +30,7 @@ data DMC = MkDMC
     , sampleOgLength :: {-# UNPACK #-} !Int
     , sampleBufferAddr :: {-# UNPACK #-} !Addr -- Addr in memory of the sample buffer's byte
     , sampleBytesRemaining :: {-# UNPACK #-} !Int
-    , sampleBuffer :: {-# UNPACK #-} !(Maybe Byte)
+    , sampleBuffer :: !(Maybe Byte)
     , outputLevel :: {-# UNPACK #-} !Int
     , enableChannel :: {-# UNPACK #-} !Bool
     , shouldClock :: {-# UNPACK #-} !Bool
