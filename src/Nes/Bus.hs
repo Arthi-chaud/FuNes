@@ -47,8 +47,8 @@ data Bus = Bus
     , cpuSideEffect :: {-# UNPACK #-} !CPUSideEffect
     }
 
-newBus :: Rom -> (Bus -> IO Bus) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
-newBus rom_ onNewFrame_ tickCallback_ = do
+newBus :: Rom -> (Bus -> IO Bus) -> (Float -> IO ()) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
+newBus rom_ onNewFrame_ pushSample_ tickCallback_ = do
     fptr <- callocForeignPtr vramSize
     ppuPtrs <- newPPUPointers
     let ppuSt = newPPUState (mirroring rom_)
@@ -65,5 +65,5 @@ newBus rom_ onNewFrame_ tickCallback_ = do
             ppuPtrs
             onNewFrame_
             0
-            newAPUState
+            (newAPUState pushSample_)
             mempty

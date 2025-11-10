@@ -70,7 +70,7 @@ withPPU f = MkBusM $ \bus cont -> do
 {-# INLINE withAPU #-}
 withAPU :: APU (a, APUState, CPUSideEffect) a -> BusM r a
 withAPU f = MkBusM $ \bus cont -> do
-    (res, apuSt, cpuEff) <- runAPU (apuState bus) f
+    (!res, !apuSt, !cpuEff) <- runAPU (apuState bus) f
     cont (bus{apuState = apuSt, cpuSideEffect = cpuEff}) res
 
 {-# INLINE withController #-}

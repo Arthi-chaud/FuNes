@@ -1,6 +1,8 @@
 module Main (main) where
 
 import Control.Monad
+import Data.IORef
+import qualified Data.Vector.Storable.Mutable as V
 import Events
 import Nes.Bus
 import Nes.Bus.Monad (runBusM)
@@ -25,6 +27,7 @@ main = do
     rom <- do
         res <- fromFile romPath
         either fail return res
+    audioSamples <- newIORef []
     initializeAll
     let windowConfig =
             defaultWindow
@@ -33,6 +36,17 @@ main = do
                         (256 * 3)
                         (240 * 3)
                 , windowPosition = Centered
+                }
+    (device, _) <-
+        openAudioDevice
+            OpenDeviceSpec
+                { SDL.openDeviceFreq = Mandate 44100
+                , SDL.openDeviceFormat = Mandate FloatingLEAudio
+                , SDL.openDeviceChannels = Mandate Mono
+                , SDL.openDeviceSamples = 512
+                , SDL.openDeviceCallback = audioCallback audioSamples
+                , SDL.openDeviceUsage = ForPlayback
+                , SDL.openDeviceName = Nothing
                 }
     window <- createWindow "FuNes" windowConfig
     renderer@(Renderer rendererPtr) <-
@@ -43,9 +57,13 @@ main = do
     _ <- setHintWithPriority NormalPriority HintRenderVSync DisableVSync
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
+    setAudioDevicePlaybackState device Play
     frame <- newFrameState
-    bus <- newBus rom (onDrawFrame frame texture renderer) tickCallback
+    let sampleCallback sample = do
+            modifyIORef audioSamples $ \array -> sample : array
+    bus <- newBus rom (onDrawFrame frame texture renderer) sampleCallback tickCallback
     void $ runProgram bus (pure ())
+    closeAudioDevice device
     destroyRenderer renderer
 
 tickCallback :: Double -> Int -> IO (Double, Int)
@@ -75,6 +93,16 @@ tickCallback lastSleepTime_ ticks_ = return (lastSleepTime_, ticks_)
 --   tickDurationUs = (1000000 / cpuFrequency) :: Double
 --   -- Frequency in Hz
 --   cpuFrequency = 1.789773 * 1000000
+
+audioCallback :: IORef [Float] -> AudioFormat sampleType -> V.IOVector sampleType -> IO ()
+audioCallback samples fmt buffer = case fmt of
+    FloatingLEAudio -> do
+        samples' <- readIORef samples
+        let n = V.length buffer
+            samples1 = reverse samples'
+        zipWithM_ (V.write buffer) [0 ..] (take n samples1)
+        writeIORef samples (reverse $ drop n samples1)
+    _ -> error "Unsupported audio format"
 
 onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO Bus
 onDrawFrame frame texture renderer bus = do

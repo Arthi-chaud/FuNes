@@ -11,9 +11,11 @@ module Nes.APU.State (
     modifyNoise,
     modifyDMC,
     modifyDMC',
+    setCycleDeltaSinceLastSample,
 ) where
 
 import Nes.APU.State.DMC
+import Nes.APU.State.Filter
 import Nes.APU.State.FrameCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
@@ -27,11 +29,18 @@ data APUState = MkAPUState
     , triangle :: !Triangle
     , noise :: !Noise
     , dmc :: !DMC
+    , filterChain :: !FilterChain
+    , cycleDeltaSinceLastSample :: {-# UNPACK #-} !Int
+    , pushSampleCallback :: !(Float -> IO ())
     }
 
-newAPUState :: APUState
+newAPUState :: (Float -> IO ()) -> APUState
 newAPUState =
-    MkAPUState newFrameCounter (newPulse True) (newPulse False) newTriangle newNoise newDMC
+    MkAPUState newFrameCounter (newPulse True) (newPulse False) newTriangle newNoise newDMC newFilterChain 0
+
+setCycleDeltaSinceLastSample :: (Int -> Int) -> APUState -> APUState
+setCycleDeltaSinceLastSample f fc =
+    fc{cycleDeltaSinceLastSample = f $ cycleDeltaSinceLastSample fc}
 
 {-# INLINE modifyPulse1 #-}
 modifyPulse1 :: (Pulse -> Pulse) -> APUState -> APUState
