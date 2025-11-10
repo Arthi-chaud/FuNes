@@ -11,6 +11,7 @@ module Nes.Bus (
 ) where
 
 import Nes.APU.State (APUState, newAPUState)
+import Nes.Bus.SideEffect (CPUSideEffect)
 import Nes.Controller
 import Nes.Internal
 import Nes.Memory
@@ -43,6 +44,7 @@ data Bus = Bus
     , lastReadByte :: Byte
     -- ^ For open bus behaviour. Can be seen as data bus
     , apuState :: !APUState
+    , cpuSideEffect :: {-# UNPACK #-} !CPUSideEffect
     }
 
 newBus :: Rom -> (Bus -> IO Bus) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
@@ -64,3 +66,4 @@ newBus rom_ onNewFrame_ tickCallback_ = do
             onNewFrame_
             0
             newAPUState
+            mempty

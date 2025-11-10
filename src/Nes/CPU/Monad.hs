@@ -7,6 +7,8 @@ module Nes.CPU.Monad (
 
     -- * Interracting with bus
     withBus,
+    withBusState,
+    setSideEffect,
 
     -- * State
     modifyCPUState,
@@ -35,12 +37,17 @@ module Nes.CPU.Monad (
     unsafeWithBus,
 ) where
 
+import Control.Monad
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR), testBit)
+import Nes.APU.Monad (modifyAPUState)
+import Nes.APU.State (APUState (dmc), modifyDMC)
+import Nes.APU.State.DMC (DMC (sampleBuffer, sampleBufferAddr))
 import Nes.Bus (Bus (..))
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, runBusM)
 import qualified Nes.Bus.Monad as BusM
+import Nes.Bus.SideEffect (CPUSideEffect (startDMCDMA))
 import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Interrupt
@@ -58,16 +65,16 @@ newtype CPU r a = MkCPU
 
 instance Applicative (CPU r) where
     {-# INLINE pure #-}
-    pure a = MkCPU $ \st prog cont -> cont st prog a
+    pure a = MkCPU $ \st bus cont -> cont st bus a
     {-# INLINE (<*>) #-}
-    (MkCPU f) <*> (MkCPU a) = MkCPU $ \st prog cont -> f st prog $
+    (MkCPU f) <*> (MkCPU a) = MkCPU $ \st bus cont -> f st bus $
         \st' prog' f' -> a st' prog' $
             \st'' prog'' a' -> cont st'' prog'' $ f' a'
 
 instance Monad (CPU r) where
     {-# INLINE (>>=) #-}
-    (MkCPU a) >>= next = MkCPU $ \st prog cont -> a st prog $
-        \st' prog' a' -> unCPU (next a') st' prog' cont
+    (MkCPU a) >>= next = MkCPU $ \st bus cont -> a st bus $
+        \st' bus' a' -> unCPU (next a') st' bus' cont
 
 instance MonadFail (CPU r) where
     {-# INLINE fail #-}
@@ -75,19 +82,25 @@ instance MonadFail (CPU r) where
 
 instance MonadIO (CPU r) where
     {-# INLINE liftIO #-}
-    liftIO io = MkCPU $ \st prog cont -> io >>= cont st prog
+    liftIO io = MkCPU $ \st bus cont -> io >>= cont st bus
 
 {-# INLINE modifyCPUState #-}
 modifyCPUState :: (CPUState -> CPUState) -> CPU r ()
-modifyCPUState f = MkCPU $ \st prog cont -> cont (f st) prog ()
+modifyCPUState f = MkCPU $ \st bus cont -> cont (f st) bus ()
 
 {-# INLINE withCPUState #-}
 withCPUState :: (CPUState -> a) -> CPU r a
-withCPUState f = MkCPU $ \st prog cont -> cont st prog (f st)
+withCPUState f = MkCPU $ \st bus cont -> cont st bus (f st)
+
+withBusState :: (Bus -> a) -> CPU r a
+withBusState f = MkCPU $ \st bus cont -> cont st bus (f bus)
 
 {-# INLINE getCycles #-}
 getCycles :: CPU r Integer
-getCycles = MkCPU $ \st bus cont -> cont st bus (cycles bus)
+getCycles = withBusState cycles
+
+setSideEffect :: (CPUSideEffect -> CPUSideEffect) -> CPU r ()
+setSideEffect f = MkCPU $ \st bus cont -> cont st bus{cpuSideEffect = f $ cpuSideEffect bus} ()
 
 {-# INLINE getPC #-}
 
@@ -95,7 +108,6 @@ getCycles = MkCPU $ \st bus cont -> cont st bus (cycles bus)
 getPC :: CPU r Addr
 getPC = withCPUState programCounter
 
-{-# INLINE setPC #-}
 setPC :: Addr -> CPU r ()
 setPC addr = modifyCPUState $ \st -> st{programCounter = addr}
 
@@ -134,9 +146,12 @@ pushAddrStack addr = do
 
 {-# INLINE withBus #-}
 withBus :: BusM (a, Bus) a -> CPU r a
-withBus f = MkCPU $ \st bus cont -> do
-    (res, bus') <- runBusM bus f
-    cont st bus' res
+withBus f = do
+    res <- MkCPU $ \st bus cont -> do
+        (res, bus') <- runBusM bus f
+        cont st bus' res
+    handleSideEffect
+    return res
 
 -- | Unsafe action that provides access to Bus
 --
@@ -194,10 +209,17 @@ instance MemoryInterface () (CPU r) where
 
 {-# INLINE tick #-}
 tick :: Int -> CPU r ()
-tick n = MkCPU $ \st bus cont -> do
-    ((), newbus) <- runBusM bus $ BusM.tick n
-    cont st newbus ()
+tick = withBus . BusM.tick
 
 {-# INLINE tickOnce #-}
 tickOnce :: CPU r ()
 tickOnce = Nes.CPU.Monad.tick 1
+
+handleSideEffect :: CPU r ()
+handleSideEffect = do
+    hasDMCDMA <- withBusState $ startDMCDMA . cpuSideEffect
+    when hasDMCDMA $ withBus $ do
+        sampleByteAddr <- BusM.withBus $ sampleBufferAddr . dmc . apuState
+        sample <- Nes.Memory.readByte sampleByteAddr ()
+        BusM.withAPU $ modifyAPUState $ modifyDMC $ \d -> d{sampleBuffer = Just sample}
+        BusM.modifyBus $ \b -> b{cpuSideEffect = (cpuSideEffect b){startDMCDMA = False}}

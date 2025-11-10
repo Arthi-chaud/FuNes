@@ -22,7 +22,7 @@ instance Applicative (APU r) where
 
     {-# INLINE liftA2 #-}
     liftA2 f (MkAPU a) (MkAPU b) = MkAPU $ \(!st) (!cpuEff) cont ->
-        a st cpuEff $ \(!st') (!cpuEff') !a' -> b st' (cpuEff <> cpuEff') $ \(!st'') (!cpuEff'') !b' -> cont st'' (cpuEff' <> cpuEff'') (f a' b')
+        a st cpuEff $ \(!st') (!cpuEff') !a' -> b st' cpuEff' $ \(!st'') (!cpuEff'') !b' -> cont st'' cpuEff'' (f a' b')
 
 instance Monad (APU r) where
     {-# INLINE (>>=) #-}
@@ -38,8 +38,8 @@ instance MonadFail (APU r) where
     fail = liftIO . fail
 
 {-# INLINE runAPU #-}
-runAPU :: APUState -> APU (a, CPUSideEffect, APUState) a -> IO (a, CPUSideEffect, APUState)
-runAPU st f = unAPU f st mempty $ \(!st') (!cpuEff) a -> return (a, cpuEff, st')
+runAPU :: APUState -> APU (a, APUState, CPUSideEffect) a -> IO (a, APUState, CPUSideEffect)
+runAPU st f = unAPU f st mempty $ \(!st') (!cpuEff) a -> return (a, st', cpuEff)
 
 {-# INLINE modifyAPUState #-}
 modifyAPUState :: (APUState -> APUState) -> APU r ()
