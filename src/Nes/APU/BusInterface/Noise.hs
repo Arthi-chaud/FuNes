@@ -8,6 +8,7 @@ import Nes.APU.State.LengthCounter
 import Nes.APU.State.Noise
 import Nes.Memory
 
+{-# INLINE write400C #-}
 write400C :: Byte -> APU r ()
 write400C byte = do
     let haltLC = byte `testBit` 5
@@ -20,12 +21,14 @@ write400C byte = do
                 . withEnvelope
                     (\e -> e{constantVolume = byteToInt vol, useConstantVolume = constVol, loopFlag = haltLC})
 
+{-# INLINE write400E #-}
 write400E :: Byte -> APU r ()
 write400E byte = do
     let modeFlag = byte `testBit` 7
         periodIndex = byteToInt $ byte .&. 0b1111
     modifyAPUState $ modifyNoise $ \t -> t{period = getPeriodValue periodIndex, useBit6ForFeedback = modeFlag}
 
+{-# INLINE write400F #-}
 write400F :: Byte -> APU r ()
 write400F byte = do
     let newLCLoad = byteToInt $ byte `shiftR` 3

@@ -20,9 +20,11 @@ import Nes.APU.State.LengthCounter
 import Nes.APU.State.Pulse
 import Nes.Memory
 
+{-# INLINE write4000 #-}
 write4000 :: Byte -> APU r ()
 write4000 = writePulseFirstByte modifyPulse1
 
+{-# INLINE write4004 #-}
 write4004 :: Byte -> APU r ()
 write4004 = writePulseFirstByte modifyPulse2
 
@@ -38,9 +40,11 @@ writePulseFirstByte setter byte = do
             withLengthCounter (\lc -> lc{isHalted = haltLC}) $
                 p{dutyIndex = fromIntegral $ unByte duty}
 
+{-# INLINE write4001 #-}
 write4001 :: Byte -> APU r ()
 write4001 = writePulseSecondByte modifyPulse1
 
+{-# INLINE write4005 #-}
 write4005 :: Byte -> APU r ()
 write4005 = writePulseSecondByte modifyPulse2
 
@@ -66,9 +70,11 @@ writePulseSecondByte setter byte = do
                             }
                     )
 
+{-# INLINE write4002 #-}
 write4002 :: Byte -> APU r ()
 write4002 = writePulseThirdByte modifyPulse1
 
+{-# INLINE write4006 #-}
 write4006 :: Byte -> APU r ()
 write4006 = writePulseThirdByte modifyPulse2
 
@@ -78,9 +84,11 @@ writePulseThirdByte setter byte = modifyAPUState $ setter $ \p ->
     let newPeriod = (period p .&. 0b11100000000) .|. byteToInt byte
      in updateTargetPeriod $ p{period = newPeriod}
 
+{-# INLINE write4003 #-}
 write4003 :: Byte -> APU r ()
 write4003 = writePulseFourthByte modifyPulse1
 
+{-# INLINE write4007 #-}
 write4007 :: Byte -> APU r ()
 write4007 = writePulseFourthByte modifyPulse2
 

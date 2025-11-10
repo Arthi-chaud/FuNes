@@ -9,6 +9,7 @@ import Nes.APU.Tick
 import Nes.Memory
 
 -- | Callback when a byte is written to 0x4017 through the Bus
+{-# INLINE write4017 #-}
 write4017 :: Byte -> APU r ()
 write4017 byte = do
     let seqMode = sequenceModeFromBool $ byte `testBit` 7

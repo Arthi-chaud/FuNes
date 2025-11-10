@@ -12,6 +12,7 @@ import Nes.APU.BusInterface.Triangle
 import Nes.APU.Monad
 import Nes.Memory (Addr, Byte (..))
 
+{-# INLINE writeToAPU #-}
 writeToAPU :: Addr -> Byte -> APU r ()
 writeToAPU addr = case addr of
     -- Pulse 1
@@ -43,6 +44,7 @@ writeToAPU addr = case addr of
     0x4017 -> write4017
     _ -> const (return ())
 
+{-# INLINE readFromAPU #-}
 readFromAPU :: Addr -> APU r (Maybe Byte)
 readFromAPU = \case
     -- TODO Not open bus

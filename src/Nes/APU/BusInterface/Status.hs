@@ -9,6 +9,7 @@ import Nes.APU.State.FrameCounter
 import Nes.APU.State.LengthCounter
 import Nes.Memory
 
+{-# INLINE write4015 #-}
 write4015 :: Byte -> APU r ()
 write4015 byte = do
     let enablePulse1Lc = byte `testBit` 0
@@ -41,6 +42,7 @@ write4015 byte = do
             then if sampleBytesRemaining t == 0 then restartSample t else t
             else t{sampleBytesRemaining = 0}
 
+{-# INLINE read4015 #-}
 read4015 :: APU r Byte
 read4015 = do
     noiseBit <- withAPUState $ lengthCounterBit . noise
