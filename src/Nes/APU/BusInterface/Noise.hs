@@ -1,4 +1,4 @@
-module Nes.APU.BusInterface.Noise where
+module Nes.APU.BusInterface.Noise (write400C, write400E, write400F) where
 
 import Data.Bits
 import Nes.APU.Monad
