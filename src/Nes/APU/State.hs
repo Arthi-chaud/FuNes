@@ -10,6 +10,7 @@ module Nes.APU.State (
     modifyTriangle,
     modifyNoise,
     modifyDMC,
+    modifyDMC',
 ) where
 
 import Nes.APU.State.DMC
@@ -17,6 +18,7 @@ import Nes.APU.State.FrameCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
+import Nes.Bus.SideEffect (CPUSideEffect)
 
 data APUState = MkAPUState
     { frameCounter :: FrameCounter
@@ -49,7 +51,11 @@ modifyNoise f st = st{noise = f (noise st)}
 
 {-# INLINE modifyDMC #-}
 modifyDMC :: (DMC -> DMC) -> APUState -> APUState
-modifyDMC f st = st{dmc = f (dmc st)}
+modifyDMC f st = let dmc' = f $ dmc st in st{dmc = dmc'}
+
+{-# INLINE modifyDMC' #-}
+modifyDMC' :: (DMC -> (DMC, CPUSideEffect)) -> APUState -> (APUState, CPUSideEffect)
+modifyDMC' f st = let (dmc', sideEff) = f $ dmc st in (st{dmc = dmc'}, sideEff)
 
 {-# INLINE modifyFrameCounter #-}
 modifyFrameCounter :: (FrameCounter -> FrameCounter) -> APUState -> APUState

@@ -15,6 +15,7 @@ import Nes.APU.State
 import qualified Nes.APU.Tick as APU
 import Nes.Bus
 import Nes.Bus.Constants
+import Nes.Bus.SideEffect (CPUSideEffect)
 import Nes.Controller
 import Nes.FlagRegister (clearFlag)
 import Nes.Memory
@@ -66,9 +67,10 @@ withPPU f = MkBusM $ \bus cont -> do
     cont (bus{ppuState = ppuSt}) res
 
 {-# INLINE withAPU #-}
-withAPU :: APU (a, APUState) a -> BusM r a
+withAPU :: APU (a, CPUSideEffect, APUState) a -> BusM r a
 withAPU f = MkBusM $ \bus cont -> do
-    (res, apuSt) <- runAPU (apuState bus) bus f
+    (res, _cpuEff, apuSt) <- runAPU (apuState bus) f
+    -- TODO Apply cpuEff
     cont (bus{apuState = apuSt}) res
 
 {-# INLINE withController #-}
@@ -89,7 +91,8 @@ tick n = MkBusM $ \bus cont -> do
         isNewFrame <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
         return (isNewFrame, before, after)
-    ((), apuSt) <- runAPU (apuState bus) bus $ APU.tick (odd (Nes.Bus.cycles bus)) n
+    ((), _cpuEff, apuSt) <- runAPU (apuState bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
+    -- TODO Apply cpuEff
     let bus' =
             bus
                 { unsleptCycles = newUnsleptCycles

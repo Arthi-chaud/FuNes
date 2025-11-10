@@ -88,7 +88,7 @@ updateTargetPeriod p =
 tickPulse :: Pulse -> Pulse
 tickPulse p = p{dutyStep = newDutyStep, timer = newTimer}
   where
-    newDutyStep = if timer p == 0 then (dutyStep p + 1) `mod` 8 else dutyStep p
+    newDutyStep = if timer p == 0 then (dutyStep p - 1) `mod` 8 else dutyStep p
     newTimer = if timer p == 0 then period p else timer p - 1
 
 tickSweepUnit :: Pulse -> Pulse

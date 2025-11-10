@@ -39,7 +39,7 @@ tick b n = tickOnce b >> tick (not b) (n - 1)
 
 tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
-    modifyAPUState $ modifyDMC tickDMC
+    modifyAPUStateWithSideEffect $ modifyDMC' tickDMC
     modifyAPUState $ modifyTriangle tickTriangle
     when isAPUCycle $ do
         modifyAPUState $

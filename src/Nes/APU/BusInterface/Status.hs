@@ -4,6 +4,7 @@ import Control.Monad
 import Data.Bits
 import Nes.APU.Monad
 import Nes.APU.State
+import Nes.APU.State.DMC
 import Nes.APU.State.LengthCounter
 import Nes.Memory
 
@@ -14,8 +15,6 @@ write4015 byte = do
         enableTriangleLc = byte `testBit` 2
         enableNoiseLc = byte `testBit` 3
         enableDmc = byte `testBit` 4
-    -- TODO: For each LC: If enable is false, call 'clearRemainingLength'
-    -- TODO: Handle DMC side effects
     unless enablePulse1Lc $
         modifyAPUState $
             modifyPulse1 $
@@ -35,3 +34,8 @@ write4015 byte = do
         modifyAPUState $
             modifyNoise $
                 withLengthCounter clearAndHaltLengthCounter
+    modifyAPUState $ modifyDMC $ \t ->
+        if enableDmc
+            -- TODO If there are bits remaining in the 1-byte sample buffer, these will finish playing before the next sample is fetched.
+            then if sampleBytesRemaining t == 0 then restartSample t else t
+            else t{sampleBytesRemaining = 0}
