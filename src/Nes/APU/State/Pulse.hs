@@ -28,12 +28,12 @@ data Pulse = MkP
     -- ^ Index for the 'dutySequences' table
     , dutyStep :: {-# UNPACK #-} !Int
     -- ^ Index for a row's element in the 'dutySequences' table
-    , lengthCounter :: {-# UNPACK #-} !LengthCounter
+    , lengthCounter :: !LengthCounter
     , period :: {-# UNPACK #-} !Int
     -- ^ Max value of the timer
     , timer :: {-# UNPACK #-} !Int
     -- ^ Decreases each tick, from 'period' to 0 and loops
-    , sweepUnit :: {-# UNPACK #-} !SweepUnit
+    , sweepUnit :: !SweepUnit
     , envelope :: {-# UNPACK #-} !Envelope
     }
 

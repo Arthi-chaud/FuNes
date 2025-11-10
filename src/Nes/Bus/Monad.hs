@@ -91,7 +91,7 @@ tick n = MkBusM $ \bus cont -> do
         isNewFrame <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
         return (isNewFrame, before, after)
-    ((), apuSt, cpuEff) <- runAPU (apuState bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
+    ((), !apuSt, !cpuEff) <- runAPU (apuState bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
     let bus' =
             bus
                 { unsleptCycles = newUnsleptCycles

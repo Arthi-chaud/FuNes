@@ -19,7 +19,7 @@ data Triangle = MkT
     { controlFlag :: {-# UNPACK #-} !Bool
     , reloadFlag :: {-# UNPACK #-} !Bool
     , reloadValue :: {-# UNPACK #-} !Int
-    , lengthCounter :: {-# UNPACK #-} !LengthCounter
+    , lengthCounter :: !LengthCounter
     , linearCounter :: {-# UNPACK #-} !Int
     , period :: {-# UNPACK #-} !Int
     , timer :: {-# UNPACK #-} !Int
