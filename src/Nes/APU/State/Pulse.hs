@@ -90,7 +90,7 @@ updateTargetPeriod p =
 tickPulse :: Pulse -> Pulse
 tickPulse p = p{dutyStep = newDutyStep, timer = newTimer}
   where
-    newDutyStep = if timer p == 0 then (dutyStep p - 1) `mod` 8 else dutyStep p
+    newDutyStep = if timer p == 0 then (dutyStep p + 1) `mod` 8 else dutyStep p
     newTimer = if timer p == 0 then period p else timer p - 1
 
 tickSweepUnit :: Pulse -> Pulse
@@ -110,7 +110,7 @@ tickSweepUnit p = p2
                             p
             else p
     p2 =
-        -- TODO Not sure if should use p1 or p2
+        -- TODO Not sure if should use p1 or p0
         if (reloadFlag . sweepUnit) p1 || (dividerCounter . sweepUnit) p1 == 0
             then
                 modifySweep
@@ -132,7 +132,7 @@ instance HasEnvelope Pulse where
 getPulseOutput :: Pulse -> Int
 getPulseOutput p =
     let dutyValue = fromMaybe 0 ((dutySequences !? dutyIndex p) >>= (!? dutyStep p))
-        periodOverflows = (targetPeriod . sweepUnit) p > 0x7ff
+        periodOverflows = not (negateDelta $ sweepUnit p) && (targetPeriod . sweepUnit) p > 0x7ff
         isSilenced =
             isSilencedByLengthCounter p
                 || (period p < 8)
