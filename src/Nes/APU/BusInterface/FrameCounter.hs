@@ -12,14 +12,13 @@ import Nes.Memory
 {-# INLINE write4017 #-}
 write4017 :: Byte -> APU r ()
 write4017 byte = do
+    c <- withAPUState cycleDeltaSinceLastSample
     let seqMode = sequenceModeFromBool $ byte `testBit` 7
         inhibit = byte `testBit` 6
+        delay = if even c then 4 else 3 -- TODO Should use CPU cycle instead
     modifyAPUState $
         modifyFrameCounter $
-            \fc -> fc{sequenceMode = seqMode, inhibitInterrupt = inhibit}
+            \fc -> fc{sequenceMode = seqMode, inhibitInterrupt = inhibit, delayedWriteSideEffectCycle = Just delay}
     -- If the mode flag is set, then both "quarter frame" and "half frame" signals are also generated
-    when (seqMode == FiveStep) $ do
-        runQuarterFrameEvent
-        runHalfFrameEvent
     when inhibit $ do
         setFrameInterruptFlag False
