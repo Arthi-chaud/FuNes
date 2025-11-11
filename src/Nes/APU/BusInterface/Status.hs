@@ -5,8 +5,9 @@ import Data.Bits
 import Nes.APU.Monad
 import Nes.APU.State
 import Nes.APU.State.DMC
-import Nes.APU.State.FrameCounter
 import Nes.APU.State.LengthCounter
+import Nes.APU.Tick (setFrameInterruptFlag)
+import Nes.Bus.SideEffect (CPUSideEffect (setIRQ, startDMCDMA))
 import Nes.Memory
 
 {-# INLINE write4015 #-}
@@ -17,30 +18,23 @@ write4015 byte = do
         enableTriangleLc = byte `testBit` 2
         enableNoiseLc = byte `testBit` 3
         enableDmc = byte `testBit` 4
-    unless enablePulse1Lc $
-        modifyAPUState $
-            modifyPulse1 $
-                withLengthCounter clearAndHaltLengthCounter
-
-    unless enablePulse2Lc $
-        modifyAPUState $
-            modifyPulse2 $
-                withLengthCounter clearAndHaltLengthCounter
-
-    unless enableTriangleLc $
-        modifyAPUState $
-            modifyTriangle $
-                withLengthCounter clearAndHaltLengthCounter
-
-    unless enableNoiseLc $
-        modifyAPUState $
-            modifyNoise $
-                withLengthCounter clearAndHaltLengthCounter
+    toggleLengthCounter enablePulse1Lc modifyPulse1
+    toggleLengthCounter enablePulse2Lc modifyPulse2
+    toggleLengthCounter enableTriangleLc modifyTriangle
+    toggleLengthCounter enableNoiseLc modifyNoise
     modifyAPUState $ modifyDMC $ \t ->
         if enableDmc
             -- TODO If there are bits remaining in the 1-byte sample buffer, these will finish playing before the next sample is fetched.
             then if sampleBytesRemaining t == 0 then restartSample t else t
             else t{sampleBytesRemaining = 0}
+
+{-# INLINE toggleLengthCounter #-}
+toggleLengthCounter :: (HasLengthCounter a) => Bool -> ((a -> a) -> APUState -> APUState) -> APU r ()
+toggleLengthCounter enable f =
+    modifyAPUState $
+        f $
+            withLengthCounter $
+                if enable then enableLengthCounter else disableLengthCounter . clearAndHaltLengthCounter
 
 {-# INLINE read4015 #-}
 read4015 :: APU r Byte
@@ -50,11 +44,10 @@ read4015 = do
     pulse1Bit <- withAPUState $ lengthCounterBit . pulse1
     pulse2Bit <- withAPUState $ lengthCounterBit . pulse2
     dmcBit <- withAPUState $ \st -> sampleBytesRemaining (dmc st) > 0
-    let frameInterruptBit = False -- TODO Should check if side effect if applied
-    let dmcInterruptBit = False -- TODO Should check if side effect if applied
-    -- TODO That Should be a CPUSideEffect
-    modifyAPUState $ modifyFrameCounter $ \fc -> fc{frameInterruptFlag = False}
-    -- TODO If an interrupt flag was set at the same moment of the read, it will read back as 1 but it will not be cleared.
+    frameInterruptBit <- withSideEffect setIRQ
+    dmcInterruptBit <- withSideEffect startDMCDMA
+    when frameInterruptBit $ do
+        setFrameInterruptFlag False
     return $
         setBit' dmcInterruptBit 7 $
             setBit' frameInterruptBit 6 $
@@ -68,4 +61,4 @@ read4015 = do
                                     0
   where
     setBit' b i a = if b then a `setBit` i else a `clearBit` i
-    lengthCounterBit st = let lc = getLengthCounter st in remainingLength lc > 0 && not (isHalted lc)
+    lengthCounterBit st = let lc = getLengthCounter st in isEnabled lc
