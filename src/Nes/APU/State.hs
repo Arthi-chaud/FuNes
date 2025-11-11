@@ -12,6 +12,7 @@ module Nes.APU.State (
     modifyDMC,
     modifyDMC',
     setCycleDeltaSinceLastSample,
+    setSampleBufferSum,
 ) where
 
 import Nes.APU.State.DMC
@@ -31,16 +32,24 @@ data APUState = MkAPUState
     , dmc :: !DMC
     , filterChain :: !FilterChain
     , cycleDeltaSinceLastSample :: {-# UNPACK #-} !Int
+    , samplesBufferSum :: {-# UNPACK #-} !Float
+    , evenSampleCallbackCall :: {-# UNPACK #-} !Bool
     , pushSampleCallback :: !(Float -> IO ())
     }
 
 newAPUState :: (Float -> IO ()) -> APUState
 newAPUState =
-    MkAPUState newFrameCounter (newPulse True) (newPulse False) newTriangle newNoise newDMC newFilterChain 0
+    MkAPUState newFrameCounter (newPulse True) (newPulse False) newTriangle newNoise newDMC newFilterChain 0 0 True
 
+{-# INLINE setCycleDeltaSinceLastSample #-}
 setCycleDeltaSinceLastSample :: (Int -> Int) -> APUState -> APUState
 setCycleDeltaSinceLastSample f fc =
     fc{cycleDeltaSinceLastSample = f $ cycleDeltaSinceLastSample fc}
+
+{-# INLINE setSampleBufferSum #-}
+setSampleBufferSum :: (Float -> Float) -> APUState -> APUState
+setSampleBufferSum f fc =
+    fc{samplesBufferSum = f $ samplesBufferSum fc}
 
 {-# INLINE modifyPulse1 #-}
 modifyPulse1 :: (Pulse -> Pulse) -> APUState -> APUState
