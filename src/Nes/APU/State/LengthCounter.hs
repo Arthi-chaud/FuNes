@@ -4,6 +4,8 @@ module Nes.APU.State.LengthCounter (
     tickLengthCounter,
     loadLengthCounter,
     clearAndHaltLengthCounter,
+    enableLengthCounter,
+    disableLengthCounter,
 
     -- * Class
     HasLengthCounter (..),
@@ -16,11 +18,11 @@ import Data.List ((!?))
 data LengthCounter = MkLC
     { remainingLength :: {-# UNPACK #-} !Int
     , isHalted :: {-# UNPACK #-} !Bool
-    , tableIndex :: {-# UNPACK #-} !Int
+    , isEnabled :: {-# UNPACK #-} !Bool
     }
 
 newLengthCounter :: LengthCounter
-newLengthCounter = MkLC 0 False 0
+newLengthCounter = MkLC 0 False False
 
 tickLengthCounter :: LengthCounter -> LengthCounter
 tickLengthCounter lc =
@@ -36,9 +38,17 @@ clearAndHaltLengthCounter lc = lc{remainingLength = 0, isHalted = True}
 --
 -- Note: It must not be done when the enabled bit (4015) is clear
 loadLengthCounter :: Int -> LengthCounter -> LengthCounter
-loadLengthCounter idx lc = case lengthTable !? idx of
-    Just l -> lc{remainingLength = l, tableIndex = idx}
-    Nothing -> lc -- Index is invalid
+loadLengthCounter idx lc
+    | not $ isEnabled lc = lc
+    | otherwise = case lengthTable !? idx of
+        Just l -> lc{remainingLength = l}
+        Nothing -> lc -- Index is invalid
+
+disableLengthCounter :: LengthCounter -> LengthCounter
+disableLengthCounter lc = lc{isEnabled = False, remainingLength = 0}
+
+enableLengthCounter :: LengthCounter -> LengthCounter
+enableLengthCounter lc = lc{isEnabled = True}
 
 class HasLengthCounter a where
     getLengthCounter :: a -> LengthCounter
