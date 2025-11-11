@@ -59,10 +59,11 @@ data FrameCounter = MkFC
     , inhibitInterrupt :: {-# UNPACK #-} !Bool
     , sequenceStep :: {-# UNPACK #-} !Int
     , cycles :: {-# UNPACK #-} !Int
+    , delayedWriteSideEffectCycle :: !(Maybe Int)
     }
 
 newFrameCounter :: FrameCounter
-newFrameCounter = MkFC FourStep False False 0 0
+newFrameCounter = MkFC FourStep False False 0 0 Nothing
 
 {-# INLINE resetSequence #-}
 resetSequence :: FrameCounter -> FrameCounter

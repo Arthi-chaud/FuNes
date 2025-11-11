@@ -44,6 +44,7 @@ tick b n = tickOnce b >> tick (not b) (n - 1)
 {-# INLINE tickOnce #-}
 tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
+    tickDelayedWriteBuffer
     modifyAPUStateWithSideEffect $ modifyDMC' tickDMC
     modifyAPUState $ modifyTriangle tickTriangle
     when isAPUCycle $ do
@@ -51,14 +52,20 @@ tickOnce isAPUCycle = do
             modifyPulse1 tickPulse
                 . modifyPulse2 tickPulse
         tickFrameCounter
+
     delta <- withAPUState cycleDeltaSinceLastSample
-    if delta > 40
+    sample <- runMixer
+    modifyAPUState $ setSampleBufferSum (+ sample)
+    isEven <- withAPUState evenSampleCallbackCall
+    if delta >= (if isEven then 40 else 41)
         then do
-            (sample, st'') <- withAPUState runMixer
-            modifyAPUState $ const st''
+            sampleSum <- withAPUState samplesBufferSum
             callback <- withAPUState pushSampleCallback
-            liftIO $ callback sample
-            modifyAPUState $ setCycleDeltaSinceLastSample (const 0)
+            liftIO $ callback (sampleSum / fromIntegral delta)
+            modifyAPUState $
+                setCycleDeltaSinceLastSample (const 0)
+                    . setSampleBufferSum (const 0)
+                    . (\st -> st{evenSampleCallbackCall = not isEven})
         else
             modifyAPUState $
                 setCycleDeltaSinceLastSample (+ 1)
@@ -80,6 +87,24 @@ tickFrameCounter = do
                     FiveStep -> tickFrameCounterFiveStep
                 modifyAPUState $ modifyFrameCounter incrementSequenceStep
             modifyAPUState $ modifyFrameCounter $ setCycles (+ 1)
+
+tickDelayedWriteBuffer :: APU r ()
+tickDelayedWriteBuffer = do
+    fc <- withAPUState frameCounter
+    case delayedWriteSideEffectCycle fc of
+        Nothing -> return ()
+        Just 0 -> do
+            seqMode <- withAPUState $ sequenceMode . frameCounter
+            modifyAPUState $
+                modifyFrameCounter $
+                    const fc{delayedWriteSideEffectCycle = Nothing, FC.sequenceStep = 0, cycles = 0}
+            when (seqMode == FiveStep) $ do
+                runQuarterFrameEvent
+                runHalfFrameEvent
+        Just n ->
+            modifyAPUState $
+                modifyFrameCounter $
+                    const fc{delayedWriteSideEffectCycle = Just $ n - 1}
 
 resetFrameCounterSequence :: APU r ()
 resetFrameCounterSequence = do
@@ -125,7 +150,7 @@ runHalfFrameEvent = modifyAPUState $ \st ->
 {-# INLINE setFrameInterruptFlag #-}
 setFrameInterruptFlag :: Bool -> APU r ()
 setFrameInterruptFlag b = do
-    setSideEffect $ mempty{setIRQ = True}
+    setSideEffect $ \st -> st{setIRQ = b}
     modifyAPUState $
         modifyFrameCounter $
             \fc -> fc{frameInterruptFlag = b}
