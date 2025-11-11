@@ -5,6 +5,7 @@ module Nes.APU.Monad (
     modifyAPUStateWithSideEffect,
     withAPUState,
     setSideEffect,
+    withSideEffect,
 ) where
 
 import Control.Monad.IO.Class
@@ -55,5 +56,9 @@ withAPUState :: (APUState -> a) -> APU r a
 withAPUState f = MkAPU $ \(!st) !cpuEff cont -> cont st cpuEff (f st)
 
 {-# INLINE setSideEffect #-}
-setSideEffect :: CPUSideEffect -> APU r ()
-setSideEffect eff = MkAPU $ \(!st) !cpuEff cont -> cont st (cpuEff <> eff) ()
+setSideEffect :: (CPUSideEffect -> CPUSideEffect) -> APU r ()
+setSideEffect f = MkAPU $ \(!st) !cpuEff cont -> cont st (f cpuEff) ()
+
+{-# INLINE withSideEffect #-}
+withSideEffect :: (CPUSideEffect -> a) -> APU r a
+withSideEffect f = MkAPU $ \(!st) !cpuEff cont -> cont st cpuEff (f cpuEff)

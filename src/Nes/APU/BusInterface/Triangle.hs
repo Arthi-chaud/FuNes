@@ -33,7 +33,7 @@ write400B :: Byte -> APU r ()
 write400B byte = modifyAPUState $ modifyTriangle $ \t ->
     let timerHigh = byteToInt $ byte .&. 0b111
         newPeriod = (timerHigh `shiftL` 8) .|. (period t .&. 0b11111111)
-        newLcLoad = byteToInt byte `shiftR` 3
+        newLcLoad = byteToInt $ byte `shiftR` 3
      in withLengthCounter (loadLengthCounter newLcLoad) $
             t
                 { reloadFlag = True
