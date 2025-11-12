@@ -22,6 +22,7 @@ import Nes.APU.State.Envelope
 import Nes.APU.State.FrameCounter
 import qualified Nes.APU.State.FrameCounter as FC
 import Nes.APU.State.LengthCounter
+import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
 import Nes.Bus.SideEffect (CPUSideEffect (setIRQ))
@@ -46,7 +47,9 @@ tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
     tickDelayedWriteBuffer
     modifyAPUStateWithSideEffect $ modifyDMC' tickDMC
-    modifyAPUState $ modifyTriangle tickTriangle
+    modifyAPUState $
+        modifyTriangle tickTriangle
+            . modifyNoise tickNoise
     when isAPUCycle $ do
         modifyAPUState $
             modifyPulse1 tickPulse

@@ -7,7 +7,7 @@ module Nes.APU.State.Noise (
     getNoiseOutput,
 
     -- * Clock
-    tickPulse,
+    tickNoise,
     tickShiftRegister,
 
     -- * Utils
@@ -46,14 +46,14 @@ getPeriodValue idx = fromMaybe 4 ([4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380
 
 instance HasLengthCounter Noise where
     getLengthCounter = lengthCounter
-    setLengthCounter lc t = t{lengthCounter = lc}
+    setLengthCounter lc n = n{lengthCounter = lc}
 
 instance HasEnvelope Noise where
     getEnvelope = envelope
-    setEnvelope e t = t{envelope = e}
+    setEnvelope e n = n{envelope = e}
 
-tickPulse :: Noise -> Noise
-tickPulse n = tickCallback $ n{timer = newTimer}
+tickNoise :: Noise -> Noise
+tickNoise n = tickCallback $ n{timer = newTimer}
   where
     newTimer = if timer n == 0 then period n else timer n - 1
     tickCallback = if timer n == 0 then tickShiftRegister else id
@@ -68,7 +68,9 @@ tickShiftRegister n = n{shiftRegister = shift2}
     shift2 = if feeback then shift1 `setBit` 14 else shift1
 
 getNoiseOutput :: Noise -> Int
-getNoiseOutput n = if shiftBit0IsSet || lengthCounterIsZero then 0 else getEnvelopeOutput $ envelope n
+getNoiseOutput n =
+    if shiftBit0IsSet || isSilencedByLengthCounter n
+        then 0
+        else getEnvelopeOutput $ envelope n
   where
     shiftBit0IsSet = shiftRegister n `testBit` 0
-    lengthCounterIsZero = remainingLength (lengthCounter n) == 0
