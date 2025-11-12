@@ -36,9 +36,16 @@ writePulseFirstByte setter byte = do
         constVol = byte `testBit` 4
         vol = byte .&. 0b1111
     modifyAPUState $ setter $ \p ->
-        withEnvelope (\e -> e{constantVolume = byteToInt vol, useConstantVolume = constVol, loopFlag = haltLC}) $
-            withLengthCounter (\lc -> lc{isHalted = haltLC}) $
-                p{dutyIndex = fromIntegral $ unByte duty}
+        withEnvelope
+            ( \e ->
+                e
+                    { constantVolume = byteToInt vol
+                    , useConstantVolume = constVol
+                    , loopFlag = haltLC
+                    }
+            )
+            $ withLengthCounter (\lc -> lc{isHalted = haltLC})
+            $ p{dutyIndex = fromIntegral $ unByte duty}
 
 {-# INLINE write4001 #-}
 write4001 :: Byte -> APU r ()
@@ -52,7 +59,7 @@ write4005 = writePulseSecondByte modifyPulse2
 writePulseSecondByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
 writePulseSecondByte setter byte = do
     let enabledFlag = byte `testBit` 7
-        divPeriod = (byte `shiftR` 4) .&. 0b111
+        divPeriod = 1 + ((byte `shiftR` 4) .&. 0b111)
         negateFlag = byte `testBit` 3
         shiftC = byte .&. 0b111
         sweepIsEnabled = enabledFlag && shiftC > 0
@@ -104,8 +111,4 @@ writePulseFourthByte setter byte = modifyAPUState $ setter $ \p ->
                     p
                         { period = newPeriod
                         , dutyStep = 0
-                        -- TODO Not sure
-                        -- https://www.nesdev.org/wiki/APU_Pulse#Registers
                         }
-
---
