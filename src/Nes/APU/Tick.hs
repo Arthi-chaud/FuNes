@@ -17,15 +17,19 @@ import Control.Monad.IO.Class
 import Nes.APU.Mixer
 import Nes.APU.Monad
 import Nes.APU.State
+import qualified Nes.APU.State as S
 import Nes.APU.State.DMC
 import Nes.APU.State.Envelope
+import Nes.APU.State.Filter.Class
 import Nes.APU.State.FrameCounter
 import qualified Nes.APU.State.FrameCounter as FC
 import Nes.APU.State.LengthCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
-import Nes.Bus.SideEffect (CPUSideEffect (setIRQ))
+import Nes.Bus.SideEffect
+import Nes.FlagRegister
+import Prelude hiding (cycle)
 
 -- $use
 --     The APU being a part of the CPU, they both tick at the same time. However, some ticks are updated every other CPU cycles.
@@ -37,7 +41,6 @@ type IsAPUCycle = Bool
 -- | Calls 'tick' n amount of time
 --
 -- the first parameter says whether the first tick is an APU cycle or not
-{-# INLINE tick #-}
 tick :: IsAPUCycle -> Int -> APU r ()
 tick _ 0 = return ()
 tick b n = tickOnce b >> tick (not b) (n - 1)
@@ -45,6 +48,7 @@ tick b n = tickOnce b >> tick (not b) (n - 1)
 {-# INLINE tickOnce #-}
 tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
+    -- Ticks
     tickDelayedWriteBuffer
     modifyAPUStateWithSideEffect $ modifyDMC' tickDMC
     modifyAPUState $
@@ -56,22 +60,18 @@ tickOnce isAPUCycle = do
                 . modifyPulse2 tickPulse
         tickFrameCounter
 
-    delta <- withAPUState cycleDeltaSinceLastSample
-    sample <- runMixer
-    modifyAPUState $ setSampleBufferSum (+ sample)
-    isEven <- withAPUState evenSampleCallbackCall
-    if delta >= (if isEven then 40 else 41)
-        then do
-            sampleSum <- withAPUState samplesBufferSum
-            callback <- withAPUState pushSampleCallback
-            liftIO $ callback (sampleSum / fromIntegral delta)
-            modifyAPUState $
-                setCycleDeltaSinceLastSample (const 0)
-                    . setSampleBufferSum (const 0)
-                    . (\st -> st{evenSampleCallbackCall = not isEven})
-        else
-            modifyAPUState $
-                setCycleDeltaSinceLastSample (+ 1)
+    -- Mixing
+    sample <- withAPUState getMixerOutput
+    modifyFilterChain $ consume sample
+    modifyAPUState $ \st -> st{sampleTimer = sampleTimer st - 1}
+    sampleTimer' <- withAPUState sampleTimer
+    when (sampleTimer' <= 1) $ do
+        filterOut <- withAPUState $ output . filterChain
+        callback <- withAPUState pushSampleCallback
+        liftIO $ callback filterOut
+        modifyAPUState $
+            \st -> st{sampleTimer = S.sampleTimer st + S.samplePeriod st}
+    modifyAPUState $ \st -> st{cycle = cycle st + 1}
 
 -- | Tells the frame counter to tick channels
 --
@@ -153,7 +153,7 @@ runHalfFrameEvent = modifyAPUState $ \st ->
 {-# INLINE setFrameInterruptFlag #-}
 setFrameInterruptFlag :: Bool -> APU r ()
 setFrameInterruptFlag b = do
-    setSideEffect $ \st -> st{setIRQ = b}
+    setSideEffect $ setFlag IRQ
     modifyAPUState $
         modifyFrameCounter $
             \fc -> fc{frameInterruptFlag = b}
