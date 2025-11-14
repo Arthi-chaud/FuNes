@@ -36,7 +36,12 @@ library
       Nes.APU.State
       Nes.APU.State.DMC
       Nes.APU.State.Envelope
-      Nes.APU.State.Filter
+      Nes.APU.State.Filter.Chain
+      Nes.APU.State.Filter.Class
+      Nes.APU.State.Filter.Constants
+      Nes.APU.State.Filter.Fir
+      Nes.APU.State.Filter.Iir
+      Nes.APU.State.Filter.Sampled
       Nes.APU.State.FrameCounter
       Nes.APU.State.LengthCounter
       Nes.APU.State.Noise
