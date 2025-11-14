@@ -18,7 +18,8 @@ import Data.Array
 import Data.Bits
 import Data.List ((!?))
 import Data.Maybe (fromMaybe, isNothing)
-import Nes.Bus.SideEffect (CPUSideEffect (setIRQ, startDMCDMA))
+import Nes.Bus.SideEffect
+import Nes.FlagRegister
 import Nes.Memory
 
 data DMC = MkDMC
@@ -110,7 +111,7 @@ onOutputCycleEnd dmc = (dmc1, sideEffect)
     dmc1 = case sampleBuffer dmc0 of
         Nothing -> dmc0{silentFlag = True}
         Just b -> dmc0{shiftRegister = b, sampleBuffer = Nothing}
-    sideEffect = mempty{startDMCDMA = isNothing (sampleBuffer dmc1) && sampleBytesRemaining dmc1 > 0}
+    sideEffect = setFlag' DMCDMA (isNothing (sampleBuffer dmc1) && sampleBytesRemaining dmc1 > 0) mempty
 
 -- | Loads the byte into the sample buffer and shift the sample buffer-related values
 loadSampleBuffer :: Byte -> DMC -> (DMC, CPUSideEffect)
@@ -130,4 +131,4 @@ loadSampleBuffer byte dmc =
      in
         if shouldRestartSample
             then (restartSample dmc1, mempty)
-            else (dmc1, mempty{setIRQ = shouldIRQ})
+            else (dmc1, setFlag' IRQ shouldIRQ mempty)
