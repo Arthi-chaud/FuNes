@@ -19,6 +19,7 @@ dependencies:
   - vector
 
 default-extensions:
+  - Strict
   - BinaryLiterals
   - LambdaCase
   - GeneralizedNewtypeDeriving
@@ -40,7 +41,7 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wpartial-fields
   - -Wredundant-constraints
-  - -O2
+  - -O3
 
 library:
   source-dirs: src
