@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Nes.APU.State (
     -- * Definition
     APUState (..),
@@ -11,17 +13,17 @@ module Nes.APU.State (
     modifyNoise,
     modifyDMC,
     modifyDMC',
-    setCycleDeltaSinceLastSample,
-    setSampleBufferSum,
 ) where
 
 import Nes.APU.State.DMC
-import Nes.APU.State.Filter
+import Nes.APU.State.Filter.Chain
+import Nes.APU.State.Filter.Constants (defaultOutputRate)
 import Nes.APU.State.FrameCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
 import Nes.Bus.SideEffect (CPUSideEffect)
+import Prelude hiding (cycle)
 
 data APUState = MkAPUState
     { frameCounter :: !FrameCounter
@@ -30,26 +32,29 @@ data APUState = MkAPUState
     , triangle :: !Triangle
     , noise :: !Noise
     , dmc :: !DMC
+    , cycle :: {-# UNPACK #-} !Int
+    -- ^ Number of CPU cycles since the start
     , filterChain :: !FilterChain
-    , cycleDeltaSinceLastSample :: {-# UNPACK #-} !Int
-    , samplesBufferSum :: {-# UNPACK #-} !Float
-    , evenSampleCallbackCall :: {-# UNPACK #-} !Bool
-    , pushSampleCallback :: !(Float -> IO ())
+    , sampleTimer :: {-# UNPACK #-} !Float
+    -- ^ The number of CPU cycles since the last call to 'pushSampleCallback'
+    , samplePeriod :: {-# UNPACK #-} !Float
+    -- ^ The number of CPU cycles between each call to 'pushSampleCallback'
+    , pushSampleCallback :: Float -> IO ()
     }
 
 newAPUState :: (Float -> IO ()) -> APUState
-newAPUState =
-    MkAPUState newFrameCounter (newPulse True) (newPulse False) newTriangle newNoise newDMC newFilterChain 0 0 True
-
-{-# INLINE setCycleDeltaSinceLastSample #-}
-setCycleDeltaSinceLastSample :: (Int -> Int) -> APUState -> APUState
-setCycleDeltaSinceLastSample f fc =
-    fc{cycleDeltaSinceLastSample = f $ cycleDeltaSinceLastSample fc}
-
-{-# INLINE setSampleBufferSum #-}
-setSampleBufferSum :: (Float -> Float) -> APUState -> APUState
-setSampleBufferSum f fc =
-    fc{samplesBufferSum = f $ samplesBufferSum fc}
+newAPUState pushSampleCallback = MkAPUState{..}
+  where
+    frameCounter = newFrameCounter
+    cycle = 0
+    pulse1 = newPulse True
+    pulse2 = newPulse False
+    triangle = newTriangle
+    noise = newNoise
+    dmc = newDMC
+    filterChain = newFilterChain defaultOutputRate
+    samplePeriod = (21477272 / 12) / defaultOutputRate
+    sampleTimer = samplePeriod
 
 {-# INLINE modifyPulse1 #-}
 modifyPulse1 :: (Pulse -> Pulse) -> APUState -> APUState

@@ -12,10 +12,10 @@ import Nes.Memory
 {-# INLINE write4017 #-}
 write4017 :: Byte -> APU r ()
 write4017 byte = do
-    c <- withAPUState cycleDeltaSinceLastSample
+    c <- withAPUState Nes.APU.State.cycle
     let seqMode = sequenceModeFromBool $ byte `testBit` 7
         inhibit = byte `testBit` 6
-        delay = if even c then 4 else 3 -- TODO Should use CPU cycle instead
+        delay = if even c then 4 else 3
     modifyAPUState $
         modifyFrameCounter $
             \fc -> fc{sequenceMode = seqMode, inhibitInterrupt = inhibit, delayedWriteSideEffectCycle = Just delay}
