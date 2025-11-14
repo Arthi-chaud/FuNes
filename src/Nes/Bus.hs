@@ -8,6 +8,7 @@ module Nes.Bus (
     -- * Bus
     Bus (..),
     newBus,
+    modifyPPUState,
 ) where
 
 import Nes.APU.State (APUState, newAPUState)
@@ -67,3 +68,6 @@ newBus rom_ onNewFrame_ pushSample_ tickCallback_ = do
             0
             (newAPUState pushSample_)
             mempty
+
+modifyPPUState :: (PPUState -> PPUState) -> Bus -> Bus
+modifyPPUState f bus = bus{ppuState = f $ ppuState bus}

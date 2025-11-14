@@ -4,6 +4,7 @@ module Nes.PPU.State (
     -- * State
     PPUState (..),
     newPPUState,
+    setIOBus,
 
     -- *  Address Register
     AddressRegister (highPtr),
@@ -62,6 +63,7 @@ data PPUState = MkPPUState
     , cycles :: {-# UNPACK #-} !Int
     , scanline :: {-# UNPACK #-} !Word16
     , nmiInterrupt :: {-# UNPACK #-} !Bool
+    , ioBus :: {-# UNPACK #-} !Byte
     }
 
 {-# INLINE modifyControlRegister #-}
@@ -96,7 +98,11 @@ newPPUState mirroring =
         cycles = 0
         scanline = 0
         nmiInterrupt = False
+        ioBus = 0
      in MkPPUState{..}
+
+setIOBus :: Byte -> PPUState -> PPUState
+setIOBus b st = st{ioBus = b}
 
 data AddressRegister = AddressRegister
     { low :: {-# UNPACK #-} !Byte

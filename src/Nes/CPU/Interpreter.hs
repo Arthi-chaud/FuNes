@@ -8,7 +8,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.Functor
 import Data.Map
-import Nes.Bus
+import Nes.Bus (Bus (..))
 import Nes.Bus.Monad (withPPU)
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Monad
