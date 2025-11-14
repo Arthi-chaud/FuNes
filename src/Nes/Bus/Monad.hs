@@ -156,8 +156,14 @@ instance MemoryInterface () (BusM r) where
                 rom <- withBus cartridge
                 DataBus <$> readPrgRomAddr (idx - fst prgRomRange) rom readByte
             | idx == 0x4014 = return $ DataBus 0
-            | idx == 0x4016 = DataBus <$> withController readButtonStatus
-            | idx == 0x4017 = return $ DataBus 0 -- Second joypad, ignore
+            | idx == 0x4016 = do
+                res <- withController readButtonStatus
+                oldDataBus <- withBus dataBus
+                let newDataBus = (oldDataBus .&. 0b11100000) .|. (res .&. 0b11111)
+                return $ DataBus newDataBus
+            | idx == 0x4017 = do
+                oldDataBus <- withBus dataBus
+                return $ DataBus $ oldDataBus .&. 0b11100000
             | (0x4000, 0x4017) `inRange` idx = do
                 res <- withAPU $ readFromAPU idx
                 case res of
