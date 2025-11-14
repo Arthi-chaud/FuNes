@@ -4,12 +4,14 @@ module Nes.APU.Monad (
     modifyAPUState,
     modifyAPUStateWithSideEffect,
     withAPUState,
+    modifyFilterChain,
     setSideEffect,
     withSideEffect,
 ) where
 
 import Control.Monad.IO.Class
 import Nes.APU.State
+import Nes.APU.State.Filter.Chain (FilterChain)
 import Nes.Bus.SideEffect
 
 newtype APU r a = MkAPU
@@ -27,8 +29,8 @@ instance Applicative (APU r) where
 
 instance Monad (APU r) where
     {-# INLINE (>>=) #-}
-    (MkAPU a) >>= next = MkAPU $ \(!st) !cpuEff cont ->
-        a st cpuEff $ \(!st') (!cpuEff') (!a') -> unAPU (next a') st' (cpuEff <> cpuEff') cont
+    (MkAPU a) >>= next = MkAPU $ \st cpuEff cont ->
+        a st cpuEff $ \(!st') (!cpuEff') (!a') -> unAPU (next a') st' cpuEff' cont
 
 instance MonadIO (APU r) where
     {-# INLINE liftIO #-}
@@ -54,6 +56,11 @@ modifyAPUStateWithSideEffect f = MkAPU $ \(!st) !cpuEff cont ->
 {-# INLINE withAPUState #-}
 withAPUState :: (APUState -> a) -> APU r a
 withAPUState f = MkAPU $ \(!st) !cpuEff cont -> cont st cpuEff (f st)
+
+{-# INLINE modifyFilterChain #-}
+modifyFilterChain :: (FilterChain -> FilterChain) -> APU r ()
+modifyFilterChain f = MkAPU $ \(!st) !cpuEff cont ->
+    cont st{filterChain = f $ filterChain st} cpuEff ()
 
 {-# INLINE setSideEffect #-}
 setSideEffect :: (CPUSideEffect -> CPUSideEffect) -> APU r ()

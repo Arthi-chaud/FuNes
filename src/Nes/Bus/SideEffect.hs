@@ -1,13 +1,23 @@
-module Nes.Bus.SideEffect (CPUSideEffect (..)) where
+module Nes.Bus.SideEffect (CPUSideEffect (..), CPUSideEffectFlag (..)) where
 
-data CPUSideEffect = MkSE
-    { setIRQ :: {-# UNPACK #-} !Bool
-    , startDMCDMA :: {-# UNPACK #-} !Bool
-    }
-    deriving (Eq, Show)
+import Data.Bits ((.|.))
+import Nes.FlagRegister
+import Nes.Memory
+
+newtype CPUSideEffect = MkSE {unSE :: Byte}
+
+data CPUSideEffectFlag = IRQ | DMCDMA deriving (Eq, Show, Enum)
+
+instance FlagRegister CPUSideEffect where
+    type Flag CPUSideEffect = CPUSideEffectFlag
+    fromByte = MkSE
+    toByte = unSE
+    flagToBitOffset = fromEnum
 
 instance Semigroup CPUSideEffect where
-    (MkSE !irq1 !dma1) <> (MkSE !irq2 !dma2) = MkSE (irq1 || irq2) (dma1 || dma2)
+    {-# INLINE (<>) #-}
+    MkSE se1 <> MkSE se2 = MkSE (se1 .|. se2)
 
 instance Monoid CPUSideEffect where
-    mempty = MkSE False False
+    {-# INLINE mempty #-}
+    mempty = MkSE 0
