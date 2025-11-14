@@ -1,30 +1,27 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Nes.APU.Mixer (runMixer) where
+module Nes.APU.Mixer (getMixerOutput) where
 
-import Nes.APU.Monad
 import Nes.APU.State
 import Nes.APU.State.DMC (getDMCOutput)
 import Nes.APU.State.Noise (getNoiseOutput)
 import Nes.APU.State.Pulse (getPulseOutput)
 import Nes.APU.State.Triangle (getTriangleOutput)
+import Prelude hiding (cycle)
 
-runMixer :: APU r Float
-runMixer = do
-    MkAPUState{..} <- withAPUState id
+getMixerOutput :: APUState -> Float
+getMixerOutput MkAPUState{..} =
     let
-        pulse1Out = getPulseOutput pulse1
-        pulse2Out = getPulseOutput pulse2
-        triangleOut = getTriangleOutput triangle
-        noiseOut = getNoiseOutput noise
-        dmcOut = getDMCOutput dmc
-        pulseOut = pulseTable (pulse1Out + pulse2Out)
-        tndOut = tndTable (3 * triangleOut + 2 * noiseOut + dmcOut)
-        mixerOutput = pulseOut + tndOut
-    -- (res, newFilters) = processSample mixerOutput filterChain
-    -- TODO: With filter: too low
-    -- modifyAPUState $ \st' -> st'{filterChain = newFilters}
-    return mixerOutput
+        !pulse1Out = getPulseOutput pulse1
+        !pulse2Out = getPulseOutput pulse2
+        !triangleOut = getTriangleOutput triangle
+        !noiseOut = getNoiseOutput noise
+        !dmcOut = getDMCOutput dmc
+        !pulseOut = pulseTable (pulse1Out + pulse2Out)
+        !tndOut = tndTable (3 * triangleOut + 2 * noiseOut + dmcOut)
+        !mixerOutput = pulseOut + tndOut
+     in
+        mixerOutput
 
 {-# INLINE pulseTable #-}
 pulseTable :: Int -> Float
