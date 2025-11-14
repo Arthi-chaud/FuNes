@@ -111,8 +111,8 @@ data BusReadOutput = OpenBus | DataBus Byte | Internal Byte
 instance MemoryInterface () (BusM r) where
     readByte idx () =
         go >>= \case
-            DataBus byte -> modifyBus (\b -> b{lastReadByte = byte}) $> byte
-            OpenBus -> withBus lastReadByte
+            DataBus byte -> modifyBus (\b -> b{dataBus = byte}) $> byte
+            OpenBus -> withBus dataBus
             Internal byte -> return byte
       where
         go
@@ -157,14 +157,14 @@ instance MemoryInterface () (BusM r) where
                         b' <- do
                             if idx == 0x4015
                                 then do
-                                    bit5 <- withBus $ (`testBit` 5) . lastReadByte
+                                    bit5 <- withBus $ (`testBit` 5) . dataBus
                                     return $ if bit5 then b `setBit` 5 else b `clearBit` 5
                                 else return b
                         return $ Internal b'
             | otherwise = return OpenBus
 
     writeByte byte idx () = guardWriteBound idx $ do
-        modifyBus $ \bus -> bus{lastReadByte = byte}
+        modifyBus $ \bus -> bus{dataBus = byte}
         go
       where
         go

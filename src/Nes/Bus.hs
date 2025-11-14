@@ -41,8 +41,8 @@ data Bus = Bus
     , ppuPointers :: !PPUPointers
     -- ^ Memory dedicated to PPU
     , onNewFrame :: Bus -> IO Bus
-    , lastReadByte :: {-# UNPACK #-} !Byte
-    -- ^ For open bus behaviour. Can be seen as data bus
+    , dataBus :: {-# UNPACK #-} !Byte
+    -- ^ Last read/written byte
     , apuState :: !APUState
     , cpuSideEffect :: {-# UNPACK #-} !CPUSideEffect
     }
