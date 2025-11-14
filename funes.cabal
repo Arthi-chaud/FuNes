@@ -94,6 +94,7 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      Strict
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
@@ -104,7 +105,7 @@ library
       DeriveFunctor
       DataKinds
       QualifiedDo
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O3
   build-depends:
       array
     , base >=4.7 && <5
@@ -123,6 +124,7 @@ executable fake-snake
   hs-source-dirs:
       examples
   default-extensions:
+      Strict
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
@@ -133,7 +135,7 @@ executable fake-snake
       DeriveFunctor
       DataKinds
       QualifiedDo
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O3 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -156,6 +158,7 @@ executable funes-exe
   hs-source-dirs:
       app
   default-extensions:
+      Strict
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
@@ -166,7 +169,7 @@ executable funes-exe
       DeriveFunctor
       DataKinds
       QualifiedDo
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O3 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -188,6 +191,7 @@ test-suite nestest
   hs-source-dirs:
       test/nestest
   default-extensions:
+      Strict
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
@@ -198,7 +202,7 @@ test-suite nestest
       DeriveFunctor
       DataKinds
       QualifiedDo
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O3 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -235,6 +239,7 @@ test-suite unit
   hs-source-dirs:
       test/unit
   default-extensions:
+      Strict
       BinaryLiterals
       LambdaCase
       GeneralizedNewtypeDeriving
@@ -245,7 +250,7 @@ test-suite unit
       DeriveFunctor
       DataKinds
       QualifiedDo
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O3 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
