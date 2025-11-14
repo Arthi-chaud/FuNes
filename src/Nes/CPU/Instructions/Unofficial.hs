@@ -6,7 +6,10 @@
 module Nes.CPU.Instructions.Unofficial (lax, sax, dcp, rra, sha, shx, shy, shs, lxa, axs) where
 
 import Control.Monad
+import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Bits
+import Nes.Bus (Bus (cpuSideEffect))
+import Nes.Bus.SideEffect (CPUSideEffectFlag (DMCDMA))
 import Nes.CPU.Instructions.Access (lda)
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
@@ -17,6 +20,7 @@ import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Memory
+import Text.Printf (printf)
 
 -- Source: https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes
 
@@ -92,8 +96,16 @@ sh' ::
     AddressingMode ->
     CPU r ()
 sh' getHigh getDestHigh getValue mode = do
+    dmcDmaBefore <- withBusState $ getFlag DMCDMA . cpuSideEffect
+    cycleBefore <- withCPUState currentOpCodeCycle
+    liftIO $ printf "DMC Before: (%s, cycle=%d)\n" (show dmcDmaBefore) cycleBefore
     (originalDest, crosses) <- getOperandAddr' mode
-    let high = 1 + unsafeAddrToByte ((getHigh originalDest) `shiftR` 8)
+    dmcDmaAfter <- withBusState $ getFlag DMCDMA . cpuSideEffect
+    cycleAfter <- withCPUState currentOpCodeCycle
+    liftIO $ printf "DMC After: (%s, cycle=%d)\n" (show dmcDmaAfter) cycleAfter
+    when (not dmcDmaBefore && dmcDmaAfter) $ liftIO $ putStrLn "DMC DMA Happened on fourth cycle"
+    let ignoreH = False
+    let high = if ignoreH then 0xff else 1 + unsafeAddrToByte ((getHigh originalDest) `shiftR` 8)
         destHigh = getDestHigh high
         value = getValue high
         dest =

@@ -1,5 +1,8 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Redundant if" #-}
 
 module Nes.CPU.Monad (
     -- * Monad
@@ -209,7 +212,15 @@ instance MemoryInterface () (CPU r) where
 
 {-# INLINE tick #-}
 tick :: Int -> CPU r ()
-tick = withBus . BusM.tick
+tick n = MkCPU $ \st bus cont -> do
+    let dmaBefore = getFlag DMCDMA . cpuSideEffect $ bus
+    ((), newbus) <- runBusM bus $ BusM.tick n
+    let dmaAfter = getFlag DMCDMA . cpuSideEffect $ newbus
+        newdma = if dmaBefore && dmaAfter then False else dmaAfter
+        -- We unset the DMCDMA after once cycle to make sure the running SH* opcode catches it
+        newSideEffect = setFlag' DMCDMA newdma (cpuSideEffect newbus)
+    -- TODO Stall CPU
+    cont st{currentOpCodeCycle = 1 + currentOpCodeCycle st} newbus{cpuSideEffect = newSideEffect} ()
 
 {-# INLINE tickOnce #-}
 tickOnce :: CPU r ()
@@ -221,5 +232,8 @@ handleSideEffect = do
     when hasDMCDMA $ withBus $ do
         sampleByteAddr <- BusM.withBus $ sampleBufferAddr . dmc . apuState
         sample <- Nes.Memory.readByte sampleByteAddr ()
-        BusM.withAPU $ modifyAPUState $ modifyDMC $ \d -> d{sampleBuffer = Just sample}
+        BusM.withAPU $
+            modifyAPUState $
+                modifyDMC $
+                    \d -> d{sampleBuffer = Just sample}
         BusM.modifyBus $ \b -> b{cpuSideEffect = clearFlag DMCDMA (cpuSideEffect b)}

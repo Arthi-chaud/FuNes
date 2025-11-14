@@ -14,6 +14,7 @@ module Nes.CPU.State (
     StatusRegisterFlag (..),
 ) where
 
+import Data.Word
 import Nes.Bus.Constants (stackReset)
 import Nes.FlagRegister
 import Nes.Memory
@@ -30,6 +31,14 @@ data CPUState = MkCPUState
     -- ^ Aka Stack pointer
     , status :: {-# UNPACK #-} !StatusRegister
     , programCounter :: {-# UNPACK #-} !Addr
+    , -- The following help for SH* opcodes and DMA corruption
+      currentOpCode :: Byte
+    , currentOpCodeCycle :: Word8
+    -- ^ Will never be 0 (except on reset) because we need one cycle to determine the op code
+    -- ^ Unique to SH* illegal opcodes.
+    -- If true, the high-byte of the target addr will not be used when computing the result
+    --
+    -- Source: https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes#Unimplemented_addressing_modes
     }
     deriving (Eq, Show)
 
@@ -66,6 +75,8 @@ newCPUState =
           -- and https://bugzmanov.github.io/nes_ebook/chapter_4.html
           status = MkSR 0b00100100
         , programCounter = 0
+        , currentOpCode = 0
+        , currentOpCodeCycle = 0
         }
 
 newtype StatusRegister = MkSR {unSR :: Byte} deriving (Eq, Show)
