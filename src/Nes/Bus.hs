@@ -25,9 +25,9 @@ import Nes.Rom (Rom (..))
 data Bus = Bus
     { cpuVram :: {-# UNPACK #-} !MemoryPointer
     -- ^ Pointer to writeable memory
-    , cartridge :: {-# UNPACK #-} !Rom
+    , cartridge :: !Rom
     -- ^ Read-only memory, see 'Rom'
-    , controller :: {-# UNPACK #-} !Controller
+    , controller :: !Controller
     -- ^ Aka Joypad
     , cycles :: {-# UNPACK #-} !Integer
     , unsleptCycles :: {-# UNPACK #-} !Int
@@ -36,12 +36,12 @@ data Bus = Bus
     -- ^ The function to call 'threadDelay' according to 'unsleptCycles' (> 'unsleptCyclesThreshold')
     -- The return value is the new number of unslept cycles
     , lastSleepTime :: {-# UNPACK #-} !Double
-    , ppuState :: {-# UNPACK #-} !PPUState
+    , ppuState :: !PPUState
     -- ^ The state of the PPU
-    , ppuPointers :: {-# UNPACK #-} !PPUPointers
+    , ppuPointers :: !PPUPointers
     -- ^ Memory dedicated to PPU
     , onNewFrame :: Bus -> IO Bus
-    , lastReadByte :: Byte
+    , lastReadByte :: {-# UNPACK #-} !Byte
     -- ^ For open bus behaviour. Can be seen as data bus
     , apuState :: !APUState
     , cpuSideEffect :: {-# UNPACK #-} !CPUSideEffect
