@@ -2,19 +2,16 @@ module Nes.APU.Monad (
     APU (..),
     runAPU,
     modifyAPUState,
-    modifyAPUStateWithSideEffect,
     withAPUState,
     modifyFilterChain,
     setSideEffect,
     withSideEffect,
 ) where
 
-import Control.Monad
 import Control.Monad.IO.Class
 import Nes.APU.State
 import Nes.APU.State.Filter.Chain (FilterChain)
 import Nes.Bus.SideEffect
-import Nes.FlagRegister (getFlag)
 
 newtype APU r a = MkAPU
     { unAPU :: APUState -> CPUSideEffect -> (APUState -> CPUSideEffect -> a -> IO r) -> IO r
@@ -50,12 +47,6 @@ runAPU !st se f = unAPU f st se $ \(!st') (!cpuEff) a -> do
 {-# INLINE modifyAPUState #-}
 modifyAPUState :: (APUState -> APUState) -> APU r ()
 modifyAPUState f = MkAPU $ \(!st) (!cpuEff) cont -> cont (f st) cpuEff ()
-
-{-# INLINE modifyAPUStateWithSideEffect #-}
-modifyAPUStateWithSideEffect :: (APUState -> (APUState, CPUSideEffect)) -> APU r ()
-modifyAPUStateWithSideEffect f = MkAPU $ \(!st) !cpuEff cont ->
-    let (st', sideEff) = f st
-     in cont st' (cpuEff <> sideEff) ()
 
 {-# INLINE withAPUState #-}
 withAPUState :: (APUState -> a) -> APU r a

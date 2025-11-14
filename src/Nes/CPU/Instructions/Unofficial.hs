@@ -96,12 +96,13 @@ sh' ::
     AddressingMode ->
     CPU r ()
 sh' getHigh getDestHigh getValue mode = do
-    (originalDest, crosses) <- getOperandAddr' mode
     dmcDmaBefore <- withBusState $ getFlag DMCDMA . cpuSideEffect
-    liftIO $ putStrLn $ "DMC Before: " ++ show dmcDmaBefore
-    tickOnce
+    cycleBefore <- withCPUState currentOpCodeCycle
+    liftIO $ printf "DMC Before: (%s, cycle=%d)\n" (show dmcDmaBefore) cycleBefore
+    (originalDest, crosses) <- getOperandAddr' mode
     dmcDmaAfter <- withBusState $ getFlag DMCDMA . cpuSideEffect
-    liftIO $ putStrLn $ "DMC After: " ++ show dmcDmaAfter
+    cycleAfter <- withCPUState currentOpCodeCycle
+    liftIO $ printf "DMC After: (%s, cycle=%d)\n" (show dmcDmaAfter) cycleAfter
     when (not dmcDmaBefore && dmcDmaAfter) $ liftIO $ putStrLn "DMC DMA Happened on fourth cycle"
     let ignoreH = False
     let high = if ignoreH then 0xff else 1 + unsafeAddrToByte ((getHigh originalDest) `shiftR` 8)

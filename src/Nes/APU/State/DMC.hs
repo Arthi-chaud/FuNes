@@ -77,9 +77,9 @@ restartSample dmc =
 getDMCOutput :: DMC -> Int
 getDMCOutput dmc = if silentFlag dmc then 0 else outputLevel dmc
 
-tickDMC :: DMC -> (DMC, CPUSideEffect)
+tickDMC :: DMC -> DMC
 tickDMC dmc =
-    (if clocks then tickOutputUnit else (,mempty))
+    (if clocks then tickOutputUnit else id)
         dmc
             { timer = newTimer
             , outputLevel = newOutputLevel
@@ -97,25 +97,20 @@ tickDMC dmc =
                  in if (0, 127) `inRange` tmpOutLevel then tmpOutLevel else outputLevel dmc
             else outputLevel dmc
 
-tickOutputUnit :: DMC -> (DMC, CPUSideEffect)
-tickOutputUnit dmc = if isEndOfOutputCycle then onOutputCycleEnd dmc1 else (dmc1, mempty)
+tickOutputUnit :: DMC -> DMC
+tickOutputUnit dmc = if isEndOfOutputCycle then onOutputCycleEnd dmc1 else dmc1
   where
     newRemainingBits = max 0 (remainingBits dmc - 1)
     isEndOfOutputCycle = newRemainingBits == 0
     dmc1 = dmc{remainingBits = newRemainingBits}
 
-onOutputCycleEnd :: DMC -> (DMC, CPUSideEffect)
-onOutputCycleEnd dmc = (dmc1, sideEffect)
+onOutputCycleEnd :: DMC -> DMC
+onOutputCycleEnd dmc = dmc1
   where
     dmc0 = dmc{remainingBits = 8}
-    (shouldDMA, dmc1) = case sampleBuffer dmc0 of
-        Nothing -> (False, dmc0{silentFlag = True})
-        Just b -> (sampleBytesRemaining dmc0 > 0, dmc0{shiftRegister = b, sampleBuffer = Nothing})
-    sideEffect =
-        setFlag'
-            DMCDMA
-            shouldDMA
-            mempty
+    dmc1 = case sampleBuffer dmc0 of
+        Nothing -> dmc0{silentFlag = True}
+        Just b -> dmc0{shiftRegister = b, sampleBuffer = Nothing, silentFlag = False}
 
 -- | Loads the byte into the sample buffer and shift the sample buffer-related values
 loadSampleBuffer :: Byte -> DMC -> (DMC, CPUSideEffect)
