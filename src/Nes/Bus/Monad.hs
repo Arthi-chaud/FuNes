@@ -163,7 +163,9 @@ instance MemoryInterface () (BusM r) where
                         return $ Internal b'
             | otherwise = return OpenBus
 
-    writeByte byte idx () = guardWriteBound idx go
+    writeByte byte idx () = guardWriteBound idx $ do
+        modifyBus $ \bus -> bus{lastReadByte = byte}
+        go
       where
         go
             | inRange ramRange idx =
