@@ -7,7 +7,8 @@ import Nes.APU.State
 import Nes.APU.State.DMC
 import Nes.APU.State.LengthCounter
 import Nes.APU.Tick (setFrameInterruptFlag)
-import Nes.Bus.SideEffect (CPUSideEffect (setIRQ, startDMCDMA))
+import Nes.Bus.SideEffect
+import Nes.FlagRegister (getFlag)
 import Nes.Memory
 
 {-# INLINE write4015 #-}
@@ -44,8 +45,8 @@ read4015 = do
     pulse1Bit <- withAPUState $ lengthCounterBit . pulse1
     pulse2Bit <- withAPUState $ lengthCounterBit . pulse2
     dmcBit <- withAPUState $ \st -> sampleBytesRemaining (dmc st) > 0
-    frameInterruptBit <- withSideEffect setIRQ
-    dmcInterruptBit <- withSideEffect startDMCDMA
+    frameInterruptBit <- withSideEffect $ getFlag IRQ
+    dmcInterruptBit <- withSideEffect $ getFlag DMCDMA
     when frameInterruptBit $ do
         setFrameInterruptFlag False
     return $

@@ -47,7 +47,7 @@ import Nes.Bus (Bus (..))
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, runBusM)
 import qualified Nes.Bus.Monad as BusM
-import Nes.Bus.SideEffect (CPUSideEffect (startDMCDMA))
+import Nes.Bus.SideEffect
 import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Interrupt
@@ -217,9 +217,9 @@ tickOnce = Nes.CPU.Monad.tick 1
 
 handleSideEffect :: CPU r ()
 handleSideEffect = do
-    hasDMCDMA <- withBusState $ startDMCDMA . cpuSideEffect
+    hasDMCDMA <- withBusState $ getFlag DMCDMA . cpuSideEffect
     when hasDMCDMA $ withBus $ do
         sampleByteAddr <- BusM.withBus $ sampleBufferAddr . dmc . apuState
         sample <- Nes.Memory.readByte sampleByteAddr ()
         BusM.withAPU $ modifyAPUState $ modifyDMC $ \d -> d{sampleBuffer = Just sample}
-        BusM.modifyBus $ \b -> b{cpuSideEffect = (cpuSideEffect b){startDMCDMA = False}}
+        BusM.modifyBus $ \b -> b{cpuSideEffect = clearFlag DMCDMA (cpuSideEffect b)}
