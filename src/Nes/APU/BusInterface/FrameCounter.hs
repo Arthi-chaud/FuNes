@@ -19,6 +19,10 @@ write4017 byte = do
     modifyAPUState $
         modifyFrameCounter $
             \fc -> fc{sequenceMode = seqMode, inhibitInterrupt = inhibit, delayedWriteSideEffectCycle = Just delay}
+    when (seqMode == FiveStep) $ do
+        runQuarterFrameEvent
+        runHalfFrameEvent
+
     -- If the mode flag is set, then both "quarter frame" and "half frame" signals are also generated
     when inhibit $ do
         setFrameInterruptFlag False

@@ -96,14 +96,10 @@ tickDelayedWriteBuffer = do
     fc <- withAPUState frameCounter
     case delayedWriteSideEffectCycle fc of
         Nothing -> return ()
-        Just 0 -> do
-            seqMode <- withAPUState $ sequenceMode . frameCounter
+        Just 0 ->
             modifyAPUState $
                 modifyFrameCounter $
                     const fc{delayedWriteSideEffectCycle = Nothing, FC.sequenceStep = 0, cycles = 0}
-            when (seqMode == FiveStep) $ do
-                runQuarterFrameEvent
-                runHalfFrameEvent
         Just n ->
             modifyAPUState $
                 modifyFrameCounter $
