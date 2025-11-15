@@ -49,17 +49,20 @@ read4015 = do
     dmcInterruptBit <- withSideEffect $ getFlag DMCDMA
     when frameInterruptBit $ do
         setFrameInterruptFlag False
-    return $
-        setBit' dmcInterruptBit 7 $
-            setBit' frameInterruptBit 6 $
-                setBit' dmcBit 4 $
-                    setBit' noiseBit 3 $
-                        setBit' triangleBit 2 $
-                            setBit' pulse2Bit 1 $
-                                setBit'
-                                    pulse1Bit
-                                    0
-                                    0
+    let res =
+            setBit' dmcInterruptBit 7 $
+                setBit' frameInterruptBit 6 $
+                    setBit' dmcBit 4 $
+                        setBit' noiseBit 3 $
+                            setBit' triangleBit 2 $
+                                setBit' pulse2Bit 1 $
+                                    setBit'
+                                        pulse1Bit
+                                        0
+                                        0
+    return res
   where
     setBit' b i a = if b then a `setBit` i else a `clearBit` i
-    lengthCounterBit st = let lc = getLengthCounter st in isEnabled lc
+    lengthCounterBit st =
+        let lc = getLengthCounter st
+         in isEnabled lc && not (isSilencedByLengthCounter st)
