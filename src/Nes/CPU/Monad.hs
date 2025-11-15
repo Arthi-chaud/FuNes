@@ -40,9 +40,9 @@ module Nes.CPU.Monad (
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR), testBit)
-import Nes.APU.Monad (modifyAPUState)
-import Nes.APU.State (APUState (dmc), modifyDMC)
-import Nes.APU.State.DMC (DMC (sampleBuffer, sampleBufferAddr))
+import Nes.APU.Monad (modifyAPUState, modifyAPUStateWithSideEffect)
+import Nes.APU.State (APUState (dmc), modifyDMC, modifyDMC')
+import Nes.APU.State.DMC (DMC (sampleBuffer, sampleBufferAddr), loadSampleBuffer)
 import Nes.Bus (Bus (..))
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, runBusM)
@@ -221,5 +221,5 @@ handleSideEffect = do
     when hasDMCDMA $ withBus $ do
         sampleByteAddr <- BusM.withBus $ sampleBufferAddr . dmc . apuState
         sample <- Nes.Memory.readByte sampleByteAddr ()
-        BusM.withAPU $ modifyAPUState $ modifyDMC $ \d -> d{sampleBuffer = Just sample}
+        BusM.withAPU $ modifyAPUStateWithSideEffect $ modifyDMC' $ loadSampleBuffer sample
         BusM.modifyBus $ \b -> b{cpuSideEffect = clearFlag DMCDMA (cpuSideEffect b)}
