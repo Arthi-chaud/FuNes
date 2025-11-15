@@ -15,7 +15,7 @@ write4010 byte = do
         rate = getPeriodValue rateIdx
     modifyAPUState $ modifyDMC $ \dmc ->
         dmc
-            { irqEnabledFlag = irq
+            { interruptFlag = irq
             , loopFlag = loop
             , period = rate
             }
