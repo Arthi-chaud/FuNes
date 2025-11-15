@@ -31,7 +31,7 @@ import Nes.Bus.SideEffect
 import Nes.FlagRegister
 import Prelude hiding (cycle)
 
--- $use
+-- $semantic
 --     The APU being a part of the CPU, they both tick at the same time. However, some ticks are updated every other CPU cycles.
 --     Here the 'tick' function should be called every CPU tick, and pass as parameter whether the tick is on an even CPU cycle or not.
 --     Same goes for 'tickMany'.
