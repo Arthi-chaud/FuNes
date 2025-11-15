@@ -46,7 +46,7 @@ read4015 = do
     pulse2Bit <- withAPUState $ lengthCounterBit . pulse2
     dmcBit <- withAPUState $ \st -> sampleBytesRemaining (dmc st) > 0
     frameInterruptBit <- withSideEffect $ getFlag IRQ
-    dmcInterruptBit <- withSideEffect $ getFlag DMCDMA
+    dmcInterruptBit <- withAPUState $ interruptFlag . dmc
     when frameInterruptBit $ do
         setFrameInterruptFlag False
     let res =
