@@ -61,8 +61,11 @@ newDMC = MkDMC{..}
     shouldClock = False
     sleepingCycles = 0
 
+periodTable :: [Int]
+periodTable = [428, 380, 340, 320, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54]
+
 getPeriodValue :: Int -> Int
-getPeriodValue idx = fromMaybe 428 ([428, 380, 340, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54] !? idx)
+getPeriodValue idx = fromMaybe 428 (periodTable !? idx)
 
 -- | When a sample is (re)started, the current address is set to the sample address, and bytes remaining is set to the sample length.
 restartSample :: DMC -> DMC
