@@ -23,7 +23,7 @@ import Nes.FlagRegister
 import Nes.Memory
 
 data DMC = MkDMC
-    { irqEnabledFlag :: {-# UNPACK #-} !Bool
+    { interruptFlag :: {-# UNPACK #-} !Bool
     , loopFlag :: {-# UNPACK #-} !Bool
     , period :: {-# UNPACK #-} !Int
     , timer :: {-# UNPACK #-} !Int
@@ -44,7 +44,7 @@ data DMC = MkDMC
 newDMC :: DMC
 newDMC = MkDMC{..}
   where
-    irqEnabledFlag = False
+    interruptFlag = False
     loopFlag = False
     period = 0
     timer = 0
@@ -127,7 +127,7 @@ loadSampleBuffer byte dmc =
                 , shouldClock = newRemainingLength > 0
                 }
         shouldRestartSample = newRemainingLength == 0 && loopFlag dmc
-        shouldIRQ = newRemainingLength == 0 && irqEnabledFlag dmc
+        shouldIRQ = newRemainingLength == 0 && interruptFlag dmc
      in
         if shouldRestartSample
             then (restartSample dmc1, mempty)
