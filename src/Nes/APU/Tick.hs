@@ -59,7 +59,6 @@ tickOnce isAPUCycle = do
             modifyPulse1 tickPulse
                 . modifyPulse2 tickPulse
         tickFrameCounter
-
     -- Mixing
     sample <- withAPUState getMixerOutput
     modifyFilterChain $ consume sample
@@ -119,6 +118,8 @@ tickFrameCounterFourStep = do
     inhibitFrameInterrupt <- withAPUState $ inhibitInterrupt . frameCounter
     when (step < 4) runQuarterFrameEvent
     when (step == 1 || step == 3) runHalfFrameEvent
+    when (step == 4) $ -- Flag should be cleared when going from put to get
+        setFrameInterruptFlag False
     when (step == 3 && not inhibitFrameInterrupt) $
         setFrameInterruptFlag True
 
