@@ -20,7 +20,7 @@ import Nes.APU.State
 import qualified Nes.APU.State as S
 import Nes.APU.State.DMC
 import Nes.APU.State.Envelope
-import Nes.APU.State.Filter.Class
+import Nes.APU.State.Filter.Thread
 import Nes.APU.State.FrameCounter
 import qualified Nes.APU.State.FrameCounter as FC
 import Nes.APU.State.LengthCounter
@@ -60,11 +60,11 @@ tickOnce isAPUCycle = do
         tickFrameCounter
     -- Mixing
     sample <- withAPUState getMixerOutput
-    modifyFilterChain $ consume sample
+    liftIO . (`consumeSample` sample) =<< withAPUState filterThread
     modifyAPUState $ \st -> st{sampleTimer = sampleTimer st - 1}
     sampleTimer' <- withAPUState sampleTimer
     when (sampleTimer' <= 1) $ do
-        filterOut <- withAPUState $ output . filterChain
+        filterOut <- liftIO . outputSample =<< withAPUState filterThread
         callback <- withAPUState pushSampleCallback
         liftIO $ callback filterOut
         modifyAPUState $

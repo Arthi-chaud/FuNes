@@ -14,6 +14,7 @@ module Nes.Bus (
 ) where
 
 import Nes.APU.State (APUState, newAPUState)
+import Nes.APU.State.Filter.Thread (FilterThread)
 import Nes.Bus.SideEffect (CPUSideEffect)
 import Nes.Controller
 import Nes.Internal
@@ -52,8 +53,8 @@ data Bus = Bus
     , cpuInterrupt :: {-# UNPACK #-} !InterruptStatus
     }
 
-newBus :: Rom -> (Bus -> IO Bus) -> (Float -> IO ()) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
-newBus rom_ onNewFrame_ pushSample_ tickCallback_ = do
+newBus :: Rom -> (Bus -> IO Bus) -> (Float -> IO ()) -> (Double -> Int -> IO (Double, Int)) -> FilterThread -> IO Bus
+newBus rom_ onNewFrame_ pushSample_ tickCallback_ filterThread = do
     fptr <- callocForeignPtr vramSize
     ppuPtrs <- newPPUPointers
     let ppuSt = newPPUState (mirroring rom_)
@@ -70,7 +71,7 @@ newBus rom_ onNewFrame_ pushSample_ tickCallback_ = do
             ppuPtrs
             onNewFrame_
             0
-            (newAPUState pushSample_)
+            (newAPUState pushSample_ filterThread)
             mempty
             (MkIS Nothing False)
 

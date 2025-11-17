@@ -7,6 +7,7 @@ import Data.IORef
 import qualified Data.Vector.Storable.Mutable as V
 import Events
 import Nes.APU.State.Filter.Constants
+import Nes.APU.State.Filter.Thread
 import Nes.Bus
 import Nes.Bus.Monad (runBusM)
 import Nes.CPU.Interpreter
@@ -69,6 +70,7 @@ main = do
     _ <- Raw.renderSetScale rendererPtr 3 3
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 256 240)
     setAudioDevicePlaybackState device Play
+    filterThread <- newFilterThread
     frame <- newFrameState
     bus <-
         newBus
@@ -76,8 +78,10 @@ main = do
             (onDrawFrame frame texture renderer)
             (sampleCallback sampleVector vectorCursor)
             tickCallback
+            filterThread
     void $ runProgram bus (pure ())
     closeAudioDevice device
+    killFilterThread filterThread
     destroyRenderer renderer
 
 tickCallback :: Double -> Int -> IO (Double, Int)
