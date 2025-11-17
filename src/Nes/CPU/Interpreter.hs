@@ -11,6 +11,7 @@ import Data.Map
 import Nes.Bus (Bus (..))
 import Nes.Bus.Monad (withPPU)
 import Nes.CPU.Instructions.Map
+import Nes.CPU.Interrupt (handleInterrupt)
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.Interrupt
@@ -45,21 +46,21 @@ interpretWithCallback callback = do
                 modifyPPUState $ \st -> st{nmiInterrupt = False}
                 return f
             )
-    when hasNmiInterrupt $ interrupt NMI
+    when hasNmiInterrupt $ pushInterrupt NMI
     callback
     oldCycleCount <- getCycles
     opCode <- readAtPC
     incrementPC
-    do
-        forceMultiByte <- go opCode
-        newCycleCount <- getCycles
-        -- Each opcode should take at least 2 ticks
-        -- We cannot just check that addressing is none,
-        -- because some opcode w/o addressing take more that 1 cycle
-        -- e.g. php
-        -- This does not apply to unofficial KIL/JAM opcodes
-        when (forceMultiByte && newCycleCount - 1 == oldCycleCount) tickOnce
-        interpretWithCallback callback
+    forceMultiByte <- go opCode
+    newCycleCount <- getCycles
+    -- Each opcode should take at least 2 ticks
+    -- We cannot just check that addressing is none,
+    -- because some opcode w/o addressing take more that 1 cycle
+    -- e.g. php
+    -- This does not apply to unofficial KIL/JAM opcodes
+    when (forceMultiByte && newCycleCount - 1 == oldCycleCount) tickOnce
+    handleInterrupt
+    interpretWithCallback callback
   where
     {-# INLINE go #-}
     go opcode = case Data.Map.lookup opcode opcodeMap of

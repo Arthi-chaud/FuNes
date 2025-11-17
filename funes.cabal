@@ -69,6 +69,7 @@ library
       Nes.CPU.Instructions.Transfer
       Nes.CPU.Instructions.Unofficial
       Nes.CPU.Interpreter
+      Nes.CPU.Interrupt
       Nes.CPU.Monad
       Nes.CPU.State
       Nes.FlagRegister
