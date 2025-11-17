@@ -30,8 +30,9 @@ module Nes.CPU.Monad (
     pushAddrStack,
     pushByteStack,
 
-    -- * Interruption
-    interrupt,
+    -- * Interrupt
+    pushInterrupt,
+    popInterrupt,
 
     -- * Unsafe
     unsafeWithBus,
@@ -39,13 +40,14 @@ module Nes.CPU.Monad (
 
 import Control.Monad
 import Control.Monad.IO.Class
-import Data.Bits (Bits (shiftR), testBit)
-import Nes.APU.Monad (modifyAPUState, modifyAPUStateWithSideEffect)
-import Nes.APU.State (APUState (dmc), modifyDMC, modifyDMC')
-import Nes.APU.State.DMC (DMC (sampleBuffer, sampleBufferAddr), loadSampleBuffer)
-import Nes.Bus (Bus (..))
+import Data.Bits (Bits (shiftR))
+import Data.Maybe (listToMaybe)
+import Nes.APU.Monad (modifyAPUStateWithSideEffect)
+import Nes.APU.State (APUState (dmc), modifyDMC')
+import Nes.APU.State.DMC (DMC (sampleBufferAddr), loadSampleBuffer)
+import Nes.Bus (Bus (..), modifyCPUInterrupt)
 import Nes.Bus.Constants
-import Nes.Bus.Monad (BusM, runBusM)
+import Nes.Bus.Monad (BusM, modifyBus, runBusM)
 import qualified Nes.Bus.Monad as BusM
 import Nes.Bus.SideEffect
 import Nes.CPU.State
@@ -170,19 +172,14 @@ reset = do
     pc <- readAddr 0xfffc ()
     modifyCPUState (const $ newCPUState{programCounter = pc})
 
-interrupt :: Interrupt -> CPU r ()
-interrupt signal = do
-    pushAddrStack =<< getPC
-    let mask = getFlagMask signal
-    flag <-
-        withCPUState $
-            setFlag' BreakCommand (testBit mask 4)
-                . setFlag' BreakCommand2 (testBit mask 5)
-                . status
-    pushByteStack $ unSR flag
-    modifyCPUState $ modifyStatusRegister $ setFlag InterruptDisable
-    withBus $ BusM.tick (getCPUCycles signal)
-    setPC =<< readAddr (getVectorAddr signal) ()
+pushInterrupt :: Interrupt -> CPU r ()
+pushInterrupt i = withBus (modifyBus $ modifyCPUInterrupt $ modifyPendingInterrupt (++ [i]))
+
+popInterrupt :: CPU r (Maybe Interrupt)
+popInterrupt = withBus $ do
+    pendingHead <- BusM.withBus $ take 1 . pendingInterrupts . cpuInterrupt
+    modifyBus $ modifyCPUInterrupt $ modifyPendingInterrupt $ drop 1
+    return $ listToMaybe pendingHead
 
 instance MemoryInterface () (CPU r) where
     {-# INLINE readByte #-}
@@ -215,6 +212,7 @@ tick = withBus . BusM.tick
 tickOnce :: CPU r ()
 tickOnce = Nes.CPU.Monad.tick 1
 
+-- TODO Delete me
 handleSideEffect :: CPU r ()
 handleSideEffect = do
     hasDMCDMA <- withBusState $ getFlag DMCDMA . cpuSideEffect

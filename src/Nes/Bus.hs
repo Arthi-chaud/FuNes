@@ -9,12 +9,14 @@ module Nes.Bus (
     Bus (..),
     newBus,
     modifyPPUState,
+    modifyCPUInterrupt,
 ) where
 
 import Nes.APU.State (APUState, newAPUState)
 import Nes.Bus.SideEffect (CPUSideEffect)
 import Nes.Controller
 import Nes.Internal
+import Nes.Interrupt
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Nes.PPU.Constants
@@ -46,6 +48,7 @@ data Bus = Bus
     -- ^ Last read/written byte
     , apuState :: !APUState
     , cpuSideEffect :: {-# UNPACK #-} !CPUSideEffect
+    , cpuInterrupt :: {-# UNPACK #-} !InterruptStatus
     }
 
 newBus :: Rom -> (Bus -> IO Bus) -> (Float -> IO ()) -> (Double -> Int -> IO (Double, Int)) -> IO Bus
@@ -68,6 +71,10 @@ newBus rom_ onNewFrame_ pushSample_ tickCallback_ = do
             0
             (newAPUState pushSample_)
             mempty
+            (MkIE [])
 
 modifyPPUState :: (PPUState -> PPUState) -> Bus -> Bus
 modifyPPUState f bus = bus{ppuState = f $ ppuState bus}
+
+modifyCPUInterrupt :: (InterruptStatus -> InterruptStatus) -> Bus -> Bus
+modifyCPUInterrupt f b = b{cpuInterrupt = f (cpuInterrupt b)}
