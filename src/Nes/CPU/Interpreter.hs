@@ -46,7 +46,7 @@ interpretWithCallback callback = do
                 modifyPPUState $ \st -> st{nmiInterrupt = False}
                 return f
             )
-    when hasNmiInterrupt $ pushInterrupt NMI
+    when hasNmiInterrupt $ modifyInterruptStatus $ pushInterrupt NMI
     callback
     oldCycleCount <- getCycles
     opCode <- readAtPC

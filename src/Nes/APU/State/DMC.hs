@@ -18,8 +18,7 @@ import Data.Array
 import Data.Bits
 import Data.List ((!?))
 import Data.Maybe (fromMaybe, isNothing)
-import Nes.Bus.SideEffect
-import Nes.FlagRegister
+import Nes.Interrupt
 import Nes.Memory
 
 data DMC = MkDMC
@@ -80,9 +79,9 @@ restartSample dmc =
 getDMCOutput :: DMC -> Int
 getDMCOutput dmc = if silentFlag dmc then 0 else outputLevel dmc
 
-tickDMC :: DMC -> (DMC, CPUSideEffect)
-tickDMC dmc =
-    (if clocks then tickOutputUnit else (,mempty))
+tickDMC :: DMC -> InterruptStatus -> (DMC, InterruptStatus)
+tickDMC dmc s =
+    (if clocks then (`tickOutputUnit` s) else (,s))
         dmc
             { timer = newTimer
             , outputLevel = newOutputLevel
@@ -100,25 +99,31 @@ tickDMC dmc =
                  in if (0, 127) `inRange` tmpOutLevel then tmpOutLevel else outputLevel dmc
             else outputLevel dmc
 
-tickOutputUnit :: DMC -> (DMC, CPUSideEffect)
-tickOutputUnit dmc = if isEndOfOutputCycle then onOutputCycleEnd dmc1 else (dmc1, mempty)
+tickOutputUnit :: DMC -> InterruptStatus -> (DMC, InterruptStatus)
+tickOutputUnit dmc s =
+    if isEndOfOutputCycle
+        then onOutputCycleEnd dmc1 s
+        else (dmc1, s)
   where
     newRemainingBits = max 0 (remainingBits dmc - 1)
     isEndOfOutputCycle = newRemainingBits == 0
     dmc1 = dmc{remainingBits = newRemainingBits}
 
-onOutputCycleEnd :: DMC -> (DMC, CPUSideEffect)
-onOutputCycleEnd dmc = (dmc1, sideEffect)
+onOutputCycleEnd :: DMC -> InterruptStatus -> (DMC, InterruptStatus)
+onOutputCycleEnd dmc interr = (dmc1, interr')
   where
     dmc0 = dmc{remainingBits = 8}
     dmc1 = case sampleBuffer dmc0 of
         Nothing -> dmc0{silentFlag = True}
         Just b -> dmc0{shiftRegister = b, sampleBuffer = Nothing}
-    sideEffect = setFlag' DMCDMA (isNothing (sampleBuffer dmc1) && sampleBytesRemaining dmc1 > 0) mempty
+    interr' =
+        if isNothing (sampleBuffer dmc1) && sampleBytesRemaining dmc1 > 0
+            then pushInterrupt (IRQ DMC) interr
+            else interr
 
 -- | Loads the byte into the sample buffer and shift the sample buffer-related values
-loadSampleBuffer :: Byte -> DMC -> (DMC, CPUSideEffect)
-loadSampleBuffer byte dmc =
+loadSampleBuffer :: Byte -> DMC -> InterruptStatus -> (DMC, InterruptStatus)
+loadSampleBuffer byte dmc s =
     let
         newSampleBufferAddr = let addr = sampleBufferAddr dmc + 1 in if addr >= 0xffff then addr - 0x8000 else addr
         newRemainingLength = max 0 (sampleBytesRemaining dmc - 1)
@@ -133,5 +138,5 @@ loadSampleBuffer byte dmc =
         shouldIRQ = newRemainingLength == 0 && interruptFlag dmc
      in
         if shouldRestartSample
-            then (restartSample dmc1, mempty)
-            else (dmc1, setFlag' IRQ shouldIRQ mempty)
+            then (restartSample dmc1, s)
+            else (dmc1, if shouldIRQ then pushInterrupt (IRQ DMC) s else s)

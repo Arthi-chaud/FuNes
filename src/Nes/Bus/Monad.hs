@@ -16,9 +16,9 @@ import Nes.APU.State
 import qualified Nes.APU.Tick as APU
 import Nes.Bus
 import Nes.Bus.Constants
-import Nes.Bus.SideEffect (CPUSideEffect)
 import Nes.Controller
 import Nes.FlagRegister (clearFlag)
+import Nes.Interrupt (InterruptStatus)
 import Nes.Memory
 import Nes.PPU.Constants (oamDataSize)
 import Nes.PPU.Monad hiding (modifyPPUState, tick)
@@ -68,10 +68,10 @@ withPPU f = MkBusM $ \bus cont -> do
     cont (bus{ppuState = ppuSt}) res
 
 {-# INLINE withAPU #-}
-withAPU :: APU (a, APUState, CPUSideEffect) a -> BusM r a
+withAPU :: APU (a, APUState, InterruptStatus) a -> BusM r a
 withAPU f = MkBusM $ \bus cont -> do
-    (!res, !apuSt, !cpuEff) <- runAPU (apuState bus) f
-    cont (bus{apuState = apuSt, cpuSideEffect = cpuEff}) res
+    (!res, !apuSt, !interr) <- runAPU (apuState bus) (cpuInterrupt bus) f
+    cont (bus{apuState = apuSt, cpuInterrupt = interr}) res
 
 {-# INLINE withController #-}
 withController :: ControllerM (a, Controller) a -> BusM r a
@@ -91,7 +91,7 @@ tick n = MkBusM $ \bus cont -> do
         isNewFrame <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
         return (isNewFrame, before, after)
-    ((), !apuSt, !cpuEff) <- runAPU (apuState bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
+    ((), !apuSt, !interr) <- runAPU (apuState bus) (cpuInterrupt bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
     let bus' =
             bus
                 { unsleptCycles = newUnsleptCycles
@@ -99,7 +99,7 @@ tick n = MkBusM $ \bus cont -> do
                 , apuState = apuSt
                 , cycles = fromIntegral n + cycles bus
                 , lastSleepTime = newLastSleepTime
-                , cpuSideEffect = cpuEff
+                , cpuInterrupt = interr
                 }
     if not nmiBefore && nmiAfter
         then onNewFrame bus' bus' >>= flip cont ()

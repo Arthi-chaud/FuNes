@@ -22,7 +22,7 @@ import Nes.APU.State.FrameCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
-import Nes.Bus.SideEffect (CPUSideEffect)
+import Nes.Interrupt (InterruptStatus)
 import Prelude hiding (cycle)
 
 data APUState = MkAPUState
@@ -77,8 +77,8 @@ modifyDMC :: (DMC -> DMC) -> APUState -> APUState
 modifyDMC f st = let dmc' = f $ dmc st in st{dmc = dmc'}
 
 {-# INLINE modifyDMC' #-}
-modifyDMC' :: (DMC -> (DMC, CPUSideEffect)) -> APUState -> (APUState, CPUSideEffect)
-modifyDMC' f st = let (dmc', sideEff) = f $ dmc st in (st{dmc = dmc'}, sideEff)
+modifyDMC' :: (DMC -> InterruptStatus -> (DMC, InterruptStatus)) -> APUState -> InterruptStatus -> (APUState, InterruptStatus)
+modifyDMC' f st s = let (dmc', s') = f (dmc st) s in (st{dmc = dmc'}, s')
 
 {-# INLINE modifyFrameCounter #-}
 modifyFrameCounter :: (FrameCounter -> FrameCounter) -> APUState -> APUState

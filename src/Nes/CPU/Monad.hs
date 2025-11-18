@@ -30,8 +30,12 @@ module Nes.CPU.Monad (
     pushAddrStack,
     pushByteStack,
 
+    -- * Status register
+    popStatusRegister,
+    pushStatusRegister,
+
     -- * Interrupt
-    pushInterrupt,
+    modifyInterruptStatus,
     popInterrupt,
 
     -- * Unsafe
@@ -41,18 +45,19 @@ module Nes.CPU.Monad (
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR))
-import Data.Maybe (listToMaybe)
-import Nes.APU.Monad (modifyAPUStateWithSideEffect)
+import Nes.APU.Monad (modifyAPUStateWithInterrupt)
 import Nes.APU.State (APUState (dmc), modifyDMC')
 import Nes.APU.State.DMC (DMC (sampleBufferAddr), loadSampleBuffer)
-import Nes.Bus (Bus (..), modifyCPUInterrupt)
+import Nes.Bus (Bus (..))
+import qualified Nes.Bus
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, modifyBus, runBusM)
 import qualified Nes.Bus.Monad as BusM
 import Nes.Bus.SideEffect
 import Nes.CPU.State
 import Nes.FlagRegister
-import Nes.Interrupt
+import Nes.Interrupt (Interrupt, InterruptStatus)
+import qualified Nes.Interrupt as I
 import Nes.Memory
 
 -- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
@@ -138,6 +143,21 @@ pushByteStack byte = do
     writeByte byte (stackAddr + byteToAddr regS) ()
     modifyCPUState $ setRegister S (regS - 1)
 
+-- | If the argument is True, the pushed value will have the B Flag set
+pushStatusRegister :: Bool -> CPU r ()
+pushStatusRegister b = do
+    s <- withCPUState status
+    let value = unSR $ setFlag Unusued $ setFlag' BFlag b s
+    pushByteStack value
+
+-- | Pops value on the stack, clear BFlag and sets the results value as status register
+popStatusRegister :: CPU r ()
+popStatusRegister = do
+    value <- fromByte <$> popStackByte
+    -- TODO Breaks Nestest
+    let s = clearFlag Unusued $ clearFlag BFlag value
+    modifyCPUState $ modifyStatusRegister $ const s
+
 {-# INLINE pushAddrStack #-}
 pushAddrStack :: Addr -> CPU r ()
 pushAddrStack addr = do
@@ -172,14 +192,13 @@ reset = do
     pc <- readAddr 0xfffc ()
     modifyCPUState (const $ newCPUState{programCounter = pc})
 
-pushInterrupt :: Interrupt -> CPU r ()
-pushInterrupt i = withBus (modifyBus $ modifyCPUInterrupt $ modifyPendingInterrupt (++ [i]))
+modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> CPU r ()
+modifyInterruptStatus = withBus . modifyBus . Nes.Bus.modifyInterruptStatus
 
 popInterrupt :: CPU r (Maybe Interrupt)
-popInterrupt = withBus $ do
-    pendingHead <- BusM.withBus $ take 1 . pendingInterrupts . cpuInterrupt
-    modifyBus $ modifyCPUInterrupt $ modifyPendingInterrupt $ drop 1
-    return $ listToMaybe pendingHead
+popInterrupt = MkCPU $ \st bus cont -> do
+    let (res, bus') = Nes.Bus.modifyInterruptStatus' I.popInterrupt bus
+    cont st bus' res
 
 instance MemoryInterface () (CPU r) where
     {-# INLINE readByte #-}
@@ -219,5 +238,5 @@ handleSideEffect = do
     when hasDMCDMA $ withBus $ do
         sampleByteAddr <- BusM.withBus $ sampleBufferAddr . dmc . apuState
         sample <- Nes.Memory.readByte sampleByteAddr ()
-        BusM.withAPU $ modifyAPUStateWithSideEffect $ modifyDMC' $ loadSampleBuffer sample
+        BusM.withAPU $ modifyAPUStateWithInterrupt $ modifyDMC' $ loadSampleBuffer sample
         BusM.modifyBus $ \b -> b{cpuSideEffect = clearFlag DMCDMA (cpuSideEffect b)}

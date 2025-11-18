@@ -78,8 +78,8 @@ data StatusRegisterFlag
     | Zero
     | InterruptDisable
     | DecimalMode
-    | BreakCommand
-    | BreakCommand2
+    | BFlag
+    | Unusued
     | Overflow
     | Negative
     deriving (Eq, Show, Enum)

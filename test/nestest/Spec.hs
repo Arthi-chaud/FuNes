@@ -10,6 +10,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 (pack)
 import qualified Data.ByteString.Char8 as BSC
+import Data.Char (isAlphaNum)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
 import Data.Int
 import qualified Data.Map as Map
@@ -38,12 +39,12 @@ spec = it "Trace should match logfile" $ do
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
-    bus <- newBus rom pure (\_ -> pure ()) (\a b -> return (a, b))
+    bus <- newBus rom pure (\_ -> pure ()) (curry return)
     traceRef <- newIORef (T [] 0)
     let st = newCPUState{programCounter = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
     _ <- try @IOException $ runProgram' st (bus{cycles = 7}) (trace traceRef)
-    actualTrace <- beforeUnhandledOpcode . toRawTrace <$> readIORef traceRef
+    actualTrace <- fmap fixStackValue . beforeUnhandledOpcode . toRawTrace <$> readIORef traceRef
     -- BS.writeFile "actual.log" $ BSC.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace
     forM_ [0 .. length expectedTrace - 1] $ \i -> do
@@ -176,7 +177,7 @@ beforeUnhandledOpcode =
 loadExpectedRawTrace :: IO RawTrace
 loadExpectedRawTrace = do
     fileContent <- BS.readFile "test/assets/rom_trace.log"
-    let rawTrace = BSC.lines fileContent
+    let rawTrace = fixStackValue <$> BSC.lines fileContent
     -- TODO When project is finished, we shouldn't have to do the following filters
     return $ withoutPPUCycles <$> beforeUnhandledOpcode rawTrace
   where
@@ -185,6 +186,21 @@ loadExpectedRawTrace = do
             afterPPU = snd . BS.breakSubstring " CYC:" $ bs
          in BS.concat [beforePPU, afterPPU]
 
+-- | In nestest, the B flag and bit 5 are preserved when popped from the stack
+-- In the Accuracy coin tests, that's not the case. Thus, we modify nestest's output
+-- so that P = P & 0b11001111
+fixStackValue :: ByteString -> ByteString
+fixStackValue bs =
+    let
+        (prefix, bs') = BS.breakSubstring " P:" bs
+        stringP = drop 3 $ BSC.unpack bs'
+        p = read ("0x" ++ takeWhile isAlphaNum stringP) :: Int
+        fixedP = p .&. 0b11001111
+     in
+        if p == fixedP
+            then bs
+            else BS.concat [prefix, " P:", BSC.pack $ printf "%02X" fixedP, BS.drop 5 bs']
+
 withoutTick :: CPU r a -> CPU r a
 withoutTick (MkCPU f) = MkCPU $ \st bus cont -> do
-    f st bus{cycleCallback = \a b -> pure (a, b)} $ \st' _ -> cont st' bus
+    f st bus{cycleCallback = curry pure} $ \st' _ -> cont st' bus
