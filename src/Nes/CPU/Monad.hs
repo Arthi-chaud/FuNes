@@ -42,12 +42,8 @@ module Nes.CPU.Monad (
     unsafeWithBus,
 ) where
 
-import Control.Monad
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR))
-import Nes.APU.Monad (modifyAPUStateWithInterrupt)
-import Nes.APU.State (APUState (dmc), modifyDMC')
-import Nes.APU.State.DMC (DMC (sampleBufferAddr), loadSampleBuffer)
 import Nes.Bus (Bus (..))
 import qualified Nes.Bus
 import Nes.Bus.Constants
@@ -168,12 +164,9 @@ pushAddrStack addr = do
 
 {-# INLINE withBus #-}
 withBus :: BusM (a, Bus) a -> CPU r a
-withBus f = do
-    res <- MkCPU $ \st bus cont -> do
-        (res, bus') <- runBusM bus f
-        cont st bus' res
-    handleSideEffect
-    return res
+withBus f = MkCPU $ \st bus cont -> do
+    (res, bus') <- runBusM bus f
+    cont st bus' res
 
 -- | Unsafe action that provides access to Bus
 --
@@ -230,13 +223,3 @@ tick = withBus . BusM.tick
 {-# INLINE tickOnce #-}
 tickOnce :: CPU r ()
 tickOnce = Nes.CPU.Monad.tick 1
-
--- TODO Delete me
-handleSideEffect :: CPU r ()
-handleSideEffect = do
-    hasDMCDMA <- withBusState $ getFlag DMCDMA . cpuSideEffect
-    when hasDMCDMA $ withBus $ do
-        sampleByteAddr <- BusM.withBus $ sampleBufferAddr . dmc . apuState
-        sample <- Nes.Memory.readByte sampleByteAddr ()
-        BusM.withAPU $ modifyAPUStateWithInterrupt $ modifyDMC' $ loadSampleBuffer sample
-        BusM.modifyBus $ \b -> b{cpuSideEffect = clearFlag DMCDMA (cpuSideEffect b)}
