@@ -3,7 +3,6 @@ module Nes.CPU.Instructions.Stack (pha, php, pla, plp) where
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
-import Nes.FlagRegister
 
 -- | Pushes a copy of the accumulator on to the stack.
 --
@@ -17,15 +16,7 @@ pha = tickOnce >> withCPUState (getRegister A) >>= pushByteStack
 --
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L486
 php :: CPU r ()
-php = do
-    st <-
-        withCPUState
-            ( setFlag BreakCommand2
-                . setFlag BreakCommand
-                . status
-            )
-    pushByteStack $ unSR st
-    tickOnce
+php = pushStatusRegister True >> tickOnce
 
 -- | Pulls an 8 bit value from the stack and into the accumulator.
 --
@@ -40,14 +31,5 @@ pla = do
 -- | Pulls an 8 bit value from the stack and into the accumulator.
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#PLP
---
--- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L478
 plp :: CPU r ()
-plp = do
-    value <- popStackByte
-    tick 2
-    modifyCPUState $ \st -> st{status = MkSR value}
-    modifyCPUState $
-        modifyStatusRegister $
-            clearFlag BreakCommand
-                . setFlag BreakCommand2
+plp = popStatusRegister >> tick 2

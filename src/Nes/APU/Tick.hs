@@ -27,8 +27,7 @@ import Nes.APU.State.LengthCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
-import Nes.Bus.SideEffect
-import Nes.FlagRegister
+import Nes.Interrupt
 import Prelude hiding (cycle)
 
 -- $semantic
@@ -50,7 +49,7 @@ tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
     -- Ticks
     tickDelayedWriteBuffer
-    modifyAPUStateWithSideEffect $ modifyDMC' tickDMC
+    modifyAPUStateWithInterrupt $ modifyDMC' tickDMC
     modifyAPUState $
         modifyTriangle tickTriangle
             . modifyNoise tickNoise
@@ -150,7 +149,7 @@ runHalfFrameEvent = modifyAPUState $ \st ->
 {-# INLINE setFrameInterruptFlag #-}
 setFrameInterruptFlag :: Bool -> APU r ()
 setFrameInterruptFlag b = do
-    setSideEffect $ setFlag IRQ
+    modifyInterruptStatus $ pushInterrupt (IRQ FrameCounter)
     modifyAPUState $
         modifyFrameCounter $
             \fc -> fc{frameInterruptFlag = b}

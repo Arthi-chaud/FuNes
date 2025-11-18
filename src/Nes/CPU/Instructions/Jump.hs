@@ -11,8 +11,6 @@ module Nes.CPU.Instructions.Jump (
 import Data.Bits
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Monad
-import Nes.CPU.State
-import Nes.FlagRegister
 import Nes.Memory
 
 -- | Sets the program counter to the address specified by the operand
@@ -62,14 +60,6 @@ rts = do
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#RTI
 rti :: CPU r ()
 rti = do
-    -- Note: When one opcode does multiple stack pops, the max
-    newStatus <- popStackByte
-    modifyCPUState (\st -> st{status = MkSR newStatus})
-    modifyCPUState $
-        modifyStatusRegister $
-            clearFlag BreakCommand
-                . setFlag BreakCommand2
+    popStatusRegister
     setPC =<< popStackAddr
     tick 2
-
--- Note: Source for both: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.3/src/cpu.rs#L703

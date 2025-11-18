@@ -8,8 +8,7 @@ import Nes.APU.State.DMC
 import Nes.APU.State.FrameCounter (FrameCounter (frameInterruptFlag))
 import Nes.APU.State.LengthCounter
 import Nes.APU.Tick (setFrameInterruptFlag)
-import Nes.Bus.SideEffect
-import Nes.FlagRegister (getFlag)
+import Nes.Interrupt
 import Nes.Memory
 
 {-# INLINE write4015 #-}
@@ -47,7 +46,7 @@ read4015 = do
     pulse2Bit <- withAPUState $ lengthCounterBit . pulse2
     dmcBit <- withAPUState $ \st -> sampleBytesRemaining (dmc st) > 0
     frameInterruptBit <- withAPUState $ frameInterruptFlag . frameCounter
-    dmcInterruptBit <- withSideEffect $ getFlag DMCDMA
+    dmcInterruptBit <- withInterruptStatus $ elem (IRQ DMC) . pendingInterrupts
     -- TODO Clearing flag should be done on every GET cycle
     -- https://github.com/100thCoin/AccuracyCoin/blob/a7bf0cfaee7dee9e7bfbd0e30435b85cb539139e/AccuracyCoin.asm#L9003
     when frameInterruptBit $ do

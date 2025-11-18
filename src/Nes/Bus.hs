@@ -9,7 +9,8 @@ module Nes.Bus (
     Bus (..),
     newBus,
     modifyPPUState,
-    modifyCPUInterrupt,
+    modifyInterruptStatus,
+    modifyInterruptStatus',
 ) where
 
 import Nes.APU.State (APUState, newAPUState)
@@ -76,5 +77,8 @@ newBus rom_ onNewFrame_ pushSample_ tickCallback_ = do
 modifyPPUState :: (PPUState -> PPUState) -> Bus -> Bus
 modifyPPUState f bus = bus{ppuState = f $ ppuState bus}
 
-modifyCPUInterrupt :: (InterruptStatus -> InterruptStatus) -> Bus -> Bus
-modifyCPUInterrupt f b = b{cpuInterrupt = f (cpuInterrupt b)}
+modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> Bus -> Bus
+modifyInterruptStatus f b = b{cpuInterrupt = f (cpuInterrupt b)}
+
+modifyInterruptStatus' :: (InterruptStatus -> (a, InterruptStatus)) -> Bus -> (a, Bus)
+modifyInterruptStatus' f b = let (res, interr) = f (cpuInterrupt b) in (res, b{cpuInterrupt = interr})
