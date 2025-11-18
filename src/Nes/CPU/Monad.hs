@@ -36,7 +36,6 @@ module Nes.CPU.Monad (
 
     -- * Interrupt
     modifyInterruptStatus,
-    popInterrupt,
 
     -- * Unsafe
     unsafeWithBus,
@@ -52,8 +51,7 @@ import qualified Nes.Bus.Monad as BusM
 import Nes.Bus.SideEffect
 import Nes.CPU.State
 import Nes.FlagRegister
-import Nes.Interrupt (Interrupt, InterruptStatus)
-import qualified Nes.Interrupt as I
+import Nes.Interrupt
 import Nes.Memory
 
 -- | Note: we use IO because it is likely to read/write from/to memory, which is not pure
@@ -187,11 +185,6 @@ reset = do
 
 modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> CPU r ()
 modifyInterruptStatus = withBus . modifyBus . Nes.Bus.modifyInterruptStatus
-
-popInterrupt :: CPU r (Maybe Interrupt)
-popInterrupt = MkCPU $ \st bus cont -> do
-    let (res, bus') = Nes.Bus.modifyInterruptStatus' I.popInterrupt bus
-    cont st bus' res
 
 instance MemoryInterface () (CPU r) where
     {-# INLINE readByte #-}

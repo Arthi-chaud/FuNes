@@ -72,7 +72,7 @@ newBus rom_ onNewFrame_ pushSample_ tickCallback_ = do
             0
             (newAPUState pushSample_)
             mempty
-            (MkIE [])
+            (MkIS Nothing False)
 
 modifyPPUState :: (PPUState -> PPUState) -> Bus -> Bus
 modifyPPUState f bus = bus{ppuState = f $ ppuState bus}

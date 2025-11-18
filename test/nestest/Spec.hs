@@ -186,7 +186,7 @@ loadExpectedRawTrace = do
             afterPPU = snd . BS.breakSubstring " CYC:" $ bs
          in BS.concat [beforePPU, afterPPU]
 
--- | In nestest, the B flag and bit 5 are preserved when popped from the stack
+-- In nestest, the B flag and bit 5 are preserved when popped from the stack
 -- In the Accuracy coin tests, that's not the case. Thus, we modify nestest's output
 -- so that P = P & 0b11001111
 fixStackValue :: ByteString -> ByteString
