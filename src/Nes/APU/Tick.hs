@@ -14,6 +14,7 @@ module Nes.APU.Tick (
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.Maybe (isNothing)
 import Nes.APU.Mixer
 import Nes.APU.Monad
 import Nes.APU.State
@@ -50,7 +51,7 @@ tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
     -- Ticks
     tickDelayedWriteBuffer
-    modifyAPUStateWithSideEffect $ modifyDMC' tickDMC
+    modifyAPUState $ modifyDMC tickDMC
     modifyAPUState $
         modifyTriangle tickTriangle
             . modifyNoise tickNoise
@@ -72,6 +73,8 @@ tickOnce isAPUCycle = do
         modifyAPUState $
             \st -> st{sampleTimer = S.sampleTimer st + S.samplePeriod st}
     modifyAPUState $ \st -> st{cycle = cycle st + 1}
+    shouldDMA <- withAPUState $ \st -> (isNothing . sampleBuffer $ dmc st) && (sampleBytesRemaining (dmc st) > 0)
+    when shouldDMA $ setSideEffect $ setFlag DMCDMA
 
 -- | Tells the frame counter to tick channels
 --

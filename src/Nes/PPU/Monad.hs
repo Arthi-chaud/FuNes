@@ -186,6 +186,7 @@ writeOamData byte = do
     setOamOffset (addr + 1)
 
 {-# INLINE writeListToOam #-}
+-- AKA DMA
 writeListToOam :: [Byte] -> PPU r ()
 writeListToOam = foldlM (\_ item -> writeOamData item) ()
 
@@ -293,5 +294,3 @@ mirrorVramAddr mirr addr = case (mirr, nameTable) of
     mirroredVram = addr .&. 0b10111111111111
     vramIndex = mirroredVram - 0x2000
     nameTable = unAddr vramIndex `div` 0x400
-
--- TODO It is a memory interface

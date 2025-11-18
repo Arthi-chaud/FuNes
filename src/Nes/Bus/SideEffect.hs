@@ -4,7 +4,7 @@ import Data.Bits ((.|.))
 import Nes.FlagRegister
 import Nes.Memory
 
-newtype CPUSideEffect = MkSE {unSE :: Byte}
+newtype CPUSideEffect = MkSE {unSE :: Byte} deriving (Eq, Show)
 
 data CPUSideEffectFlag = IRQ | DMCDMA deriving (Eq, Show, Enum)
 

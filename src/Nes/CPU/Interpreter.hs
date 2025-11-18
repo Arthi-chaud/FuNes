@@ -48,7 +48,9 @@ interpretWithCallback callback = do
     when hasNmiInterrupt $ interrupt NMI
     callback
     oldCycleCount <- getCycles
+    modifyCPUState $ \st -> st{currentOpCodeCycle = 0}
     opCode <- readAtPC
+    modifyCPUState $ \st -> st{currentOpCode = opCode}
     incrementPC
     do
         forceMultiByte <- go opCode
