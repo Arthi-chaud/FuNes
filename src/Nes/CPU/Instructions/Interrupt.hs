@@ -6,4 +6,4 @@ import Nes.Interrupt
 brk :: CPU r ()
 brk = do
     incrementPC
-    modifyInterruptStatus $ pushInterrupt $ IRQ BRK
+    modifyInterruptStatus $ \s -> s{irq = Just BRK}

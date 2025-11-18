@@ -118,7 +118,7 @@ onOutputCycleEnd dmc interr = (dmc1, interr')
         Just b -> dmc0{shiftRegister = b, sampleBuffer = Nothing}
     interr' =
         if isNothing (sampleBuffer dmc1) && sampleBytesRemaining dmc1 > 0
-            then pushInterrupt (IRQ DMC) interr
+            then interr{irq = Just DMC}
             else interr
 
 -- | Loads the byte into the sample buffer and shift the sample buffer-related values
@@ -139,4 +139,4 @@ loadSampleBuffer byte dmc s =
      in
         if shouldRestartSample
             then (restartSample dmc1, s)
-            else (dmc1, if shouldIRQ then pushInterrupt (IRQ DMC) s else s)
+            else (dmc1, if shouldIRQ then s{irq = Just DMC} else s)

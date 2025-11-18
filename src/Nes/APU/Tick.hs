@@ -149,7 +149,7 @@ runHalfFrameEvent = modifyAPUState $ \st ->
 {-# INLINE setFrameInterruptFlag #-}
 setFrameInterruptFlag :: Bool -> APU r ()
 setFrameInterruptFlag b = do
-    modifyInterruptStatus $ pushInterrupt (IRQ FrameCounter)
+    modifyInterruptStatus $ \s -> s{irq = Just FrameCounter}
     modifyAPUState $
         modifyFrameCounter $
             \fc -> fc{frameInterruptFlag = b}
