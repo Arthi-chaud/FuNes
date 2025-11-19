@@ -2,6 +2,8 @@
 
 module Main (main) where
 
+import Control.Concurrent (forkIO, killThread)
+import Control.Concurrent.MVar
 import Control.Monad
 import Data.IORef
 import qualified Data.Vector.Storable.Mutable as V
@@ -9,7 +11,6 @@ import Events
 import Nes.APU.State.Filter.Constants
 import Nes.APU.State.Filter.Thread
 import Nes.Bus
-import Nes.Bus.Monad (runBusM)
 import Nes.CPU.Interpreter
 import Nes.Render
 import Nes.Render.Frame
@@ -39,6 +40,7 @@ main = do
         either fail return res
     vectorCursor <- newIORef 0
     sampleVector <- V.new vectorSize
+
     initializeAll
 
     let windowConfig =
@@ -72,10 +74,12 @@ main = do
     setAudioDevicePlaybackState device Play
     filterThread <- newFilterThread
     frame <- newFrameState
+    busMVar <- newEmptyMVar
+    renderThreadId <- forkIO $ drawFrameThread frame texture renderer busMVar
     bus <-
         newBus
             rom
-            (onDrawFrame frame texture renderer)
+            (putMVar busMVar)
             handleEvents
             (sampleCallback sampleVector vectorCursor)
             tickCallback
@@ -83,6 +87,7 @@ main = do
     void $ runProgram bus (pure ())
     closeAudioDevice device
     killFilterThread filterThread
+    killThread renderThreadId
     destroyRenderer renderer
 
 tickCallback :: Double -> Int -> IO (Double, Int)
@@ -114,12 +119,14 @@ audioCallback samples cursorRef fmt buffer = case fmt of
                 writeIORef cursorRef 0
     _ -> error "Unsupported audio format"
 
-onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO ()
-onDrawFrame frame texture renderer bus = do
+drawFrameThread :: FrameState -> Texture -> Renderer -> MVar Bus -> IO ()
+drawFrameThread frame texture renderer busRef = do
+    bus <- takeMVar busRef
     bs <- runRender (render bus R.>> toSDL2ByteString) frame
     updateTexture texture Nothing bs (256 * 3)
     copy renderer texture Nothing Nothing
     present renderer
+    drawFrameThread frame texture renderer busRef
 
 --   !currentTime <- getCPUTimeUs
 --   let !totalTickDurationUs = tickDurationUs * fromIntegral ticks_
