@@ -94,6 +94,33 @@ sampleCallback vec cursorRef sample = do
         V.write vec cursor sample
         writeIORef cursorRef (cursor + 1)
 
+audioCallback :: V.IOVector Float -> IORef Int -> AudioFormat sampleType -> V.IOVector sampleType -> IO ()
+audioCallback samples cursorRef fmt buffer = case fmt of
+    FloatingLEAudio -> do
+        cursor <- readIORef cursorRef
+        let bufferLen = V.length buffer
+            nToCopy = min bufferLen cursor
+        when (cursor < bufferLen) $ do
+            V.set buffer 0
+        V.copy (V.slice 0 nToCopy buffer) (V.slice 0 nToCopy samples)
+        -- If more samples are ready
+        if cursor >= bufferLen
+            then do
+                let toShift = cursor - bufferLen
+                V.unsafeCopy (V.slice 0 toShift samples) (V.slice (cursor - 1) toShift samples)
+                writeIORef cursorRef toShift
+            else
+                writeIORef cursorRef 0
+    _ -> error "Unsupported audio format"
+
+onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO Bus
+onDrawFrame frame texture renderer bus = do
+    bs <- runRender (render bus R.>> toSDL2ByteString) frame
+    updateTexture texture Nothing bs (256 * 3)
+    copy renderer texture Nothing Nothing
+    present renderer
+    snd <$> runBusM bus handleEvents
+
 --   !currentTime <- getCPUTimeUs
 --   let !totalTickDurationUs = tickDurationUs * fromIntegral ticks_
 --       !deltaTimeUs = currentTime - lastSleepTime
@@ -118,33 +145,6 @@ sampleCallback vec cursorRef sample = do
 --   tickDurationUs = (1000000 / cpuFrequency) :: Double
 --   -- Frequency in Hz
 --   cpuFrequency = 1.789773 * 1000000
-
-audioCallback :: V.IOVector Float -> IORef Int -> AudioFormat sampleType -> V.IOVector sampleType -> IO ()
-audioCallback samples cursorRef fmt buffer = case fmt of
-    FloatingLEAudio -> do
-        cursor <- readIORef cursorRef
-        let bufferLen = V.length buffer
-            nToCopy = min bufferLen cursor
-        when (cursor < bufferLen) $ do
-            V.set buffer 0
-        V.copy (V.slice 0 nToCopy buffer) (V.slice 0 nToCopy samples)
-        -- If more samples are ready
-        if cursor > bufferLen
-            then do
-                let toShift = cursor - bufferLen
-                V.unsafeCopy (V.slice 0 toShift samples) (V.slice (cursor - 1) toShift samples)
-                writeIORef cursorRef toShift
-            else
-                writeIORef cursorRef 0
-    _ -> error "Unsupported audio format"
-
-onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO Bus
-onDrawFrame frame texture renderer bus = do
-    bs <- runRender (render bus R.>> toSDL2ByteString) frame
-    updateTexture texture Nothing bs (256 * 3)
-    copy renderer texture Nothing Nothing
-    present renderer
-    snd <$> runBusM bus handleEvents
 
 -- {-# INLINE getCPUTimeUs #-}
 -- getCPUTimeUs :: IO Double

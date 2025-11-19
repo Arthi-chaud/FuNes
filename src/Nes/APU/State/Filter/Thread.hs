@@ -5,7 +5,6 @@ module Nes.APU.State.Filter.Thread where
 import Control.Concurrent
 import Control.Monad
 import Data.IORef
-import Data.Maybe
 import Nes.APU.State.Filter.Chain
 import Nes.APU.State.Filter.Class
 import Nes.APU.State.Filter.Constants
@@ -23,25 +22,25 @@ newNoopFilterThread = MkFT (const $ pure ()) (pure 0) Nothing
 -- | A FilterThread that spawns a process to run the filter chain in the backgroun
 newFilterThread :: IO FilterThread
 newFilterThread = do
-    filtersRef <- newIORef $ newFilterChain defaultOutputRate
-    inputVar <- newEmptyMVar
-    getInputVar <- newEmptyMVar
+    filtersRef <- newIORef =<< newFilterChain defaultOutputRate
+    inputVar <- newIORef Nothing
+    getInputVar <- newIORef False
     postOutputVar <- newEmptyMVar
     threadId <- Just <$> forkIO (thread filtersRef inputVar getInputVar postOutputVar)
-    let consumeSample = putMVar inputVar
-        outputSample = putMVar getInputVar () >> takeMVar postOutputVar
+    let consumeSample = writeIORef inputVar . Just
+        outputSample = writeIORef getInputVar True >> takeMVar postOutputVar
     return $ MkFT{..}
 
-thread :: IORef FilterChain -> MVar Sample -> MVar () -> MVar Sample -> IO ()
+thread :: IORef FilterChain -> IORef (Maybe Sample) -> IORef Bool -> MVar Sample -> IO ()
 thread filterRef inV getV postV = do
-    msample <- tryTakeMVar inV
+    msample <- readIORef inV
     case msample of
         Nothing -> pure ()
-        Just sample -> modifyIORef' filterRef (consume sample)
+        Just sample -> readIORef filterRef >>= consume sample >>= writeIORef filterRef
 
-    needOutput <- isJust <$> tryTakeMVar getV
+    needOutput <- readIORef getV
     when needOutput $ do
-        filterOutput <- output <$> readIORef filterRef
+        filterOutput <- output =<< readIORef filterRef
         postIsFull <- tryPutMVar postV filterOutput
         when postIsFull $ return () -- NOTE Shouldn't happen
     thread filterRef inV getV postV
