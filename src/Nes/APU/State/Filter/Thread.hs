@@ -1,6 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Nes.APU.State.Filter.Thread where
+module Nes.APU.State.Filter.Thread (
+    -- * Definition
+    FilterThread (..),
+
+    -- * Constructor
+    newNoopFilterThread,
+    newFilterThread,
+
+    -- * Destructor
+    killFilterThread,
+) where
 
 import Control.Concurrent
 import Control.Monad
