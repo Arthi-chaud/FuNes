@@ -1,7 +1,11 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Nes.APU.State.Filter.Chain (FilterChain (..), newFilterChain) where
 
+import Control.Monad
+import qualified Data.Vector.Mutable as V
 import Nes.APU.State.Filter.Class
 import Nes.APU.State.Filter.Constants
 import Nes.APU.State.Filter.Fir
@@ -10,72 +14,68 @@ import Nes.APU.State.Filter.Sampled
 import Prelude hiding (filter)
 
 data FilterChain = MkFC
-    { filters :: ![SampledFilter]
+    { filters :: !(V.IOVector SampledFilter)
     , dt :: {-# UNPACK #-} !Float
     }
 
-newFilterChain :: OutputRate -> FilterChain
-newFilterChain outputRate = MkFC{..}
+newFilterChain :: OutputRate -> IO FilterChain
+newFilterChain outputRate = do
+    filtersList <- do
+        _firFilter <- lowPassFirFilter intermediateSampleRate (outputRate * 0.45) 160
+        return
+            [ newSampledFilter (Left identityIirFilter) 1.0
+            , newSampledFilter (Left $ lowPassIirFilter clockRate intermediateCutoff) clockRate
+            , newSampledFilter (Left $ highPassIirFilter intermediateSampleRate 90) intermediateSampleRate
+            , newSampledFilter (Left $ highPassIirFilter intermediateSampleRate 440) intermediateSampleRate
+            , newSampledFilter (Left $ lowPassIirFilter intermediateSampleRate 14000) intermediateSampleRate
+            -- , newSampledFilter (Right firFilter) intermediateSampleRate
+            ]
+    filters <- V.new $ length filtersList
+    forM_ (zip [0 ..] filtersList) $ uncurry (V.write filters)
+    return MkFC{..}
   where
     clockRate = 21477272 / 12
     intermediateSampleRate = outputRate * 2 + (pi / 32)
     intermediateCutoff = outputRate * 0.4
     dt = 1 / clockRate
-    filters =
-        [ newSampledFilter (Left identityIirFilter) 1.0
-        , newSampledFilter (Left $ lowPassIirFilter clockRate intermediateCutoff) clockRate
-        , newSampledFilter (Left $ highPassIirFilter intermediateSampleRate 90) intermediateSampleRate
-        , newSampledFilter (Left $ highPassIirFilter intermediateSampleRate 440) intermediateSampleRate
-        , newSampledFilter (Left $ lowPassIirFilter intermediateSampleRate 14000) intermediateSampleRate
-        , newSampledFilter (Right $ lowPassFirFilter intermediateSampleRate (outputRate * 0.45) 160) intermediateSampleRate
-        ]
 
-instance Filter FilterChain where
+instance Filter IO FilterChain where
     consume = filterChainConsumeSample
     output = filterChainOutput
 
-filterChainConsumeSample :: Sample -> FilterChain -> FilterChain
-filterChainConsumeSample sample fc =
-    let
-        fc1 = modifyFilterAtIndex 0 (consume sample) fc
-        updatedFilters = go (filters fc1) (dt fc1)
-     in
-        fc1{filters = updatedFilters}
-  where
-    go :: [SampledFilter] -> Float -> [SampledFilter]
-    go [] _ = []
-    go [a] _ = [a]
-    go (prev : curr : rest) dt =
-        let
-            newCurr = filterChainConsumeIteration prev curr dt
-         in
-            prev : go (newCurr : rest) dt
+filterChainConsumeSample :: Sample -> FilterChain -> IO FilterChain
+filterChainConsumeSample sample fc = do
+    V.modifyM (filters fc) (consume sample) 0
+    firstFilter <- V.read (filters fc) 0
+    _ <-
+        V.ifoldM
+            ( \prev currIdx curr -> do
+                newCurr <- filterChainConsumeIteration prev (dt fc) curr
+                V.write (filters fc) currIdx newCurr
+                return newCurr
+            )
+            firstFilter
+            (filters fc)
+    return fc
 
-filterChainConsumeIteration :: SampledFilter -> SampledFilter -> Float -> SampledFilter
-filterChainConsumeIteration prev current dt =
+filterChainConsumeIteration :: SampledFilter -> Float -> SampledFilter -> IO SampledFilter
+filterChainConsumeIteration prev dt current =
     if periodCounter current >= samplePeriod current
-        then
+        then do
             let
                 newPeriodCounter = periodCounter current - samplePeriod current
-                previousOutput = output $ filter prev
-                newCurrent = consume previousOutput $ current{periodCounter = newPeriodCounter}
-             in
-                filterChainConsumeIteration
-                    prev
-                    newCurrent
-                    dt
+            previousOutput <- output $ filter prev
+            newCurrent <- consume previousOutput $ current{periodCounter = newPeriodCounter}
+            filterChainConsumeIteration
+                prev
+                dt
+                newCurrent
         else
             let newPeriodCounter = periodCounter current + dt
-             in current{periodCounter = newPeriodCounter}
-
-{-# INLINE modifyFilterAtIndex #-}
-modifyFilterAtIndex :: Int -> (SampledFilter -> SampledFilter) -> FilterChain -> FilterChain
-modifyFilterAtIndex idx f fc = case splitAt idx $ filters fc of
-    (_, []) -> fc
-    (left, item : right) -> fc{filters = left ++ (f item : right)}
+             in return $ current{periodCounter = newPeriodCounter}
 
 {-# INLINE filterChainOutput #-}
-filterChainOutput :: FilterChain -> Sample
-filterChainOutput fc = case filters fc of
-    [] -> 0
-    l -> either output output . filter $ last l
+filterChainOutput :: FilterChain -> IO Sample
+filterChainOutput fc = case V.length $ filters fc of
+    0 -> return 0
+    l -> either (output @IO) (output @IO) . filter =<< V.read (filters fc) (l - 1)

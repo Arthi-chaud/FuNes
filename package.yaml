@@ -41,7 +41,7 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wpartial-fields
   - -Wredundant-constraints
-  - -O3
+  - -O2
 
 library:
   source-dirs: src

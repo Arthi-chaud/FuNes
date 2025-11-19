@@ -1,7 +1,10 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Nes.APU.State.Filter.Sampled (SampledFilter (..), newSampledFilter) where
 
+import Control.Monad.IO.Class
 import Nes.APU.State.Filter.Class
 import Nes.APU.State.Filter.Constants
 import Nes.APU.State.Filter.Fir
@@ -20,13 +23,15 @@ newSampledFilter filter sampleRate = MkSF{..}
     periodCounter = 1
     samplePeriod = 1 / sampleRate
 
-instance Filter SampledFilter where
+instance (MonadIO m) => Filter m SampledFilter where
     consume = sampledFilterConsumeSample
     output sf = output $ filter sf
 
 {-# INLINE sampledFilterConsumeSample #-}
-sampledFilterConsumeSample :: Sample -> SampledFilter -> SampledFilter
-sampledFilterConsumeSample sample sf =
-    sf
-        { filter = consume sample $ filter sf
-        }
+sampledFilterConsumeSample :: (MonadIO m) => Sample -> SampledFilter -> m SampledFilter
+sampledFilterConsumeSample sample sf = do
+    filter' <- consume sample $ filter sf
+    return
+        sf
+            { filter = filter'
+            }

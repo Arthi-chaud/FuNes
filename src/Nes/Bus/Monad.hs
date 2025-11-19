@@ -86,11 +86,11 @@ tick n = MkBusM $ \bus cont -> do
     let unsleptCycles_ = n + unsleptCycles bus
     (newLastSleepTime, newUnsleptCycles) <-
         cycleCallback bus (lastSleepTime bus) unsleptCycles_
-    ((_isNewFrame, nmiBefore, nmiAfter), ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
+    (isNewFrame, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
         before <- withPPUState nmiInterrupt
-        isNewFrame <- PPUM.tick (n * 3)
+        _ <- PPUM.tick (n * 3)
         after <- withPPUState nmiInterrupt
-        return (isNewFrame, before, after)
+        return (not before && after)
     ((), !apuSt, !interr) <- runAPU (apuState bus) (cpuInterrupt bus) $ APU.tick (odd (Nes.Bus.cycles bus)) n
     let bus' =
             bus
@@ -101,7 +101,7 @@ tick n = MkBusM $ \bus cont -> do
                 , lastSleepTime = newLastSleepTime
                 , cpuInterrupt = interr
                 }
-    if not nmiBefore && nmiAfter
+    if isNewFrame
         then onNewFrame bus' bus' >>= flip cont ()
         else
             cont bus' ()

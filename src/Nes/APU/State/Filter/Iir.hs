@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Nes.APU.State.Filter.Iir (
     IirFilter (..),
 
@@ -55,13 +60,15 @@ lowPassIirFilter sampleRate cutoff =
     period = 1 / sampleRate
     cutoffPeriod = 1 / (2 * pi * cutoff)
 
-instance Filter IirFilter where
+instance (Monad m) => Filter m IirFilter where
     {-# INLINE output #-}
-    output f = outputF f f
+    output f = return $ outputF f f
     {-# INLINE consume #-}
-    consume sample f =
-        f
-            { previousOutput = output f
-            , delta = sample - previousInput f
-            , previousInput = sample
-            }
+    consume sample f = do
+        prevOut <- output @m f
+        return $
+            f
+                { previousOutput = prevOut
+                , delta = sample - previousInput f
+                , previousInput = sample
+                }

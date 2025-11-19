@@ -1,11 +1,17 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Nes.APU.State.Filter.Class (Filter (..)) where
 
 import Nes.APU.State.Filter.Constants
 
-class Filter a where
-    consume :: Sample -> a -> a
-    output :: a -> Sample
+class Filter m a where
+    consume :: Sample -> a -> m a
+    output :: a -> m Sample
 
-instance (Filter a, Filter b) => Filter (Either a b) where
-    consume sample = either (Left . consume sample) (Right . consume sample)
-    output = either output output
+instance (Monad m, Filter m a, Filter m b) => Filter m (Either a b) where
+    consume sample = either (fmap Left . consume sample) (fmap Right . consume sample)
+    output = either (output @m) (output @m)

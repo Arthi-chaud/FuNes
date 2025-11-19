@@ -4,14 +4,12 @@ module Nes.APU.Monad (
     modifyAPUState,
     modifyAPUStateWithInterrupt,
     withAPUState,
-    modifyFilterChain,
     modifyInterruptStatus,
     withInterruptStatus,
 ) where
 
 import Control.Monad.IO.Class
 import Nes.APU.State
-import Nes.APU.State.Filter.Chain (FilterChain)
 import Nes.Interrupt
 
 newtype APU r a = MkAPU
@@ -56,11 +54,6 @@ modifyAPUStateWithInterrupt f = MkAPU $ \(!st) !interr cont ->
 {-# INLINE withAPUState #-}
 withAPUState :: (APUState -> a) -> APU r a
 withAPUState f = MkAPU $ \(!st) !interr cont -> cont st interr (f st)
-
-{-# INLINE modifyFilterChain #-}
-modifyFilterChain :: (FilterChain -> FilterChain) -> APU r ()
-modifyFilterChain f = MkAPU $ \(!st) !interr cont ->
-    cont st{filterChain = f $ filterChain st} interr ()
 
 {-# INLINE modifyInterruptStatus #-}
 modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> APU r ()

@@ -2,6 +2,7 @@ module Internal (withProgram, withState, withMemorySetup, withStateAndMemorySetu
 
 import Control.Monad
 import Data.Word
+import Nes.APU.State.Filter.Thread
 import Nes.Bus
 import Nes.CPU.Interpreter (runProgram')
 import Nes.CPU.Monad (CPU (MkCPU))
@@ -21,7 +22,7 @@ withStateAndMemorySetup ::
     (CPUState -> Bus -> IO r') ->
     IO ()
 withStateAndMemorySetup program st memSetup post = do
-    bus <- newBus unsafeEmptyRom pure (\_ -> pure ()) (\a b -> return (a, b))
+    bus <- newBus unsafeEmptyRom pure (\_ -> pure ()) (\a b -> return (a, b)) newNoopFilterThread
     loadProgramToMemory program bus
     _ <- memSetup bus
     -- Not we do not read 0xfffc because it's out of the bus read

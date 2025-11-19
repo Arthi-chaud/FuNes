@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoStrict #-}
 
@@ -5,52 +7,50 @@
 
 module Nes.APU.State.Filter.Fir (FirFilter (..), lowPassFirFilter) where
 
-import Data.Functor ((<&>))
-import qualified Data.Vector.Unboxed as V
+import Control.Monad.IO.Class
+import qualified Data.Vector.Unboxed.Mutable as V
 import Nes.APU.State.Filter.Class
 import Nes.APU.State.Filter.Constants
 
 -- | Finite impulse response (FIR) filter
 data FirFilter = MkFirF
-    { kernel :: !(V.Vector Float)
-    , inputs :: !(V.Vector Float)
+    { kernel :: !(V.IOVector Float)
+    , inputs :: !(V.IOVector Float)
     , inputIndex :: {-# UNPACK #-} !Int
     }
 
-instance Filter FirFilter where
-    output f =
-        let
-            kernelL = V.toList $ kernel f
-            inputsL = drop (inputIndex f) $ Prelude.cycle $ V.toList $ inputs f
-         in
-            sum (zipWith (*) kernelL inputsL)
-    consume sample f =
-        f
-            { inputIndex = newInputIndex
-            , inputs = newInputs
-            }
+instance (MonadIO m) => Filter m FirFilter where
+    output MkFirF{..} =
+        liftIO $
+            V.ifoldM'
+                ( \acc idx n -> do
+                    n' <- V.read inputs ((idx + inputIndex) `mod` V.length inputs)
+                    return $ acc + (n * n')
+                )
+                0
+                kernel
+    consume sample f = liftIO $ do
+        V.write (inputs f) (inputIndex f) sample
+        return $
+            f
+                { inputIndex = newInputIndex
+                }
       where
         newInputIndex = (inputIndex f + 1) `mod` V.length (inputs f)
-        newInputs = inputs f V.// [(inputIndex f, sample)]
 
-lowPassFirFilter :: SampleRate -> Cutoff -> Int -> FirFilter
-lowPassFirFilter sampleRate cutoff windowSize = MkFirF{..}
-  where
-    inputIndex = 0
-    inputs = V.replicate (windowSize + 1) 0
-    kernel = windowedSincKernel sampleRate cutoff windowSize
+lowPassFirFilter :: SampleRate -> Cutoff -> Int -> IO FirFilter
+lowPassFirFilter sampleRate cutoff windowSize = do
+    let inputIndex = 0
+    kernel <- windowedSincKernel sampleRate cutoff (windowSize + 1)
+    inputs <- V.replicate (windowSize + 1) 0
+    return MkFirF{..}
 
-windowedSincKernel :: SampleRate -> Cutoff -> Int -> V.Vector Float
-windowedSincKernel sampleRate cutoff windowSize =
-    let
-        fc = cutoff / sampleRate
-        kernelL :: [Float]
-        kernelL =
-            [0 .. windowSize] <&> \i ->
-                (sinc i fc windowSize) * blackmanWindow i windowSize
-        kernelV = V.fromList kernelL
-     in
-        normalise kernelV
+windowedSincKernel :: SampleRate -> Cutoff -> Int -> IO (V.IOVector Float)
+windowedSincKernel sampleRate cutoff windowSize = do
+    let fc = cutoff / sampleRate
+    kernelV <- V.generate windowSize $ \i -> (sinc i fc windowSize) * blackmanWindow i windowSize
+    normalise kernelV
+    return kernelV
   where
     blackmanWindow :: Int -> Int -> Float
     blackmanWindow idx winSize =
@@ -73,12 +73,10 @@ windowedSincKernel sampleRate cutoff windowSize =
             if idx == (windowSize `div` 2)
                 then tau * fc
                 else (mySin (tau * fc * shiftedIndex)) / shiftedIndex
-    normalise :: V.Vector Float -> V.Vector Float
-    normalise vec =
-        let
-            vecSum = V.sum vec
-         in
-            V.map (/ vecSum) vec
+    normalise :: V.IOVector Float -> IO ()
+    normalise vec = do
+        vecSum <- V.foldl' (+) 0 vec
+        V.imapM_ (\i a -> V.write vec i (a / vecSum)) vec
 
 -- | Faster implementation of the sin function,
 --

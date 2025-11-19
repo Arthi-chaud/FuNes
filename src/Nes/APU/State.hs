@@ -16,8 +16,8 @@ module Nes.APU.State (
 ) where
 
 import Nes.APU.State.DMC
-import Nes.APU.State.Filter.Chain
 import Nes.APU.State.Filter.Constants (defaultOutputRate)
+import Nes.APU.State.Filter.Thread (FilterThread)
 import Nes.APU.State.FrameCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
@@ -34,7 +34,7 @@ data APUState = MkAPUState
     , dmc :: !DMC
     , cycle :: {-# UNPACK #-} !Int
     -- ^ Number of CPU cycles since the start
-    , filterChain :: !FilterChain
+    , filterThread :: !FilterThread
     , sampleTimer :: {-# UNPACK #-} !Float
     -- ^ The number of CPU cycles since the last call to 'pushSampleCallback'
     , samplePeriod :: {-# UNPACK #-} !Float
@@ -42,8 +42,8 @@ data APUState = MkAPUState
     , pushSampleCallback :: Float -> IO ()
     }
 
-newAPUState :: (Float -> IO ()) -> APUState
-newAPUState pushSampleCallback = MkAPUState{..}
+newAPUState :: (Float -> IO ()) -> FilterThread -> APUState
+newAPUState pushSampleCallback filterThread = MkAPUState{..}
   where
     frameCounter = newFrameCounter
     cycle = 0
@@ -52,7 +52,6 @@ newAPUState pushSampleCallback = MkAPUState{..}
     triangle = newTriangle
     noise = newNoise
     dmc = newDMC
-    filterChain = newFilterChain defaultOutputRate
     samplePeriod = (21477272 / 12) / defaultOutputRate
     sampleTimer = samplePeriod
 

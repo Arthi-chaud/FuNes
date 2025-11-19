@@ -14,6 +14,7 @@ import Data.Char (isAlphaNum)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
 import Data.Int
 import qualified Data.Map as Map
+import Nes.APU.State.Filter.Thread
 import Nes.Bus (Bus (..), newBus)
 import Nes.Bus.Monad
 import Nes.CPU.Instructions.Addressing
@@ -39,7 +40,7 @@ spec = it "Trace should match logfile" $ do
     rom <- do
         eitherRom <- fromFile "test/assets/rom.nes"
         either fail return eitherRom
-    bus <- newBus rom pure (\_ -> pure ()) (curry return)
+    bus <- newBus rom pure (\_ -> pure ()) (curry return) newNoopFilterThread
     traceRef <- newIORef (T [] 0)
     let st = newCPUState{programCounter = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
