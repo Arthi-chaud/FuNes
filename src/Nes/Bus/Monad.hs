@@ -102,7 +102,10 @@ tick n = MkBusM $ \bus cont -> do
                 , cpuInterrupt = interr
                 }
     if isNewFrame
-        then onNewFrame bus' bus' >>= flip cont ()
+        then do
+            onNewFrame bus' bus'
+            controller' <- liftIO (pollControls bus' $ controller bus')
+            cont bus'{controller = controller'} ()
         else
             cont bus' ()
 

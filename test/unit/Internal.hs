@@ -22,7 +22,7 @@ withStateAndMemorySetup ::
     (CPUState -> Bus -> IO r') ->
     IO ()
 withStateAndMemorySetup program st memSetup post = do
-    bus <- newBus unsafeEmptyRom pure (\_ -> pure ()) (\a b -> return (a, b)) newNoopFilterThread
+    bus <- newBus unsafeEmptyRom (\_ -> pure ()) pure (\_ -> pure ()) (curry return) newNoopFilterThread
     loadProgramToMemory program bus
     _ <- memSetup bus
     -- Not we do not read 0xfffc because it's out of the bus read
