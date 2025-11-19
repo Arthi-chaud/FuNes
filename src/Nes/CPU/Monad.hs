@@ -8,7 +8,6 @@ module Nes.CPU.Monad (
     -- * Interracting with bus
     withBus,
     withBusState,
-    setSideEffect,
 
     -- * State
     modifyCPUState,
@@ -48,7 +47,6 @@ import qualified Nes.Bus
 import Nes.Bus.Constants
 import Nes.Bus.Monad (BusM, modifyBus, runBusM)
 import qualified Nes.Bus.Monad as BusM
-import Nes.Bus.SideEffect
 import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Interrupt
@@ -99,9 +97,6 @@ withBusState f = MkCPU $ \st bus cont -> cont st bus (f bus)
 {-# INLINE getCycles #-}
 getCycles :: CPU r Integer
 getCycles = withBusState cycles
-
-setSideEffect :: (CPUSideEffect -> CPUSideEffect) -> CPU r ()
-setSideEffect f = MkCPU $ \st bus cont -> cont st bus{cpuSideEffect = f $ cpuSideEffect bus} ()
 
 {-# INLINE getPC #-}
 

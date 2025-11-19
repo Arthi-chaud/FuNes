@@ -1,5 +1,4 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE NoStrict #-}
 
 module Nes.APU.State.Filter.Thread where
 
@@ -32,18 +31,20 @@ newFilterThread = do
     let consumeSample = putMVar inputVar
         outputSample = putMVar getInputVar () >> takeMVar postOutputVar
     return $ MkFT{..}
-  where
-    thread filterRef inV getV postV = do
-        needOutput <- isJust <$> tryTakeMVar getV
-        when needOutput $ do
-            filterOutput <- output <$> readIORef filterRef
-            postIsFull <- tryPutMVar postV filterOutput
-            when postIsFull $ return () -- NOTE Shouldn't happen
-        msample <- tryTakeMVar inV
-        case msample of
-            Nothing -> pure ()
-            Just sample -> modifyIORef filterRef (consume sample)
-        thread filterRef inV getV postV
+
+thread :: IORef FilterChain -> MVar Sample -> MVar () -> MVar Sample -> IO ()
+thread filterRef inV getV postV = do
+    msample <- tryTakeMVar inV
+    case msample of
+        Nothing -> pure ()
+        Just sample -> modifyIORef' filterRef (consume sample)
+
+    needOutput <- isJust <$> tryTakeMVar getV
+    when needOutput $ do
+        filterOutput <- output <$> readIORef filterRef
+        postIsFull <- tryPutMVar postV filterOutput
+        when postIsFull $ return () -- NOTE Shouldn't happen
+    thread filterRef inV getV postV
 
 killFilterThread :: FilterThread -> IO ()
 killFilterThread ft = maybe (pure ()) killThread $ threadId ft

@@ -64,8 +64,8 @@ tickOnce isAPUCycle = do
     modifyAPUState $ \st -> st{sampleTimer = sampleTimer st - 1}
     sampleTimer' <- withAPUState sampleTimer
     when (sampleTimer' <= 1) $ do
-        filterOut <- liftIO . outputSample =<< withAPUState filterThread
-        callback <- withAPUState pushSampleCallback
+        !filterOut <- liftIO . outputSample =<< withAPUState filterThread
+        !callback <- withAPUState pushSampleCallback
         liftIO $ callback filterOut
         modifyAPUState $
             \st -> st{sampleTimer = S.sampleTimer st + S.samplePeriod st}

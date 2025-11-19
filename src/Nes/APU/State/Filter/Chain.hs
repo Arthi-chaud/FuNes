@@ -2,6 +2,7 @@
 
 module Nes.APU.State.Filter.Chain (FilterChain (..), newFilterChain) where
 
+import qualified Data.Vector.Mutable as V
 import Nes.APU.State.Filter.Class
 import Nes.APU.State.Filter.Constants
 import Nes.APU.State.Filter.Fir
@@ -10,7 +11,7 @@ import Nes.APU.State.Filter.Sampled
 import Prelude hiding (filter)
 
 data FilterChain = MkFC
-    { filters :: ![SampledFilter]
+    { filters :: !(V.IOVector SampledFilter)
     , dt :: {-# UNPACK #-} !Float
     }
 

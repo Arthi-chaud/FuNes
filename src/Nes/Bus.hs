@@ -15,7 +15,6 @@ module Nes.Bus (
 
 import Nes.APU.State (APUState, newAPUState)
 import Nes.APU.State.Filter.Thread (FilterThread)
-import Nes.Bus.SideEffect (CPUSideEffect)
 import Nes.Controller
 import Nes.Internal
 import Nes.Interrupt
@@ -49,7 +48,6 @@ data Bus = Bus
     , dataBus :: {-# UNPACK #-} !Byte
     -- ^ Last read/written byte
     , apuState :: !APUState
-    , cpuSideEffect :: {-# UNPACK #-} !CPUSideEffect
     , cpuInterrupt :: {-# UNPACK #-} !InterruptStatus
     }
 
@@ -72,7 +70,6 @@ newBus rom_ onNewFrame_ pushSample_ tickCallback_ filterThread = do
             onNewFrame_
             0
             (newAPUState pushSample_ filterThread)
-            mempty
             (MkIS Nothing False)
 
 modifyPPUState :: (PPUState -> PPUState) -> Bus -> Bus
