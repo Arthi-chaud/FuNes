@@ -76,6 +76,7 @@ main = do
         newBus
             rom
             (onDrawFrame frame texture renderer)
+            handleEvents
             (sampleCallback sampleVector vectorCursor)
             tickCallback
             filterThread
@@ -113,13 +114,12 @@ audioCallback samples cursorRef fmt buffer = case fmt of
                 writeIORef cursorRef 0
     _ -> error "Unsupported audio format"
 
-onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO Bus
+onDrawFrame :: FrameState -> Texture -> Renderer -> Bus -> IO ()
 onDrawFrame frame texture renderer bus = do
     bs <- runRender (render bus R.>> toSDL2ByteString) frame
     updateTexture texture Nothing bs (256 * 3)
     copy renderer texture Nothing Nothing
     present renderer
-    snd <$> runBusM bus handleEvents
 
 --   !currentTime <- getCPUTimeUs
 --   let !totalTickDurationUs = tickDurationUs * fromIntegral ticks_

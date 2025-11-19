@@ -1,8 +1,6 @@
 module Events (handleEvents) where
 
 import Control.Monad
-import Control.Monad.IO.Class
-import Nes.Bus.Monad
 import Nes.Controller
 import SDL
 import System.Exit
@@ -21,18 +19,17 @@ keymap =
     , (ScancodeZ, B)
     ]
 
-handleEvents :: BusM r ()
-handleEvents = do
-    events <- liftIO pollEvents
-    forM_ events (go . eventPayload)
+handleEvents :: Controller -> IO Controller
+handleEvents c = pollEvents >>= foldM (\c' -> go c' . eventPayload) c
   where
-    exit = liftIO exitSuccess
-    go = \case
+    exit = exitSuccess
+    go :: Controller -> EventPayload -> IO Controller
+    go controller = \case
         QuitEvent -> exit
         KeyboardEvent (KeyboardEventData _ motion _ sym) -> case SDL.keysymScancode sym of
             ScancodeQ -> exit
             ScancodeEscape -> exit
-            c -> case lookup c keymap of
-                Just b -> withController $ setButtonAsPressed b (motion == Pressed)
-                Nothing -> pure ()
-        _ -> pure ()
+            code -> case lookup code keymap of
+                Just b -> return $ snd $ runControllerM (setButtonAsPressed b (motion == Pressed)) controller
+                Nothing -> return controller
+        _ -> pure controller

@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Nes.Bus (
@@ -14,6 +15,7 @@ module Nes.Bus (
 ) where
 
 import Nes.APU.State (APUState, newAPUState)
+import Nes.APU.State.Filter.Constants (Sample)
 import Nes.APU.State.Filter.Thread (FilterThread)
 import Nes.Controller
 import Nes.Internal
@@ -44,33 +46,38 @@ data Bus = Bus
     -- ^ The state of the PPU
     , ppuPointers :: !PPUPointers
     -- ^ Memory dedicated to PPU
-    , onNewFrame :: Bus -> IO Bus
+    , onNewFrame :: Bus -> IO ()
+    , pollControls :: Controller -> IO Controller
     , dataBus :: {-# UNPACK #-} !Byte
     -- ^ Last read/written byte
     , apuState :: !APUState
     , cpuInterrupt :: {-# UNPACK #-} !InterruptStatus
     }
 
-newBus :: Rom -> (Bus -> IO Bus) -> (Float -> IO ()) -> (Double -> Int -> IO (Double, Int)) -> FilterThread -> IO Bus
-newBus rom_ onNewFrame_ pushSample_ tickCallback_ filterThread = do
-    fptr <- callocForeignPtr vramSize
-    ppuPtrs <- newPPUPointers
-    let ppuSt = newPPUState (mirroring rom_)
-    return $
-        Bus
-            fptr
-            rom_
-            newController
-            0
-            0
-            tickCallback_
-            0
-            ppuSt
-            ppuPtrs
-            onNewFrame_
-            0
-            (newAPUState pushSample_ filterThread)
-            (MkIS Nothing False)
+newBus ::
+    Rom ->
+    -- | Callback on new frame
+    (Bus -> IO ()) ->
+    -- | Callback to poll controller inputs
+    (Controller -> IO Controller) ->
+    -- | Callback when a sample is ready
+    (Sample -> IO ()) ->
+    -- | Callback when a cycle ends
+    (Double -> Int -> IO (Double, Int)) ->
+    FilterThread ->
+    IO Bus
+newBus cartridge onNewFrame pollControls pushSample cycleCallback filterThread = do
+    cpuVram <- callocForeignPtr vramSize
+    ppuPointers <- newPPUPointers
+    let controller = newController
+        ppuState = newPPUState (mirroring cartridge)
+        cycles = 0
+        unsleptCycles = 0
+        lastSleepTime = 0
+        dataBus = 0
+        apuState = newAPUState pushSample filterThread
+        cpuInterrupt = MkIS Nothing False
+    return $ Bus{..}
 
 modifyPPUState :: (PPUState -> PPUState) -> Bus -> Bus
 modifyPPUState f bus = bus{ppuState = f $ ppuState bus}
