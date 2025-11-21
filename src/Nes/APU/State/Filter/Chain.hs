@@ -48,11 +48,14 @@ filterChainConsumeSample sample fc = do
     V.modifyM (filters fc) (consume sample) 0
     firstFilter <- V.read (filters fc) 0
     _ <-
-        V.ifoldM
-            ( \prev currIdx curr -> do
-                newCurr <- filterChainConsumeIteration prev (dt fc) curr
-                V.write (filters fc) currIdx newCurr
-                return newCurr
+        V.ifoldM'
+            ( \prev currIdx curr ->
+                if currIdx == 0
+                    then return curr
+                    else do
+                        !newCurr <- filterChainConsumeIteration prev (dt fc) curr
+                        V.write (filters fc) currIdx newCurr
+                        return newCurr
             )
             firstFilter
             (filters fc)
