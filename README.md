@@ -1,12 +1,12 @@
-# 🎮 FuNes
+# <img width="60" alt="image" src="https://github.com/user-attachments/assets/a863436a-faf6-4c84-8f20-50fe9dee225d" /> FuNes
 
-FuNes is a Nintendo Entertainment System (NES) emulator, written in Haskell. It supports:
-
-> [!WARNING]
-> This emulator is for research purposes. Do not use as your daily emulator. You can easily find more mature NES emulators on GitHub!
+FuNes is a Nintendo Entertainment System (NES) emulator, written in Haskell.
 
 <img src="https://github.com/user-attachments/assets/4cc0b719-e15c-4f97-b307-79a0256c9788" width="400">
 <img src="https://github.com/user-attachments/assets/63436e62-c2ef-4e28-bc68-516357b04379" width="400">
+
+> [!WARNING]
+> This emulator is for research purposes. Do not use as your daily emulator. You can easily find more mature NES emulators on GitHub!
 
 ## :star: Characteristics
 
@@ -49,10 +49,11 @@ While accuracy is not the ultimate goal, we use the [`AccuracyCoin`](https://git
 
 Do not be scared of the failing tests. Please check out [this video](https://www.youtube.com/watch?v=oYjYmSniQyM) to understand what this ROM checks for.
 
-_Results from Nov. 21 2025_
-Score: 83 / 131 
+Score: 83 / 131
 
-<img width="768" height="748" alt="Screenshot 2025-11-21 at 16 27 00" src="https://github.com/user-attachments/assets/38d3ad2a-9993-4ee6-aa2e-fd4fac500f04" />
+<img width="400" alt="Screenshot 2025-11-21 at 16 27 00" src="https://github.com/user-attachments/assets/38d3ad2a-9993-4ee6-aa2e-fd4fac500f04" />
+
+_Results from Nov. 21 2025_
 
 </details>
 
