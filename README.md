@@ -1,35 +1,23 @@
-# 🎮 FuNes
+# <img width="60" alt="image" src="https://github.com/user-attachments/assets/a863436a-faf6-4c84-8f20-50fe9dee225d" /> FuNes
 
 FuNes is a Nintendo Entertainment System (NES) emulator, written in Haskell.
-
-> [!WARNING]
-> This emulator is for research purposes. Do not use as your daily emulator. You can easily find more mature NES emulators on GitHub!
 
 <img src="https://github.com/user-attachments/assets/4cc0b719-e15c-4f97-b307-79a0256c9788" width="400">
 <img src="https://github.com/user-attachments/assets/63436e62-c2ef-4e28-bc68-516357b04379" width="400">
 
-## :mag: Why does this project exist?
+> [!WARNING]
+> This emulator is for research purposes. Do not use as your daily emulator. You can easily find more mature NES emulators on GitHub!
 
-FuNes is an experiment before anything else. The goal was to see if the functional paradigm would apply well to writting virtual machines and emulator, thus being written in Haskell. 
+## :star: Characteristics
 
-While the goal is to have a working emulator, it is in no way 100% valid. Some features are not (yet) implemented (see [here](https://github.com/Arthi-chaud/FuNes/issues)) and some behaviour may be invalid
+- NTSC
+- Audio (although not perfect)
+- Mappers
+  - NROM
 
-### Results of this _little_ experiment
+## :wrench: Installation 
 
-- The different parts of the emulator (CPU, PPU, Bus) are isolated objects and computations on them were designed using Monads. This made testing a real pleasure. 
-Moreover, I find the code overal quite elegant (e.g. for the opcodes).
-
-- The typeafety prevented some bit-level mistakes (especially when handling 2-byte addresses and 1-byte data), which is always welcome.
-
-- However, it feels like the functional paradigm didn't bring much else to the table, compared to a regular object-orented approach. Although, it should be noted that the functional paradigm never felt like an obstacle when designing and implementing the emulator.
-
-## 📄 How to use
-
-Still wanna try out the emulator? Ok, here's how
-
-### Run
-
-You will need to have Stack and the SDL2 library installed.
+To build the emulator, you will need to have [Stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/#install-stack) and the [SDL2 library](https://wiki.libsdl.org/SDL2/Installation) installed.
 
 ```bash
 # In the cloned repository
@@ -38,38 +26,79 @@ stack run -- ./my_rom.nes # The path to the rom to use
 ```
 _Note_: `stack install` will install the emulator as `funes-exe`
 
-### Controls
+## :video_game: Controls
 
-- `Select`: `Space`
-- `Start`: `Enter`
-- `A`: `A`
-- `B`: `S` or `Z`
-- D-pad: directional arrows
-- Exit: `Q` or `esc`
+| NES Controller  | Physical Buttons |
+|-----------------|------------------|
+|        A        |         A        |
+|        B        |      S or Z      |
+|      Start      |       Enter      |
+|      Select     |       Space      |
+| Directional Pad |      Arrows      |
 
-## Accuracy
+Press `Q` or `esc` to quit.
 
-- A unit test suite tests the behaviour of the CPU using the [`nestest` suite](https://www.qmtpro.com/~nes/misc/nestest.txt)
-- It is regularly tested (manually) using the [`AccuracyCoin`](https://github.com/100thCoin/AccuracyCoin) ROM.
+## :white_check_mark: Testing and accuracy
+
+We use the [`nestest` ROM and trace](https://www.qmtpro.com/~nes/misc/nestest.txt) to test the CPU's behaviour and instructions.
+
+While accuracy is not the ultimate goal, we use the [`AccuracyCoin`](https://github.com/100thCoin/AccuracyCoin) ROM to evaluate the correctness of the emulator.
 
 <details>
-
 <summary>Latest results</summary>
 
-Do not be scared of the failing tests, please check out [this video](https://www.youtube.com/watch?v=oYjYmSniQyM) to understand what this ROM checks for.
+Do not be scared of the failing tests. Please check out [this video](https://www.youtube.com/watch?v=oYjYmSniQyM) to understand what this ROM checks for.
 
-_Results from Oct. 11 2025_
+Score: 83 / 131
 
-https://github.com/user-attachments/assets/c02d8ebf-fa58-424d-b05f-f826efb42abb
+<img width="400" alt="Screenshot 2025-11-21 at 16 27 00" src="https://github.com/user-attachments/assets/38d3ad2a-9993-4ee6-aa2e-fd4fac500f04" />
+
+_Results from Nov. 21 2025_
 
 </details>
+
+## :movie_camera: Demo (w/ sound) :sound:
+
+<details>
+<summary>Click to expand</summary>
+
+⚠️ <strong>Turn down your headphones before playing!</strong>
+  
+
+https://github.com/user-attachments/assets/8f552fa2-a5a9-4ad0-b12d-b86fb5600ab9
+
+
+</details>
+
+
+## :mag: Why another NES emulator?
+
+FuNes is an experiment before anything else. The goal was to see if the functional paradigm would apply well to writting virtual machines and emulator, thus being written in Haskell. 
+
+While the goal is to have a working emulator, it is in no way 100% compliant. Some features are not (yet) implemented (see [here](https://github.com/Arthi-chaud/FuNes/issues)) and some behaviour may be invalid.
+
+### Results of this _little_ experiment
+
+- The different parts of the emulator (CPU, PPU, Bus) are isolated objects and computations on them were designed using Monads. This made testing a real pleasure. 
+Moreover, I find the code overal quite elegant (e.g. for the opcodes).
+- The typeafety prevented some bit-level mistakes (especially when handling 2-byte addresses and 1-byte data), which is always welcome.
+- However, it feels like the functional paradigm didn't bring much else to the table, compared to a regular object-orented approach. Although, it should be noted that the functional paradigm never felt like an obstacle when designing and implementing the emulator.
+
+## :gear: Technicalities
+
+- Main stateful computations (operations on the CPU, APU, PPU, etc.) are modeled using continuation-passing style (CPS) monads
+- Multi-threading for rendering and sound filtering
+- Using SDL2
 
 ## 📚 Resources used
 
 This project wouldn't exist without the following resources. Many thanks to their respective authors 🙏
 
 - [6502 Reference](https://www.nesdev.org/obelisk-6502-guide/reference.html)
-- 'Writting NES emulator in Rust' ([GitHub Pages](https://bugzmanov.github.io/nes_ebook/chapter_1.html), [Source Code](https://github.com/bugzmanov/nes_ebook/tree/master))
+- 'Writing NES emulator in Rust' ([GitHub Pages](https://bugzmanov.github.io/nes_ebook/chapter_1.html), [Source Code](https://github.com/bugzmanov/nes_ebook/tree/master))
+- [nesdev.org](https://www.nesdev.org)
+- [tetanes](https://github.com/lukexor/tetanes) 
+- [TriCNES](https://github.com/100thCoin/TriCNES)
 
 
 <details>
