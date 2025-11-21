@@ -21,8 +21,10 @@ data IirFilter = MkIirF
     , previousOutput :: {-# UNPACK #-} !Sample
     , previousInput :: {-# UNPACK #-} !Sample
     , delta :: {-# UNPACK #-} !Float
-    , outputF :: !(IirFilter -> Sample)
+    , pass :: {-# UNPACK #-} !IirFilterPass
     }
+
+data IirFilterPass = Identity | LowPass | HighPass deriving (Eq)
 
 identityIirFilter :: IirFilter
 identityIirFilter =
@@ -31,7 +33,7 @@ identityIirFilter =
         , previousInput = 0
         , previousOutput = 0
         , delta = 0
-        , outputF = previousInput
+        , pass = Identity
         }
 
 highPassIirFilter :: SampleRate -> Cutoff -> IirFilter
@@ -41,7 +43,7 @@ highPassIirFilter sampleRate cutoff =
         , previousOutput = 0
         , previousInput = 0
         , delta = 0
-        , outputF = \f -> alpha f * previousOutput f + alpha f * delta f
+        , pass = HighPass
         }
   where
     period = 1 / sampleRate
@@ -54,7 +56,7 @@ lowPassIirFilter sampleRate cutoff =
         , previousOutput = 0
         , previousInput = 0
         , delta = 0
-        , outputF = \f -> previousOutput f + alpha f * delta f
+        , pass = LowPass
         }
   where
     period = 1 / sampleRate
@@ -62,7 +64,11 @@ lowPassIirFilter sampleRate cutoff =
 
 instance (Monad m) => Filter m IirFilter where
     {-# INLINE output #-}
-    output f = return $ outputF f f
+    output f = return $ case pass f of
+        Identity -> previousInput f
+        LowPass -> previousOutput f + alpha f * delta f
+        HighPass -> alpha f * previousOutput f + alpha f * delta f
+
     {-# INLINE consume #-}
     consume sample f = do
         prevOut <- output @m f
