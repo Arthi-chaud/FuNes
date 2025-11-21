@@ -45,7 +45,7 @@ spec = it "Trace should match logfile" $ do
     let st = newCPUState{programCounter = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
     _ <- try @IOException $ runProgram' st (bus{cycles = 7}) (trace traceRef)
-    actualTrace <- fmap fixStackValue . beforeUnhandledOpcode . toRawTrace <$> readIORef traceRef
+    actualTrace <- fmap fixStackValue . beforeAPUAccess . toRawTrace <$> readIORef traceRef
     -- BS.writeFile "actual.log" $ BSC.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace
     forM_ [0 .. length expectedTrace - 1] $ \i -> do
@@ -170,8 +170,8 @@ getCPUStateTrace = withCPUState $ \st ->
         (unByte $ unSR $ status st)
         (unByte $ registerS st)
 
-beforeUnhandledOpcode :: [ByteString] -> [ByteString]
-beforeUnhandledOpcode =
+beforeAPUAccess :: [ByteString] -> [ByteString]
+beforeAPUAccess =
     takeWhile
         (\line -> not $ "C68B" `BS.isPrefixOf` line)
 
@@ -179,8 +179,7 @@ loadExpectedRawTrace :: IO RawTrace
 loadExpectedRawTrace = do
     fileContent <- BS.readFile "test/assets/rom_trace.log"
     let rawTrace = fixStackValue <$> BSC.lines fileContent
-    -- TODO When project is finished, we shouldn't have to do the following filters
-    return $ withoutPPUCycles <$> beforeUnhandledOpcode rawTrace
+    return $ withoutPPUCycles <$> beforeAPUAccess rawTrace
   where
     withoutPPUCycles bs =
         let beforePPU = fst . BS.breakSubstring " PPU:" $ bs
