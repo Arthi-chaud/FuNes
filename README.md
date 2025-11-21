@@ -46,20 +46,22 @@ _Note_: `stack install` will install the emulator as `funes-exe`
 
 Press `Q` or `esc` to quit.
 
-## Accuracy
+## :white_check_mark: Testing and accuracy
 
-- A unit test suite tests the behaviour of the CPU using the [`nestest` suite](https://www.qmtpro.com/~nes/misc/nestest.txt)
-- It is regularly tested (manually) using the [`AccuracyCoin`](https://github.com/100thCoin/AccuracyCoin) ROM.
+We use the [`nestest` ROM and trace](https://www.qmtpro.com/~nes/misc/nestest.txt) to test the CPU's behaviour and instructions.
+
+While accuracy is not the ultimate goal, we use the [`AccuracyCoin`](https://github.com/100thCoin/AccuracyCoin) ROM to evaluate the correctness of the emulator.
 
 <details>
 
 <summary>Latest results</summary>
 
-Do not be scared of the failing tests, please check out [this video](https://www.youtube.com/watch?v=oYjYmSniQyM) to understand what this ROM checks for.
+Do not be scared of the failing tests. Please check out [this video](https://www.youtube.com/watch?v=oYjYmSniQyM) to understand what this ROM checks for.
 
-_Results from Oct. 11 2025_
+_Results from Nov. 21 2025_
 
-https://github.com/user-attachments/assets/c02d8ebf-fa58-424d-b05f-f826efb42abb
+https://github.com/user-attachments/assets/d0b439e8-9bd8-48b1-94ba-427927427fac
+
 
 </details>
 
