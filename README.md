@@ -23,13 +23,9 @@ Moreover, I find the code overal quite elegant (e.g. for the opcodes).
 
 - However, it feels like the functional paradigm didn't bring much else to the table, compared to a regular object-orented approach. Although, it should be noted that the functional paradigm never felt like an obstacle when designing and implementing the emulator.
 
-## 📄 How to use
+## :wrench: Installation 
 
-Still wanna try out the emulator? Ok, here's how
-
-### Run
-
-You will need to have Stack and the SDL2 library installed.
+To build the emulator, you will need to have [Stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/#install-stack) and the [SDL2 library](https://wiki.libsdl.org/SDL2/Installation) installed.
 
 ```bash
 # In the cloned repository
@@ -38,14 +34,17 @@ stack run -- ./my_rom.nes # The path to the rom to use
 ```
 _Note_: `stack install` will install the emulator as `funes-exe`
 
-### Controls
+## :video_game: Controls
 
-- `Select`: `Space`
-- `Start`: `Enter`
-- `A`: `A`
-- `B`: `S` or `Z`
-- D-pad: directional arrows
-- Exit: `Q` or `esc`
+| NES Controller  | Physical Buttons |
+|-----------------|------------------|
+|        A        |         A        |
+|        B        |      S or Z      |
+|      Start      |       Enter      |
+|      Select     |       Space      |
+| Directional Pad |      Arrows      |
+
+Press `Q` or `esc` to quit.
 
 ## Accuracy
 
@@ -69,7 +68,10 @@ https://github.com/user-attachments/assets/c02d8ebf-fa58-424d-b05f-f826efb42abb
 This project wouldn't exist without the following resources. Many thanks to their respective authors 🙏
 
 - [6502 Reference](https://www.nesdev.org/obelisk-6502-guide/reference.html)
-- 'Writting NES emulator in Rust' ([GitHub Pages](https://bugzmanov.github.io/nes_ebook/chapter_1.html), [Source Code](https://github.com/bugzmanov/nes_ebook/tree/master))
+- 'Writing NES emulator in Rust' ([GitHub Pages](https://bugzmanov.github.io/nes_ebook/chapter_1.html), [Source Code](https://github.com/bugzmanov/nes_ebook/tree/master))
+- [nesdev.org](https://www.nesdev.org)
+- [tetanes](https://github.com/lukexor/tetanes) 
+- [TriCNES](https://github.com/100thCoin/TriCNES)
 
 
 <details>
