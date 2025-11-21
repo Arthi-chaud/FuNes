@@ -107,6 +107,7 @@ audioCallback samples cursorRef fmt buffer = case fmt of
         let bufferLen = V.length buffer
             nToCopy = min bufferLen cursor
         when (cursor < bufferLen) $ do
+            -- TODO That's not correct
             V.set buffer 0
         V.copy (V.slice 0 nToCopy buffer) (V.slice 0 nToCopy samples)
         -- If more samples are ready
