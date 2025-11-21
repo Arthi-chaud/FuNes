@@ -56,6 +56,20 @@ Score: 83 / 131
 
 </details>
 
+## :movie_camera: Demo (w/ sound) :sound:
+
+<details>
+<summary>Click to expand</summary>
+
+⚠️ <strong>Turn down your headphones before playing!</strong>
+  
+
+https://github.com/user-attachments/assets/8f552fa2-a5a9-4ad0-b12d-b86fb5600ab9
+
+
+</details>
+
+
 ## :mag: Why another NES emulator?
 
 FuNes is an experiment before anything else. The goal was to see if the functional paradigm would apply well to writting virtual machines and emulator, thus being written in Haskell. 
