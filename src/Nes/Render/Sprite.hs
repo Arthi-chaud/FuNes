@@ -3,7 +3,7 @@ module Nes.Render.Sprite (renderSprites, applySprites) where
 import Data.Bits
 import qualified Data.ByteString as BS
 import Data.Foldable (for_)
-import Nes.Bus
+import Nes.Bus.State
 import Nes.Memory
 import Nes.PPU.Constants
 import Nes.PPU.Pointers
@@ -17,7 +17,7 @@ import Nes.Rom
 -- | Renders sprites on buffer
 --
 -- It  expects the background to be already drawn on the pixel buffer
-renderSprites :: Bus -> Render BGDrawn BGAndSpritesDrawn r ()
+renderSprites :: BusState -> Render BGDrawn BGAndSpritesDrawn r ()
 renderSprites bus = Render.do
     let oam = oamData $ ppuPointers bus
         chr = chrRom . cartridge $ bus

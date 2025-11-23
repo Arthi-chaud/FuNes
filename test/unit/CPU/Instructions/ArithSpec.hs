@@ -1,7 +1,7 @@
 module CPU.Instructions.ArithSpec (spec) where
 
 import Internal
-import Nes.Bus
+import Nes.Bus.State
 import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Memory

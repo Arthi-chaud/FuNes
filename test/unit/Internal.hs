@@ -3,7 +3,7 @@ module Internal (withProgram, withState, withMemorySetup, withStateAndMemorySetu
 import Control.Monad
 import Data.Word
 import Nes.APU.State.Filter.Thread
-import Nes.Bus
+import Nes.Bus.State
 import Nes.CPU.Interpreter (runProgram')
 import Nes.CPU.Monad (CPU (MkCPU))
 import Nes.CPU.State
@@ -17,12 +17,12 @@ withStateAndMemorySetup ::
     -- | Initial CPU State
     CPUState ->
     -- | Function that write to memory
-    (Bus -> IO r) ->
+    (BusState -> IO r) ->
     -- | Continuation, run at the end of the program
-    (CPUState -> Bus -> IO r') ->
+    (CPUState -> BusState -> IO r') ->
     IO ()
 withStateAndMemorySetup program st memSetup post = do
-    bus <- newBus unsafeEmptyRom (\_ -> pure ()) pure (\_ -> pure ()) (curry return) newNoopFilterThread
+    bus <- newBusState unsafeEmptyRom (\_ -> pure ()) pure (\_ -> pure ()) (curry return) newNoopFilterThread
     loadProgramToMemory program bus
     _ <- memSetup bus
     -- Not we do not read 0xfffc because it's out of the bus read
@@ -43,11 +43,11 @@ withProgram program cont = withStateAndMemorySetup program newCPUState (\_ -> re
 withState :: [Word8] -> CPUState -> (CPUState -> IO r) -> IO ()
 withState program st cont = withStateAndMemorySetup program st (\_ -> return ()) (\st' _ -> cont st')
 
-withMemorySetup :: [Word8] -> (Bus -> IO r) -> (CPUState -> Bus -> IO r') -> IO ()
+withMemorySetup :: [Word8] -> (BusState -> IO r) -> (CPUState -> BusState -> IO r') -> IO ()
 withMemorySetup program = withStateAndMemorySetup program newCPUState
 
 -- | Writes the given program into memory using the Bus
-loadProgramToMemory :: [Word8] -> Bus -> IO ()
+loadProgramToMemory :: [Word8] -> BusState -> IO ()
 loadProgramToMemory program bus = do
     forM_ (zip program [0 ..]) $
         \(byte, idx) -> writeByte (Byte byte) (Addr idx) (cpuVram bus)

@@ -6,7 +6,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
 import Data.Foldable
 import Foreign
-import Nes.Bus
+import Nes.Bus.State
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Nes.PPU.Pointers
@@ -18,7 +18,7 @@ import qualified Nes.Render.Monad as Render
 import Nes.Render.Palette
 import Nes.Rom
 
-renderBackground :: Bus -> Render DirtyFrame BGDrawn r ()
+renderBackground :: BusState -> Render DirtyFrame BGDrawn r ()
 renderBackground bus = Render.do
     let (scrollX, scrollY) =
             let
@@ -50,7 +50,7 @@ renderBackground bus = Render.do
     bsFromSlice :: ForeignPtr () -> (Int, Int) -> ByteString
     bsFromSlice vram_ (offset, end) = BS.BS (vram_ `plusForeignPtr` offset) (end - offset + 1)
 
-renderNameTable :: Bus -> ByteString -> ViewPort -> (Int, Int) -> Render a b r ()
+renderNameTable :: BusState -> ByteString -> ViewPort -> (Int, Int) -> Render a b r ()
 renderNameTable bus nametable vp (shiftX, shiftY) = Render.do
     let chr = chrRom . cartridge $ bus
         bank = addrToInt . getBackgroundPatternAddr . controlRegister . ppuState $ bus

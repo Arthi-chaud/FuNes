@@ -10,7 +10,7 @@ import qualified Data.Vector.Storable.Mutable as V
 import Events
 import Nes.APU.State.Filter.Constants
 import Nes.APU.State.Filter.Thread
-import Nes.Bus
+import Nes.Bus.State
 import Nes.CPU.Interpreter
 import Nes.Render
 import Nes.Render.Frame
@@ -77,7 +77,7 @@ main = do
     busMVar <- newEmptyMVar
     renderThreadId <- forkIO $ drawFrameThread frame texture renderer busMVar
     bus <-
-        newBus
+        newBusState
             rom
             (putMVar busMVar)
             handleEvents
@@ -120,7 +120,7 @@ audioCallback samples cursorRef fmt buffer = case fmt of
                 writeIORef cursorRef 0
     _ -> error "Unsupported audio format"
 
-drawFrameThread :: FrameState -> Texture -> Renderer -> MVar Bus -> IO ()
+drawFrameThread :: FrameState -> Texture -> Renderer -> MVar BusState -> IO ()
 drawFrameThread frame texture renderer busRef = do
     bus <- takeMVar busRef
     bs <- runRender (render bus R.>> toSDL2ByteString) frame

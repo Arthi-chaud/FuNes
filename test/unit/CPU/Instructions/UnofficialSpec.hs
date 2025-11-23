@@ -1,7 +1,7 @@
 module CPU.Instructions.UnofficialSpec (spec) where
 
 import Internal
-import Nes.Bus (Bus (cpuVram))
+import Nes.Bus.State (BusState (cpuVram))
 import Nes.CPU.State
 import Nes.Memory
 import Test.Hspec
