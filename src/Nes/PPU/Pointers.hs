@@ -3,8 +3,8 @@ module Nes.PPU.Pointers (
     newPPUPointers,
 ) where
 
-import Nes.Internal
 import Nes.Memory
+import Nes.Memory.Internal
 import Nes.PPU.Constants
 
 data PPUPointers = MkPPUPtr

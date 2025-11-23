@@ -1,4 +1,4 @@
-module Nes.Internal (callocForeignPtr) where
+module Nes.Memory.Internal (callocForeignPtr) where
 
 import Foreign
 import Nes.Memory (MemoryPointer)

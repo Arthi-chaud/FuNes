@@ -8,9 +8,9 @@ import Nes.APU.State (APUState, newAPUState)
 import Nes.APU.State.Filter.Constants (Sample)
 import Nes.APU.State.Filter.Thread (FilterThread)
 import Nes.Controller
-import Nes.Internal
 import Nes.Interrupt
 import Nes.Memory
+import Nes.Memory.Internal
 import Nes.Memory.Unsafe ()
 import Nes.PPU.Constants
 import Nes.PPU.Pointers (PPUPointers, newPPUPointers)

@@ -42,8 +42,8 @@ import Data.Vector.Mutable
 import qualified Data.Vector.Mutable as V
 import Foreign hiding (new)
 import GHC.ForeignPtr
-import Nes.Internal
 import Nes.Memory (MemoryPointer)
+import Nes.Memory.Internal
 
 -- | Width (in pixels of the frame)
 frameWidth :: Int
