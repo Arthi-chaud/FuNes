@@ -1,7 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Nes.APU.State.Filter.Chain (FilterChain (..), newFilterChain) where
 
 import Control.Monad

@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Nes.PPU.Monad (
     -- * Monad
     PPU (..),

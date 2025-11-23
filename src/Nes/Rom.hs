@@ -1,5 +1,4 @@
 {-# HLINT ignore "Redundant bracket" #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Nes.Rom (

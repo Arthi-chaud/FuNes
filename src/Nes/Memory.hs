@@ -1,5 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 module Nes.Memory (
     newMemory,
     memorySize,

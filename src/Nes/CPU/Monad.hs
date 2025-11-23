@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 module Nes.CPU.Monad (
     -- * Monad
     CPU (..),

@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Nes.PPU.State (
     -- * State
     PPUState (..),
