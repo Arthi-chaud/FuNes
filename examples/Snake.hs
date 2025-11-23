@@ -14,6 +14,7 @@ import Nes.Bus.State
 import Nes.CPU.Interpreter
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.Internal.MonadState
 import Nes.Memory
 import Nes.Rom
 import SDL

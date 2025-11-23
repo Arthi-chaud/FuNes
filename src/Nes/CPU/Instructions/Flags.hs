@@ -3,6 +3,7 @@ module Nes.CPU.Instructions.Flags (clc, cld, cli, clv, sec, sed, sei) where
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.FlagRegister
+import Nes.Internal.MonadState
 
 -- | Clear Carry Flag
 --

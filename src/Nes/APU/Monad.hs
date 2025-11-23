@@ -10,6 +10,7 @@ module Nes.APU.Monad (
 
 import Control.Monad.IO.Class
 import Nes.APU.State
+import Nes.Internal.MonadState (MonadState)
 import Nes.Interrupt
 
 newtype APU r a = MkAPU

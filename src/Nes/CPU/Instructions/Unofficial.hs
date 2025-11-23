@@ -16,6 +16,7 @@ import Nes.CPU.Instructions.Transfer
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.FlagRegister
+import Nes.Internal.MonadState
 import Nes.Memory
 
 -- Source: https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes

@@ -14,6 +14,7 @@ import Nes.CPU.Instructions.Map
 import Nes.CPU.Interrupt (handleInterrupt)
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.Internal.MonadState
 import Nes.Interrupt
 import Nes.Memory
 import Nes.PPU.Monad (modifyPPUState, withPPUState)

@@ -3,6 +3,7 @@ module Nes.CPU.Instructions.Stack (pha, php, pla, plp) where
 import Nes.CPU.Instructions.After
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.Internal.MonadState
 
 -- | Pushes a copy of the accumulator on to the stack.
 --
