@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Nes.APU.State.Filter.Thread (
     -- * Definition
     FilterThread (..),

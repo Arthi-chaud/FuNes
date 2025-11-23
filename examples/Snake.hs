@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Main (main) where
 
 import Control.Monad

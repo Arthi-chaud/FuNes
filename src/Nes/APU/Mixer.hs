@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Nes.APU.Mixer (getMixerOutput) where
 
 import Nes.APU.State

@@ -107,6 +107,12 @@ library
       DeriveFunctor
       DataKinds
       QualifiedDo
+      MultiParamTypeClasses
+      TypeApplications
+      RecordWildCards
+      TypeFamilies
+      DeriveFunctor
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2
   build-depends:
       array
@@ -137,6 +143,12 @@ executable fake-snake
       DeriveFunctor
       DataKinds
       QualifiedDo
+      MultiParamTypeClasses
+      TypeApplications
+      RecordWildCards
+      TypeFamilies
+      DeriveFunctor
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -171,6 +183,12 @@ executable funes-exe
       DeriveFunctor
       DataKinds
       QualifiedDo
+      MultiParamTypeClasses
+      TypeApplications
+      RecordWildCards
+      TypeFamilies
+      DeriveFunctor
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -204,6 +222,12 @@ test-suite nestest
       DeriveFunctor
       DataKinds
       QualifiedDo
+      MultiParamTypeClasses
+      TypeApplications
+      RecordWildCards
+      TypeFamilies
+      DeriveFunctor
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -252,6 +276,12 @@ test-suite unit
       DeriveFunctor
       DataKinds
       QualifiedDo
+      MultiParamTypeClasses
+      TypeApplications
+      RecordWildCards
+      TypeFamilies
+      DeriveFunctor
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array

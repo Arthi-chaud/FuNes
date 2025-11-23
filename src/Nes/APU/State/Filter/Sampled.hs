@@ -1,6 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Nes.APU.State.Filter.Sampled (SampledFilter (..), newSampledFilter) where
 

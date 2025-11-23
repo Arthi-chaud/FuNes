@@ -30,6 +30,12 @@ default-extensions:
   - DeriveFunctor
   - DataKinds
   - QualifiedDo
+  - MultiParamTypeClasses
+  - TypeApplications
+  - RecordWildCards
+  - TypeFamilies
+  - DeriveFunctor
+  - GeneralizedNewtypeDeriving
 
 ghc-options:
   - -Wall

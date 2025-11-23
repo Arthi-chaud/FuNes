@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 module Nes.Bus.Monad (BusM (..), runBusM, tick, modifyBus, withBus, withPPU, withAPU, withController) where
 
 import Control.Monad
