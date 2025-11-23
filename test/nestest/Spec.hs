@@ -95,7 +95,7 @@ getOpCodeTrace = do
     asm <- do
         incrementPC
         asm <- getOpCodeAsmArg opcodeByte (pc + 1) addressing
-        modifyCPUState $ \st -> st{programCounter = pc}
+        modify $ \st -> st{programCounter = pc}
         return asm
     return $ printf "%-8s %s %-27s" fmtBytesList fmtOpname asm
 
@@ -105,8 +105,8 @@ getOpCodeAsmArg opcode ptr addressing = do
     addressByte <- unByte <$> unsafeWithBus (readByte ptr ())
     addressAddr <- unAddr <$> unsafeWithBus (readAddr ptr ())
 
-    x <- withCPUState $ getRegister X
-    y <- withCPUState $ getRegister Y
+    x <- gets $ getRegister X
+    y <- gets $ getRegister Y
     case opcode of
         0x4c -> return $ printf "$%04X" memAddr
         0x20 -> return $ printf "$%04X" memAddr
@@ -159,7 +159,7 @@ getCycleTrace :: CPU r String
 getCycleTrace = printf "CYC:%d" <$> unsafeWithBus (withBus cycles)
 
 getCPUStateTrace :: CPU r String
-getCPUStateTrace = withCPUState $ \st ->
+getCPUStateTrace = gets $ \st ->
     printf
         "A:%02X X:%02X Y:%02X P:%02X SP:%02X"
         (unByte $ registerA st)

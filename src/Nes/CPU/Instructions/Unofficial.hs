@@ -25,7 +25,7 @@ lax :: AddressingMode -> CPU r ()
 lax mode = do
     addr <- getOperandAddr mode
     byte <- readByte addr ()
-    modifyCPUState $
+    modify $
         setRegister A byte
             . setRegister X byte
     setZeroAndNegativeFlags byte
@@ -34,8 +34,8 @@ lax mode = do
 sax :: AddressingMode -> CPU r ()
 sax mode = do
     dest <- getOperandAddr mode
-    a <- withCPUState $ getRegister A
-    x <- withCPUState $ getRegister X
+    a <- gets $ getRegister A
+    x <- gets $ getRegister X
     let res = a .&. x
     writeByte res dest ()
 
@@ -45,9 +45,9 @@ dcp mode = do
     addr <- getOperandAddr mode
     value <- (+ (-1)) <$> readByte addr ()
     writeByte value addr ()
-    a <- withCPUState $ getRegister A
+    a <- gets $ getRegister A
     tickOnce -- It's a Read-modify-write operation
-    when (value <= a) $ modifyCPUState $ modifyStatusRegister (setFlag Carry)
+    when (value <= a) $ modify $ modifyStatusRegister (setFlag Carry)
     setZeroAndNegativeFlags (a - value)
 
 -- | (Unofficial) ROR and ADC
@@ -59,30 +59,30 @@ rra mode = do
 -- | Source: https://forums.nesdev.org/viewtopic.php?t=8107
 shx :: AddressingMode -> CPU r ()
 shx mode = do
-    x <- withCPUState $ getRegister X
+    x <- gets $ getRegister X
     operand <- getPC >>= flip readAddr ()
     sh' (const operand) (.&. x) (.&. x) mode
 
 shy :: AddressingMode -> CPU r ()
 shy mode = do
-    y <- withCPUState $ getRegister Y
+    y <- gets $ getRegister Y
     operand <- getPC >>= flip readAddr ()
     sh' (const operand) (.&. y) (.&. y) mode
 
 sha :: AddressingMode -> CPU r ()
 sha mode = do
-    a <- withCPUState $ getRegister A
-    x <- withCPUState $ getRegister X
-    y <- withCPUState $ getRegister Y
+    a <- gets $ getRegister A
+    x <- gets $ getRegister X
+    y <- gets $ getRegister Y
     sh' (\addr -> addr - byteToAddr y) (\h -> h .&. a .&. x) (\v -> v .&. a .&. x) mode
 
 shs :: AddressingMode -> CPU r ()
 shs mode = do
-    a <- withCPUState $ getRegister A
-    x <- withCPUState $ getRegister X
+    a <- gets $ getRegister A
+    x <- gets $ getRegister X
     operand <- getPC >>= flip readAddr ()
     let s = a .&. x
-    modifyCPUState $ setRegister S s
+    modify $ setRegister S s
     sh' (const operand) (\h -> h .&. a .&. x) (.&. s) mode
 
 sh' ::
@@ -109,11 +109,11 @@ axs :: AddressingMode -> CPU r ()
 axs mode = do
     addr <- getOperandAddr mode
     byte <- readByte addr ()
-    x <- withCPUState $ getRegister X
-    a <- withCPUState $ getRegister A
+    x <- gets $ getRegister X
+    a <- gets $ getRegister A
     let xAndA = x .&. a
     let res = xAndA - byte
-    modifyCPUState $
+    modify $
         modifyStatusRegister
             (setFlag' Carry (byte <= xAndA))
             . setRegister X res

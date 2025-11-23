@@ -52,7 +52,7 @@ getOperandAddr' :: AddressingMode -> CPU r (Addr, Bool)
 getOperandAddr' mode = do
     (res, crosses) <- getOperandAddr'' mode
     let offset = Addr $ fromIntegral $ getOperandSize mode
-    modifyCPUState $ \st -> st{programCounter = programCounter st + offset}
+    modify $ \st -> st{programCounter = programCounter st + offset}
     return (res, crosses)
 
 -- | Gives the address of the current op code's parameter
@@ -91,7 +91,7 @@ getOperandAddr'' = \case
     IndirectX -> do
         -- Note: we do not convert the ptr to an Addr because we need the overflow to happen
         base <- getPC >>= flip readByte ()
-        ptr <- withCPUState $ (+ base) . registerX
+        ptr <- gets $ (+ base) . registerX
         low <- readByte (byteToAddr ptr) ()
         high <- readByte (byteToAddr (ptr + 1)) ()
         let res = bytesToAddr low high
@@ -100,7 +100,7 @@ getOperandAddr'' = \case
         ptr <- getPC >>= flip readByte ()
         low <- readByte (byteToAddr ptr) ()
         high <- readByte (byteToAddr (ptr + 1)) ()
-        y <- withCPUState $ getRegister Y
+        y <- gets $ getRegister Y
         let derefBase = bytesToAddr low high
             deref = derefBase + byteToAddr y
             crosses = crossesPage deref derefBase
@@ -115,7 +115,7 @@ getOperandAddr'' = \case
 zeroPageAddressing :: (CPUState -> Byte) -> CPU r (Addr, Bool)
 zeroPageAddressing getter = do
     pos <- getPC >>= flip readByte ()
-    regVal <- withCPUState getter
+    regVal <- gets getter
     tickOnce
     return (byteToAddr $ pos + regVal, False)
 
@@ -123,7 +123,7 @@ zeroPageAddressing getter = do
 absoluteAddressing :: (CPUState -> Byte) -> CPU r (Addr, Bool)
 absoluteAddressing getter = do
     base <- getPC >>= flip readAddr ()
-    offset <- withCPUState getter
+    offset <- gets getter
     let addr = byteToAddr offset + base
     let crosses = crossesPage base addr
     -- Dummy read

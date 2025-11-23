@@ -29,7 +29,7 @@ cpy = compareWithRegister Y
 compareWithRegister :: Register -> AddressingMode -> CPU r ()
 compareWithRegister reg mode = do
     value <- getOperandAddr mode >>= flip readByte ()
-    regValue <- withCPUState $ getRegister reg
+    regValue <- gets $ getRegister reg
     let diff = regValue - value
     setZeroAndNegativeFlags diff
-    modifyCPUState $ modifyStatusRegister $ setFlag' Carry (regValue >= value)
+    modify $ modifyStatusRegister $ setFlag' Carry (regValue >= value)

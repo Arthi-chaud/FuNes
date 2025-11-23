@@ -7,8 +7,6 @@ module Nes.CPU.Monad (
     withBusState,
 
     -- * State
-    modifyCPUState,
-    withCPUState,
     getCycles,
     reset,
     --- * PC
@@ -35,6 +33,9 @@ module Nes.CPU.Monad (
 
     -- * Unsafe
     unsafeWithBus,
+
+    -- * Re-exports
+    module Nes.Internal.MonadState,
 ) where
 
 import Control.Monad.IO.Class
@@ -87,13 +88,7 @@ instance MonadState CPUState (CPU r) where
     {-# INLINE get #-}
     get = MkCPU $ \st bus cont -> cont st bus st
 
-{-# INLINE modifyCPUState #-}
-modifyCPUState :: (CPUState -> CPUState) -> CPU r ()
-modifyCPUState f = MkCPU $ \st bus cont -> cont (f st) bus ()
-
-{-# INLINE withCPUState #-}
-withCPUState :: (CPUState -> a) -> CPU r a
-withCPUState f = MkCPU $ \st bus cont -> cont st bus (f st)
+-- TODO Instance for Bus or cpu interrupt
 
 withBusState :: (Bus -> a) -> CPU r a
 withBusState f = MkCPU $ \st bus cont -> cont st bus (f bus)
@@ -106,14 +101,14 @@ getCycles = withBusState cycles
 
 -- | Returns the value of the Program counter as an Addr
 getPC :: CPU r Addr
-getPC = withCPUState programCounter
+getPC = gets programCounter
 
 setPC :: Addr -> CPU r ()
-setPC addr = modifyCPUState $ \st -> st{programCounter = addr}
+setPC addr = modify $ \st -> st{programCounter = addr}
 
 {-# INLINE incrementPC #-}
 incrementPC :: CPU r ()
-incrementPC = modifyCPUState $ \st -> st{programCounter = 1 + programCounter st}
+incrementPC = modify $ \st -> st{programCounter = 1 + programCounter st}
 
 -- | Read Word8 from memory, using the program counter as offset
 {-# INLINE readAtPC #-}
@@ -122,8 +117,8 @@ readAtPC = getPC >>= flip readByte ()
 
 popStackByte :: CPU r Byte
 popStackByte = do
-    newRegS <- (+ 1) <$> withCPUState (getRegister S)
-    modifyCPUState $ setRegister S newRegS
+    newRegS <- (+ 1) <$> gets (getRegister S)
+    modify $ setRegister S newRegS
     readByte (stackAddr + byteToAddr newRegS) ()
 
 {-# INLINE popStackAddr #-}
@@ -132,14 +127,14 @@ popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
 
 pushByteStack :: Byte -> CPU r ()
 pushByteStack byte = do
-    regS <- withCPUState $ getRegister S
+    regS <- gets $ getRegister S
     writeByte byte (stackAddr + byteToAddr regS) ()
-    modifyCPUState $ setRegister S (regS - 1)
+    modify $ setRegister S (regS - 1)
 
 -- | If the argument is True, the pushed value will have the B Flag set
 pushStatusRegister :: Bool -> CPU r ()
 pushStatusRegister b = do
-    s <- withCPUState status
+    s <- gets status
     let value = unSR $ setFlag Unusued $ setFlag' BFlag b s
     pushByteStack value
 
@@ -149,7 +144,7 @@ popStatusRegister = do
     value <- fromByte <$> popStackByte
     -- TODO Breaks Nestest
     let s = clearFlag Unusued $ clearFlag BFlag value
-    modifyCPUState $ modifyStatusRegister $ const s
+    modify $ modifyStatusRegister $ const s
 
 {-# INLINE pushAddrStack #-}
 pushAddrStack :: Addr -> CPU r ()
@@ -178,9 +173,9 @@ unsafeWithBus f = MkCPU $ \st bus cont -> do
 -- | Resets the state of the CPU
 reset :: CPU r ()
 reset = do
-    modifyCPUState $ const newCPUState
+    set newCPUState
     pc <- readAddr 0xfffc ()
-    modifyCPUState (const $ newCPUState{programCounter = pc})
+    set newCPUState{programCounter = pc}
 
 modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> CPU r ()
 modifyInterruptStatus = withBus . modifyBus . Nes.Bus.modifyInterruptStatus

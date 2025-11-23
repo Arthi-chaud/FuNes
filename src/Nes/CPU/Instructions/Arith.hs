@@ -52,19 +52,19 @@ sbc mode = do
 {-# INLINE addToRegisterA #-}
 addToRegisterA :: Byte -> CPU r ()
 addToRegisterA value = do
-    carry <- withCPUState $ getFlag Carry . status
-    regA :: Word16 <- fromIntegral . unByte <$> withCPUState (getRegister A)
+    carry <- gets $ getFlag Carry . status
+    regA :: Word16 <- fromIntegral . unByte <$> gets (getRegister A)
     let sumInt =
             regA
                 + (fromIntegral . unByte $ value)
                 + (if carry then 1 else 0)
-    modifyCPUState $ modifyStatusRegister (setFlag' Carry $ sumInt > 0x00ff)
+    modify $ modifyStatusRegister (setFlag' Carry $ sumInt > 0x00ff)
     let sumByte = fromIntegral sumInt :: Byte
-    modifyCPUState $
+    modify $
         modifyStatusRegister $
             setFlag' Overflow $
                 (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
-    modifyCPUState $ setRegister A sumByte
+    modify $ setRegister A sumByte
     setZeroAndNegativeFlags sumByte
 
 -- | Increment value in memory
@@ -116,8 +116,8 @@ dey = decrementRegister Y
 {-# INLINE decrementRegister #-}
 decrementRegister :: Register -> CPU r ()
 decrementRegister reg = do
-    res <- (\y -> y - 1) <$> withCPUState (getRegister reg)
-    modifyCPUState $ setRegister reg res
+    res <- (\y -> y - 1) <$> gets (getRegister reg)
+    modify $ setRegister reg res
     setZeroAndNegativeFlags res
 
 -- | Increment the value of the X register
@@ -135,6 +135,6 @@ iny = incrementRegister Y
 {-# INLINE incrementRegister #-}
 incrementRegister :: Register -> CPU r ()
 incrementRegister reg = do
-    newRegY <- (+ 1) <$> withCPUState (getRegister reg)
-    modifyCPUState (setRegister reg newRegY)
+    newRegY <- (+ 1) <$> gets (getRegister reg)
+    modify (setRegister reg newRegY)
     setZeroAndNegativeFlags newRegY
