@@ -46,6 +46,7 @@ import Nes.Bus.Monad (BusM, modifyBus, runBusM)
 import qualified Nes.Bus.Monad as BusM
 import Nes.CPU.State
 import Nes.FlagRegister
+import Nes.Internal.MonadState
 import Nes.Interrupt
 import Nes.Memory
 
@@ -79,6 +80,12 @@ instance MonadFail (CPU r) where
 instance MonadIO (CPU r) where
     {-# INLINE liftIO #-}
     liftIO io = MkCPU $ \st bus cont -> io >>= cont st bus
+
+instance MonadState CPUState (CPU r) where
+    {-# INLINE set #-}
+    set st' = MkCPU $ \_ bus cont -> cont st' bus ()
+    {-# INLINE get #-}
+    get = MkCPU $ \st bus cont -> cont st bus st
 
 {-# INLINE modifyCPUState #-}
 modifyCPUState :: (CPUState -> CPUState) -> CPU r ()
