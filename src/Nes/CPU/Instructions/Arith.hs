@@ -28,6 +28,7 @@ import Nes.CPU.Instructions.After (setZeroAndNegativeFlags)
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.FlagRegister
+import Nes.Internal.MonadState
 import Nes.Memory
 
 -- | Regisiter A + (_value in memory_) + Carry

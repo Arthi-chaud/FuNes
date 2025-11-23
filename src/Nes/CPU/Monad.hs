@@ -28,9 +28,6 @@ module Nes.CPU.Monad (
     -- * Bus
     liftBus,
     unsafeLiftBus,
-
-    -- * Re-exports
-    module Nes.Internal.MonadState,
 ) where
 
 import Control.Monad.IO.Class

@@ -5,6 +5,7 @@ import Nes.CPU.Instructions.Addressing (AddressingMode, getOperandAddr')
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.FlagRegister
+import Nes.Internal.MonadState
 
 -- | Branch over if Overflow flag is clear
 --

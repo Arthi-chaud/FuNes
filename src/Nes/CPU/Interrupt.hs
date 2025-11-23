@@ -9,6 +9,7 @@ import Nes.Bus.State (BusState (apuState, cpuInterrupt))
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.FlagRegister
+import Nes.Internal.MonadState
 import Nes.Interrupt
 import Nes.Memory
 
