@@ -73,10 +73,10 @@ library
       Nes.CPU.Monad
       Nes.CPU.State
       Nes.FlagRegister
-      Nes.Internal
       Nes.Internal.MonadState
       Nes.Interrupt
       Nes.Memory
+      Nes.Memory.Internal
       Nes.Memory.Unsafe
       Nes.PPU.Constants
       Nes.PPU.Monad
