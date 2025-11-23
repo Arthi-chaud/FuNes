@@ -13,7 +13,6 @@ description: A NES Emulator written in Haskell
 dependencies:
   - base >= 4.7 && < 5
   - bytestring
-  - mtl
   - containers
   - array
   - vector
