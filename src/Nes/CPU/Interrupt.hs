@@ -34,7 +34,7 @@ signalVectorAddr = \case
 handleInterrupt :: CPU r ()
 handleInterrupt = do
     maskInterrupt <- gets $ getFlag InterruptDisable . status
-    pendingSignal <- signalFromInterrupt <$> withBusState cpuInterrupt
+    pendingSignal <- signalFromInterrupt <$> gets cpuInterrupt
     case pendingSignal of
         Nothing -> pure ()
         Just signal
@@ -45,12 +45,12 @@ handleInterrupt = do
                 modify $ modifyStatusRegister $ setFlag InterruptDisable
                 setPC =<< readAddr (signalVectorAddr signal) ()
     -- TODO Ugly, shouldn't be here
-    when (pendingSignal == Just (IRQ DMC)) $ withBus $ do
+    when (pendingSignal == Just (IRQ DMC)) $ liftBus $ do
         sampleByteAddr <- BusM.withBus $ sampleBufferAddr . dmc . apuState
         sample <- Nes.Memory.readByte sampleByteAddr ()
         BusM.withAPU $ modifyAPUStateWithInterrupt $ modifyDMC' $ loadSampleBuffer sample
     -- Cleanup state
     case pendingSignal of
         Nothing -> return ()
-        Just NMI -> modifyInterruptStatus $ \s -> s{nmi = False}
-        Just (IRQ _) -> modifyInterruptStatus $ \s -> s{irq = Nothing}
+        Just NMI -> modify $ \s -> s{nmi = False}
+        Just (IRQ _) -> modify $ \s -> s{irq = Nothing}
