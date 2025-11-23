@@ -1,16 +1,13 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Nes.APU.Monad (
     APU (..),
     runAPU,
-    modifyAPUState,
-    modifyAPUStateWithInterrupt,
-    withAPUState,
-    modifyInterruptStatus,
-    withInterruptStatus,
 ) where
 
 import Control.Monad.IO.Class
 import Nes.APU.State
-import Nes.Internal.MonadState (MonadState)
+import Nes.Internal.MonadState
 import Nes.Interrupt
 
 newtype APU r a = MkAPU
@@ -43,23 +40,20 @@ instance MonadFail (APU r) where
 runAPU :: APUState -> InterruptStatus -> APU (a, APUState, InterruptStatus) a -> IO (a, APUState, InterruptStatus)
 runAPU !st !s f = unAPU f st s $ \(!st') (!interr) a -> return (a, st', interr)
 
-{-# INLINE modifyAPUState #-}
-modifyAPUState :: (APUState -> APUState) -> APU r ()
-modifyAPUState f = MkAPU $ \(!st) (!interr) cont -> cont (f st) interr ()
+instance MonadState APUState (APU r) where
+    {-# INLINE get #-}
+    get = MkAPU $ \st interr cont -> cont st interr st
+    {-# INLINE set #-}
+    set st' = MkAPU $ \_ (!interr) cont -> cont st' interr ()
 
-{-# INLINE modifyAPUStateWithInterrupt #-}
-modifyAPUStateWithInterrupt :: (APUState -> InterruptStatus -> (APUState, InterruptStatus)) -> APU r ()
-modifyAPUStateWithInterrupt f = MkAPU $ \(!st) !interr cont ->
-    let (st', interr') = f st interr in cont st' interr' ()
+instance MonadState InterruptStatus (APU r) where
+    {-# INLINE get #-}
+    get = MkAPU $ \st interr cont -> cont st interr interr
+    {-# INLINE set #-}
+    set interr' = MkAPU $ \st _ cont -> cont st interr' ()
 
-{-# INLINE withAPUState #-}
-withAPUState :: (APUState -> a) -> APU r a
-withAPUState f = MkAPU $ \(!st) !interr cont -> cont st interr (f st)
-
-{-# INLINE modifyInterruptStatus #-}
-modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> APU r ()
-modifyInterruptStatus f = MkAPU $ \(!st) !interrupt cont -> cont st (f interrupt) ()
-
-{-# INLINE withInterruptStatus #-}
-withInterruptStatus :: (InterruptStatus -> a) -> APU r a
-withInterruptStatus f = MkAPU $ \(!st) !interrupt cont -> cont st interrupt (f interrupt)
+instance MonadState (APUState, InterruptStatus) (APU r) where
+    {-# INLINE get #-}
+    get = MkAPU $ \st interr cont -> cont st interr (st, interr)
+    {-# INLINE set #-}
+    set (st, interr) = MkAPU $ \_ _ cont -> cont st interr ()

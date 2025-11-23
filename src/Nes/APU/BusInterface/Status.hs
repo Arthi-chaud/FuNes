@@ -8,6 +8,7 @@ import Nes.APU.State.DMC
 import Nes.APU.State.FrameCounter (FrameCounter (frameInterruptFlag))
 import Nes.APU.State.LengthCounter
 import Nes.APU.Tick (setFrameInterruptFlag)
+import Nes.Internal.MonadState
 import Nes.Interrupt
 import Nes.Memory
 
@@ -23,7 +24,7 @@ write4015 byte = do
     toggleLengthCounter enablePulse2Lc modifyPulse2
     toggleLengthCounter enableTriangleLc modifyTriangle
     toggleLengthCounter enableNoiseLc modifyNoise
-    modifyAPUState $ modifyDMC $ \t ->
+    modify $ modifyDMC $ \t ->
         if enableDmc
             -- TODO If there are bits remaining in the 1-byte sample buffer, these will finish playing before the next sample is fetched.
             then if sampleBytesRemaining t == 0 then restartSample t else t
@@ -32,7 +33,7 @@ write4015 byte = do
 {-# INLINE toggleLengthCounter #-}
 toggleLengthCounter :: (HasLengthCounter a) => Bool -> ((a -> a) -> APUState -> APUState) -> APU r ()
 toggleLengthCounter enable f =
-    modifyAPUState $
+    modify $
         f $
             withLengthCounter $
                 if enable then enableLengthCounter else disableLengthCounter . clearAndHaltLengthCounter
@@ -40,13 +41,13 @@ toggleLengthCounter enable f =
 {-# INLINE read4015 #-}
 read4015 :: APU r Byte
 read4015 = do
-    noiseBit <- withAPUState $ lengthCounterBit . noise
-    triangleBit <- withAPUState $ lengthCounterBit . triangle
-    pulse1Bit <- withAPUState $ lengthCounterBit . pulse1
-    pulse2Bit <- withAPUState $ lengthCounterBit . pulse2
-    dmcBit <- withAPUState $ \st -> sampleBytesRemaining (dmc st) > 0
-    frameInterruptBit <- withAPUState $ frameInterruptFlag . frameCounter
-    dmcInterruptBit <- withInterruptStatus $ (== Just DMC) . irq
+    noiseBit <- gets $ lengthCounterBit . noise
+    triangleBit <- gets $ lengthCounterBit . triangle
+    pulse1Bit <- gets $ lengthCounterBit . pulse1
+    pulse2Bit <- gets $ lengthCounterBit . pulse2
+    dmcBit <- gets $ \st -> sampleBytesRemaining (dmc st) > 0
+    frameInterruptBit <- gets $ frameInterruptFlag . frameCounter
+    dmcInterruptBit <- gets $ (== Just DMC) . irq
     -- TODO Clearing flag should be done on every GET cycle
     -- https://github.com/100thCoin/AccuracyCoin/blob/a7bf0cfaee7dee9e7bfbd0e30435b85cb539139e/AccuracyCoin.asm#L9003
     when frameInterruptBit $ do

@@ -18,6 +18,7 @@ import Nes.APU.State
 import Nes.APU.State.Envelope
 import Nes.APU.State.LengthCounter
 import Nes.APU.State.Pulse
+import Nes.Internal.MonadState
 import Nes.Memory
 
 {-# INLINE write4000 #-}
@@ -35,7 +36,7 @@ writePulseFirstByte setter byte = do
         haltLC = byte `testBit` 5
         constVol = byte `testBit` 4
         vol = byte .&. 0b1111
-    modifyAPUState $ setter $ \p ->
+    modify $ setter $ \p ->
         withEnvelope
             ( \e ->
                 e
@@ -63,7 +64,7 @@ writePulseSecondByte setter byte = do
         negateFlag = byte `testBit` 3
         shiftC = byte .&. 0b111
         sweepIsEnabled = enabledFlag && shiftC > 0
-    modifyAPUState $
+    modify $
         setter $
             updateTargetPeriod
                 . modifySweep
@@ -87,7 +88,7 @@ write4006 = writePulseThirdByte modifyPulse2
 
 {-# INLINE writePulseThirdByte #-}
 writePulseThirdByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
-writePulseThirdByte setter byte = modifyAPUState $ setter $ \p ->
+writePulseThirdByte setter byte = modify $ setter $ \p ->
     let newPeriod = (period p .&. 0b11100000000) .|. byteToInt byte
      in updateTargetPeriod $ p{period = newPeriod}
 
@@ -101,7 +102,7 @@ write4007 = writePulseFourthByte modifyPulse2
 
 {-# INLINE writePulseFourthByte #-}
 writePulseFourthByte :: ((Pulse -> Pulse) -> APUState -> APUState) -> Byte -> APU r ()
-writePulseFourthByte setter byte = modifyAPUState $ setter $ \p ->
+writePulseFourthByte setter byte = modify $ setter $ \p ->
     let newPeriod = ((byteToInt byte .&. 0b111) `shiftL` 8) .|. (period p .&. 0b11111111)
         newLCLoad = byteToInt byte `shiftR` 3
      in updateTargetPeriod $

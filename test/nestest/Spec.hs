@@ -19,6 +19,7 @@ import Nes.CPU.Instructions.Map
 import Nes.CPU.Interpreter (runProgram')
 import Nes.CPU.Monad
 import Nes.CPU.State
+import Nes.Internal.MonadState
 import Nes.Memory
 import Nes.Rom (fromFile)
 import Test.Hspec

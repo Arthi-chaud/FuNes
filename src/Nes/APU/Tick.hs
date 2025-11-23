@@ -27,6 +27,7 @@ import Nes.APU.State.LengthCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
+import Nes.Internal.MonadState
 import Nes.Interrupt
 import Prelude hiding (cycle)
 
@@ -49,72 +50,72 @@ tickOnce :: IsAPUCycle -> APU r ()
 tickOnce isAPUCycle = do
     -- Ticks
     tickDelayedWriteBuffer
-    modifyAPUStateWithInterrupt $ modifyDMC' tickDMC
-    modifyAPUState $
+    modify $ uncurry (modifyDMC' tickDMC)
+    modify $
         modifyTriangle tickTriangle
             . modifyNoise tickNoise
     when isAPUCycle $ do
-        modifyAPUState $
+        modify $
             modifyPulse1 tickPulse
                 . modifyPulse2 tickPulse
         tickFrameCounter
     -- Mixing
-    sample <- withAPUState getMixerOutput
-    liftIO . (`consumeSample` sample) =<< withAPUState filterThread
-    modifyAPUState $ \st -> st{sampleTimer = sampleTimer st - 1}
-    sampleTimer' <- withAPUState sampleTimer
+    sample <- gets getMixerOutput
+    liftIO . (`consumeSample` sample) =<< gets filterThread
+    modify $ \st -> st{sampleTimer = sampleTimer st - 1}
+    sampleTimer' <- gets sampleTimer
     when (sampleTimer' <= 1) $ do
-        !filterOut <- liftIO . outputSample =<< withAPUState filterThread
-        !callback <- withAPUState pushSampleCallback
+        !filterOut <- liftIO . outputSample =<< gets filterThread
+        !callback <- gets pushSampleCallback
         liftIO $ callback filterOut
-        modifyAPUState $
+        modify $
             \st -> st{sampleTimer = S.sampleTimer st + S.samplePeriod st}
-    modifyAPUState $ \st -> st{cycle = cycle st + 1}
+    modify $ \st -> st{cycle = cycle st + 1}
 
 -- | Tells the frame counter to tick channels
 --
 -- Source: https://www.nesdev.org/wiki/APU_Frame_Counter
 tickFrameCounter :: APU r ()
 tickFrameCounter = do
-    reset <- withAPUState $ shouldResetSequenceStep . frameCounter
-    seqMode <- withAPUState $ sequenceMode . frameCounter
+    reset <- gets $ shouldResetSequenceStep . frameCounter
+    seqMode <- gets $ sequenceMode . frameCounter
     if reset
         then resetFrameCounterSequence
         else do
-            fc <- withAPUState frameCounter
+            fc <- gets frameCounter
             when (shouldIncrementSequenceStep fc) $ do
                 case seqMode of
                     FourStep -> tickFrameCounterFourStep
                     FiveStep -> tickFrameCounterFiveStep
-                modifyAPUState $ modifyFrameCounter incrementSequenceStep
-            modifyAPUState $ modifyFrameCounter $ setCycles (+ 1)
+                modify $ modifyFrameCounter incrementSequenceStep
+            modify $ modifyFrameCounter $ setCycles (+ 1)
 
 tickDelayedWriteBuffer :: APU r ()
 tickDelayedWriteBuffer = do
-    fc <- withAPUState frameCounter
+    fc <- gets frameCounter
     case delayedWriteSideEffectCycle fc of
         Nothing -> return ()
         Just 0 ->
-            modifyAPUState $
+            modify $
                 modifyFrameCounter $
                     const fc{delayedWriteSideEffectCycle = Nothing, FC.sequenceStep = 0, cycles = 0}
         Just n ->
-            modifyAPUState $
+            modify $
                 modifyFrameCounter $
                     const fc{delayedWriteSideEffectCycle = Just $ n - 1}
 
 resetFrameCounterSequence :: APU r ()
 resetFrameCounterSequence = do
-    modifyAPUState $ modifyFrameCounter resetSequence
-    seqMode <- withAPUState $ sequenceMode . frameCounter
-    inhibitFrameInterrupt <- withAPUState $ inhibitInterrupt . frameCounter
+    modify $ modifyFrameCounter resetSequence
+    seqMode <- gets $ sequenceMode . frameCounter
+    inhibitFrameInterrupt <- gets $ inhibitInterrupt . frameCounter
     when (seqMode == FourStep && not inhibitFrameInterrupt) $ do
         setFrameInterruptFlag True
 
 tickFrameCounterFourStep :: APU r ()
 tickFrameCounterFourStep = do
-    step <- withAPUState $ FC.sequenceStep . frameCounter
-    inhibitFrameInterrupt <- withAPUState $ inhibitInterrupt . frameCounter
+    step <- gets $ FC.sequenceStep . frameCounter
+    inhibitFrameInterrupt <- gets $ inhibitInterrupt . frameCounter
     when (step < 4) runQuarterFrameEvent
     when (step == 1 || step == 3) runHalfFrameEvent
     when (step == 4) $ -- Flag should be cleared when going from put to get
@@ -124,20 +125,20 @@ tickFrameCounterFourStep = do
 
 tickFrameCounterFiveStep :: APU r ()
 tickFrameCounterFiveStep = do
-    step <- withAPUState $ FC.sequenceStep . frameCounter
+    step <- gets $ FC.sequenceStep . frameCounter
     when (step < 5 && step /= 3) runQuarterFrameEvent
     when (step == 1 || step == 4) runHalfFrameEvent
 
 runQuarterFrameEvent :: APU r ()
 runQuarterFrameEvent = do
-    modifyAPUState $
+    modify $
         modifyPulse1 (withEnvelope tickEnvelope)
             . modifyPulse2 (withEnvelope tickEnvelope)
             . modifyNoise (withEnvelope tickEnvelope)
             . modifyTriangle tickTriangleLinearCounter
 
 runHalfFrameEvent :: APU r ()
-runHalfFrameEvent = modifyAPUState $ \st ->
+runHalfFrameEvent = modify $ \st ->
     st
         { pulse1 = withLengthCounter tickLengthCounter $ tickSweepUnit (pulse1 st)
         , pulse2 = withLengthCounter tickLengthCounter $ tickSweepUnit (pulse2 st)
@@ -149,7 +150,7 @@ runHalfFrameEvent = modifyAPUState $ \st ->
 {-# INLINE setFrameInterruptFlag #-}
 setFrameInterruptFlag :: Bool -> APU r ()
 setFrameInterruptFlag b = do
-    modifyInterruptStatus $ \s -> s{irq = Just FrameCounter}
-    modifyAPUState $
+    modify $ \s -> s{irq = Just FrameCounter}
+    modify $
         modifyFrameCounter $
             \fc -> fc{frameInterruptFlag = b}
