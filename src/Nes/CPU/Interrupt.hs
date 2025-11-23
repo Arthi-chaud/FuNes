@@ -33,7 +33,7 @@ signalVectorAddr = \case
 
 handleInterrupt :: CPU r ()
 handleInterrupt = do
-    maskInterrupt <- withCPUState $ getFlag InterruptDisable . status
+    maskInterrupt <- gets $ getFlag InterruptDisable . status
     pendingSignal <- signalFromInterrupt <$> withBusState cpuInterrupt
     case pendingSignal of
         Nothing -> pure ()
@@ -42,7 +42,7 @@ handleInterrupt = do
             | otherwise -> do
                 pushAddrStack =<< getPC
                 pushStatusRegister (signalShouldPushBFlag signal)
-                modifyCPUState $ modifyStatusRegister $ setFlag InterruptDisable
+                modify $ modifyStatusRegister $ setFlag InterruptDisable
                 setPC =<< readAddr (signalVectorAddr signal) ()
     -- TODO Ugly, shouldn't be here
     when (pendingSignal == Just (IRQ DMC)) $ withBus $ do

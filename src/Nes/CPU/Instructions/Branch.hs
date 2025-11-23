@@ -57,7 +57,7 @@ bpl = branchOverIf (not . getFlag Negative . status)
 {-# INLINE branchOverIf #-}
 branchOverIf :: (CPUState -> Bool) -> AddressingMode -> CPU r ()
 branchOverIf check mode = do
-    doBranch <- withCPUState check
+    doBranch <- gets check
     (addr, crosses) <- getOperandAddr' mode
     when doBranch $ do
         when crosses tickOnce -- https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
