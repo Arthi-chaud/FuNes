@@ -19,17 +19,17 @@ keymap =
     , (ScancodeZ, B)
     ]
 
-handleEvents :: Controller -> IO Controller
+handleEvents :: ControllerState -> IO ControllerState
 handleEvents c = pollEvents >>= foldM (\c' -> go c' . eventPayload) c
   where
     exit = exitSuccess
-    go :: Controller -> EventPayload -> IO Controller
+    go :: ControllerState -> EventPayload -> IO ControllerState
     go controller = \case
         QuitEvent -> exit
         KeyboardEvent (KeyboardEventData _ motion _ sym) -> case SDL.keysymScancode sym of
             ScancodeQ -> exit
             ScancodeEscape -> exit
             code -> case lookup code keymap of
-                Just b -> return $ snd $ runControllerM (setButtonAsPressed b (motion == Pressed)) controller
+                Just b -> return $ snd $ runController (setButtonAsPressed b (motion == Pressed)) controller
                 Nothing -> return controller
         _ -> pure controller

@@ -1,12 +1,12 @@
 module Nes.Controller (
-    Controller (..),
-    newController,
+    ControllerState (..),
+    newControllerState,
     ControllerButtonStatus (..),
     ControllerButton (..),
 
     -- * Monad
-    ControllerM (..),
-    runControllerM,
+    Controller (..),
+    runController,
     setStrobe,
     setButtonAsPressed,
     readButtonStatus,
@@ -16,14 +16,14 @@ import Data.Bits
 import Nes.FlagRegister
 import Nes.Memory (Byte (Byte, unByte))
 
-data Controller = MkC
+data ControllerState = MkCS
     { strobe :: {-# UNPACK #-} !Bool
     , buttonIdx :: {-# UNPACK #-} !Byte
     , buttonStatus :: {-# UNPACK #-} !ControllerButtonStatus
     }
 
-newController :: Controller
-newController = MkC False 0 (MkCBS 0)
+newControllerState :: ControllerState
+newControllerState = MkCS False 0 (MkCBS 0)
 
 newtype ControllerButtonStatus = MkCBS {unStatus :: Byte}
 
@@ -44,14 +44,14 @@ instance FlagRegister ControllerButtonStatus where
     toByte = unStatus
     flagToBitOffset = fromEnum
 
-newtype ControllerM r a = MkCM {unCM :: Controller -> (Controller -> a -> r) -> r}
+newtype Controller r a = MkC {unC :: ControllerState -> (ControllerState -> a -> r) -> r}
 
-runControllerM :: ControllerM (a, Controller) a -> Controller -> (a, Controller)
-runControllerM (MkCM f) controller = f controller (\controller' res -> (res, controller'))
+runController :: Controller (a, ControllerState) a -> ControllerState -> (a, ControllerState)
+runController (MkC f) controller = f controller (\controller' res -> (res, controller'))
 
 -- | Sets the strobe state if the byte's first bit is set
-setStrobe :: Byte -> ControllerM r ()
-setStrobe byte = MkCM $ \controller cont ->
+setStrobe :: Byte -> Controller r ()
+setStrobe byte = MkC $ \controller cont ->
     let
         strobe_ = testBit byte 0
         buttonIdx_ = if strobe_ then 0 else buttonIdx controller
@@ -62,8 +62,8 @@ setStrobe byte = MkCM $ \controller cont ->
 --
 -- Increments the buttonIdx
 -- Always returns 1 when the offset if larger than the button count
-readButtonStatus :: ControllerM r Byte
-readButtonStatus = MkCM $ \controller cont ->
+readButtonStatus :: Controller r Byte
+readButtonStatus = MkC $ \controller cont ->
     if buttonIdx controller > 7
         then cont controller $ Byte 1
         else
@@ -79,8 +79,8 @@ readButtonStatus = MkCM $ \controller cont ->
   where
     boolToByte = Byte . fromIntegral . fromEnum
 
-setButtonAsPressed :: ControllerButton -> Bool -> ControllerM r ()
-setButtonAsPressed status pressed = MkCM $ \controller cont ->
+setButtonAsPressed :: ControllerButton -> Bool -> Controller r ()
+setButtonAsPressed status pressed = MkC $ \controller cont ->
     cont
         controller{buttonStatus = setFlag' status pressed (buttonStatus controller)}
         ()
