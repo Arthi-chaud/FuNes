@@ -4,14 +4,14 @@ module Nes.Render (
 
 import Data.Map.Strict (empty)
 import Data.Vector.Mutable
-import Nes.Bus
+import Nes.Bus.State
 import Nes.Render.Background
 import Nes.Render.Frame
 import Nes.Render.Monad
 import qualified Nes.Render.Monad as Render
 import Nes.Render.Sprite
 
-render :: Bus -> Render DirtyFrame Rendered r ()
+render :: BusState -> Render DirtyFrame Rendered r ()
 render bus = Render.do
     clearAll
     renderBackground bus

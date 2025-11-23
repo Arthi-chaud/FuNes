@@ -1,14 +1,7 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
-
-module Nes.Bus (
-    -- * Bus
-    Bus (..),
-    newBus,
+module Nes.Bus.State (
+    BusState (..),
+    newBusState,
     modifyPPUState,
-    modifyInterruptStatus,
-    modifyInterruptStatus',
 ) where
 
 import Nes.APU.State (APUState, newAPUState)
@@ -25,7 +18,7 @@ import Nes.PPU.State (PPUState, newPPUState)
 import Nes.Rom (Rom (..))
 
 -- | Interface for the CPU that allows it to read/write to RAM
-data Bus = Bus
+data BusState = BusState
     { cpuVram :: {-# UNPACK #-} !MemoryPointer
     -- ^ Pointer to writeable memory
     , cartridge :: !Rom
@@ -43,7 +36,7 @@ data Bus = Bus
     -- ^ The state of the PPU
     , ppuPointers :: !PPUPointers
     -- ^ Memory dedicated to PPU
-    , onNewFrame :: Bus -> IO ()
+    , onNewFrame :: BusState -> IO ()
     , pollControls :: Controller -> IO Controller
     , dataBus :: {-# UNPACK #-} !Byte
     -- ^ Last read/written byte
@@ -51,10 +44,10 @@ data Bus = Bus
     , cpuInterrupt :: {-# UNPACK #-} !InterruptStatus
     }
 
-newBus ::
+newBusState ::
     Rom ->
     -- | Callback on new frame
-    (Bus -> IO ()) ->
+    (BusState -> IO ()) ->
     -- | Callback to poll controller inputs
     (Controller -> IO Controller) ->
     -- | Callback when a sample is ready
@@ -62,8 +55,8 @@ newBus ::
     -- | Callback when a cycle ends
     (Double -> Int -> IO (Double, Int)) ->
     FilterThread ->
-    IO Bus
-newBus cartridge onNewFrame pollControls pushSample cycleCallback filterThread = do
+    IO BusState
+newBusState cartridge onNewFrame pollControls pushSample cycleCallback filterThread = do
     cpuVram <- callocForeignPtr vramSize
     ppuPointers <- newPPUPointers
     let controller = newController
@@ -74,13 +67,7 @@ newBus cartridge onNewFrame pollControls pushSample cycleCallback filterThread =
         dataBus = 0
         apuState = newAPUState pushSample filterThread
         cpuInterrupt = MkIS Nothing False
-    return $ Bus{..}
+    return $ BusState{..}
 
-modifyPPUState :: (PPUState -> PPUState) -> Bus -> Bus
+modifyPPUState :: (PPUState -> PPUState) -> BusState -> BusState
 modifyPPUState f bus = bus{ppuState = f $ ppuState bus}
-
-modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> Bus -> Bus
-modifyInterruptStatus f b = b{cpuInterrupt = f (cpuInterrupt b)}
-
-modifyInterruptStatus' :: (InterruptStatus -> (a, InterruptStatus)) -> Bus -> (a, Bus)
-modifyInterruptStatus' f b = let (res, interr) = f (cpuInterrupt b) in (res, b{cpuInterrupt = interr})

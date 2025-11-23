@@ -8,8 +8,8 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.Functor
 import Data.Map
-import Nes.Bus (Bus (..))
-import Nes.Bus.Monad (withPPU)
+import Nes.Bus.Monad
+import Nes.Bus.State
 import Nes.CPU.Instructions.Map
 import Nes.CPU.Interrupt (handleInterrupt)
 import Nes.CPU.Monad
@@ -25,7 +25,7 @@ import Text.Printf
 -- The second argument is a callback run at each loop.
 --
 -- Returns the state of the CPU with the number of ellapsed ticks
-runProgram :: Bus -> CPU (CPUState, Integer) () -> IO (CPUState, Integer)
+runProgram :: BusState -> CPU (CPUState, Integer) () -> IO (CPUState, Integer)
 runProgram prog callback = unCPU
     (reset >> interpretWithCallback callback)
     newCPUState
@@ -33,7 +33,7 @@ runProgram prog callback = unCPU
     $ \state' bus _ -> return (state', cycles bus)
 
 -- | Same as 'runProgram', but uses a given state
-runProgram' :: CPUState -> Bus -> CPU (CPUState, Integer) () -> IO (CPUState, Integer)
+runProgram' :: CPUState -> BusState -> CPU (CPUState, Integer) () -> IO (CPUState, Integer)
 runProgram' state prog callback = unCPU (interpretWithCallback callback) state prog $ \state' bus _ -> return (state', cycles bus)
 
 -- | Interpretation loop of the program
@@ -41,9 +41,9 @@ interpretWithCallback :: CPU r () -> CPU r ()
 interpretWithCallback callback = do
     hasNmiInterrupt <-
         liftBus
-            ( withPPU $ do
+            ( liftPPU $ do
                 f <- withPPUState nmiInterrupt
-                modifyPPUState $ \st -> st{nmiInterrupt = False}
+                Nes.PPU.Monad.modifyPPUState $ \st -> st{nmiInterrupt = False}
                 return f
             )
     when hasNmiInterrupt $ modify $ \s -> s{nmi = True}

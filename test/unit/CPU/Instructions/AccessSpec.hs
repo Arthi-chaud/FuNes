@@ -1,7 +1,7 @@
 module CPU.Instructions.AccessSpec (spec) where
 
 import Internal
-import Nes.Bus (Bus (cpuVram, cycles))
+import Nes.Bus.State (BusState (cpuVram, cycles))
 import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Memory

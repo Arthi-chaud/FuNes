@@ -35,10 +35,10 @@ module Nes.CPU.Monad (
 
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR))
-import Nes.Bus (Bus (..))
 import Nes.Bus.Constants
-import Nes.Bus.Monad (BusM, runBusM)
+import Nes.Bus.Monad (Bus, runBus)
 import qualified Nes.Bus.Monad as BusM
+import Nes.Bus.State (BusState (..))
 import Nes.CPU.State
 import Nes.FlagRegister
 import Nes.Internal.MonadState
@@ -49,8 +49,8 @@ import Nes.Memory
 newtype CPU r a = MkCPU
     { unCPU ::
         CPUState ->
-        Bus ->
-        (CPUState -> Bus -> a -> IO r) ->
+        BusState ->
+        (CPUState -> BusState -> a -> IO r) ->
         IO r
     }
     deriving (Functor)
@@ -82,7 +82,7 @@ instance MonadState CPUState (CPU r) where
     {-# INLINE get #-}
     get = MkCPU $ \st bus cont -> cont st bus st
 
-instance MonadState Bus (CPU r) where
+instance MonadState BusState (CPU r) where
     {-# INLINE set #-}
     set bus' = MkCPU $ \st _ cont -> cont st bus' ()
     {-# INLINE get #-}
@@ -94,9 +94,9 @@ instance MonadState InterruptStatus (CPU r) where
     {-# INLINE get #-}
     get = MkCPU $ \st bus cont -> cont st bus (cpuInterrupt bus)
 
-liftBus :: BusM (a, Bus) a -> CPU r a
+liftBus :: Bus (a, BusState) a -> CPU r a
 liftBus f = MkCPU $ \st bus cont -> do
-    (res, bus') <- runBusM bus f
+    (res, bus') <- runBus bus f
     cont st bus' res
 
 -- | Unsafe action that provides access to Bus
@@ -104,9 +104,9 @@ liftBus f = MkCPU $ \st bus cont -> do
 -- When using it, ticks ARE NOT taken into account.
 -- For testing purposes
 {-# INLINE unsafeLiftBus #-}
-unsafeLiftBus :: BusM (a, Bus) a -> CPU r a
+unsafeLiftBus :: Bus (a, BusState) a -> CPU r a
 unsafeLiftBus f = MkCPU $ \st bus cont -> do
-    (res, _) <- runBusM bus f
+    (res, _) <- runBus bus f
     cont st bus res
 
 {-# INLINE tick #-}

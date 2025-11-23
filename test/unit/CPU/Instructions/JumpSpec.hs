@@ -1,8 +1,8 @@
 module CPU.Instructions.JumpSpec (spec) where
 
 import Internal
-import Nes.Bus
 import Nes.Bus.Monad
+import Nes.Bus.State
 import Nes.CPU.State
 import Nes.Memory
 import Test.Hspec
@@ -15,7 +15,7 @@ spec = describe "Jump" $ do
             \cpu _ -> getRegister X cpu `shouldBe` 1
 
     it "Indirect" $ do
-        let setup bus = runBusM bus $ do
+        let setup bus = runBus bus $ do
                 -- The pointer to the destination
                 writeAddr 0x08 0x05 ()
                 -- The jump destination

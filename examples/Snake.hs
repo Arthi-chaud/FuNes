@@ -10,8 +10,7 @@ import Data.Functor (($>))
 import Data.Word (Word8)
 import GHC.Storable (writeWord8OffPtr)
 import Nes.APU.State.Filter.Thread
-import Nes.Bus
-import Nes.Bus.Monad ()
+import Nes.Bus.State
 import Nes.CPU.Interpreter
 import Nes.CPU.Monad
 import Nes.CPU.State
@@ -47,7 +46,7 @@ main = do
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 32 32)
     frame <- newArray @IOUArray (0, frameSize) (0 :: Word8)
     let cpuState = newCPUState{programCounter = programOffset}
-    bus <- newBus unsafeEmptyRom (\_ -> pure ()) pure (\_ -> pure ()) (curry pure) newNoopFilterThread
+    bus <- newBusState unsafeEmptyRom (\_ -> pure ()) pure (\_ -> pure ()) (curry pure) newNoopFilterThread
     loadProgramToMemory gameCode bus
     _ <- runProgram' cpuState bus (callback frame texture renderer)
     destroyRenderer renderer
@@ -436,7 +435,7 @@ gameCode =
     , 0x60
     ]
 
-loadProgramToMemory :: [Word8] -> Bus -> IO ()
+loadProgramToMemory :: [Word8] -> BusState -> IO ()
 loadProgramToMemory program bus = do
     forM_ (zip program [(unAddr programOffset) ..]) $
         \(byte, idx) -> writeByte (Byte byte) (Addr idx) (cpuVram bus)
