@@ -23,7 +23,7 @@ data BusState = BusState
     -- ^ Pointer to writeable memory
     , cartridge :: !Rom
     -- ^ Read-only memory, see 'Rom'
-    , controller :: !Controller
+    , controller :: !ControllerState
     -- ^ Aka Joypad
     , cycles :: {-# UNPACK #-} !Integer
     , unsleptCycles :: {-# UNPACK #-} !Int
@@ -37,7 +37,7 @@ data BusState = BusState
     , ppuPointers :: !PPUPointers
     -- ^ Memory dedicated to PPU
     , onNewFrame :: BusState -> IO ()
-    , pollControls :: Controller -> IO Controller
+    , pollControls :: ControllerState -> IO ControllerState
     , dataBus :: {-# UNPACK #-} !Byte
     -- ^ Last read/written byte
     , apuState :: !APUState
@@ -49,7 +49,7 @@ newBusState ::
     -- | Callback on new frame
     (BusState -> IO ()) ->
     -- | Callback to poll controller inputs
-    (Controller -> IO Controller) ->
+    (ControllerState -> IO ControllerState) ->
     -- | Callback when a sample is ready
     (Sample -> IO ()) ->
     -- | Callback when a cycle ends
@@ -59,7 +59,7 @@ newBusState ::
 newBusState cartridge onNewFrame pollControls pushSample cycleCallback filterThread = do
     cpuVram <- callocForeignPtr vramSize
     ppuPointers <- newPPUPointers
-    let controller = newController
+    let controller = newControllerState
         ppuState = newPPUState (mirroring cartridge)
         cycles = 0
         unsleptCycles = 0

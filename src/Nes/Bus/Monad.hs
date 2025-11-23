@@ -70,10 +70,10 @@ liftAPU f = MkBus $ \bus cont -> do
     cont (bus{apuState = apuSt, cpuInterrupt = interr}) res
 
 {-# INLINE liftController #-}
-liftController :: ControllerM (a, Controller) a -> Bus r a
+liftController :: Controller (a, ControllerState) a -> Bus r a
 liftController f = MkBus $ \bus cont ->
     let
-        (res, controller') = runControllerM f (controller bus)
+        (res, controller') = runController f (controller bus)
      in
         cont (bus{controller = controller'}) res
 
