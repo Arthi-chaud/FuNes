@@ -40,19 +40,19 @@ runProgram' state prog callback = unCPU (interpretWithCallback callback) state p
 interpretWithCallback :: CPU r () -> CPU r ()
 interpretWithCallback callback = do
     hasNmiInterrupt <-
-        withBus
+        liftBus
             ( withPPU $ do
                 f <- withPPUState nmiInterrupt
                 modifyPPUState $ \st -> st{nmiInterrupt = False}
                 return f
             )
-    when hasNmiInterrupt $ modifyInterruptStatus $ \s -> s{nmi = True}
+    when hasNmiInterrupt $ modify $ \s -> s{nmi = True}
     callback
-    oldCycleCount <- getCycles
+    oldCycleCount <- gets cycles
     opCode <- readAtPC
     incrementPC
     forceMultiByte <- go opCode
-    newCycleCount <- getCycles
+    newCycleCount <- gets cycles
     -- Each opcode should take at least 2 ticks
     -- We cannot just check that addressing is none,
     -- because some opcode w/o addressing take more that 1 cycle

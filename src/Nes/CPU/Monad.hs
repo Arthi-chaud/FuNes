@@ -1,13 +1,10 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Nes.CPU.Monad (
     -- * Monad
     CPU (..),
 
-    -- * Interracting with bus
-    withBus,
-    withBusState,
-
     -- * State
-    getCycles,
     reset,
     --- * PC
     getPC,
@@ -28,11 +25,9 @@ module Nes.CPU.Monad (
     popStatusRegister,
     pushStatusRegister,
 
-    -- * Interrupt
-    modifyInterruptStatus,
-
-    -- * Unsafe
-    unsafeWithBus,
+    -- * Bus
+    liftBus,
+    unsafeLiftBus,
 
     -- * Re-exports
     module Nes.Internal.MonadState,
@@ -41,9 +36,8 @@ module Nes.CPU.Monad (
 import Control.Monad.IO.Class
 import Data.Bits (Bits (shiftR))
 import Nes.Bus (Bus (..))
-import qualified Nes.Bus
 import Nes.Bus.Constants
-import Nes.Bus.Monad (BusM, modifyBus, runBusM)
+import Nes.Bus.Monad (BusM, runBusM)
 import qualified Nes.Bus.Monad as BusM
 import Nes.CPU.State
 import Nes.FlagRegister
@@ -88,18 +82,66 @@ instance MonadState CPUState (CPU r) where
     {-# INLINE get #-}
     get = MkCPU $ \st bus cont -> cont st bus st
 
--- TODO Instance for Bus or cpu interrupt
+instance MonadState Bus (CPU r) where
+    {-# INLINE set #-}
+    set bus' = MkCPU $ \st _ cont -> cont st bus' ()
+    {-# INLINE get #-}
+    get = MkCPU $ \st bus cont -> cont st bus bus
 
-withBusState :: (Bus -> a) -> CPU r a
-withBusState f = MkCPU $ \st bus cont -> cont st bus (f bus)
+instance MonadState InterruptStatus (CPU r) where
+    {-# INLINE set #-}
+    set is = MkCPU $ \st bus cont -> cont st bus{cpuInterrupt = is} ()
+    {-# INLINE get #-}
+    get = MkCPU $ \st bus cont -> cont st bus (cpuInterrupt bus)
 
-{-# INLINE getCycles #-}
-getCycles :: CPU r Integer
-getCycles = withBusState cycles
+liftBus :: BusM (a, Bus) a -> CPU r a
+liftBus f = MkCPU $ \st bus cont -> do
+    (res, bus') <- runBusM bus f
+    cont st bus' res
 
-{-# INLINE getPC #-}
+-- | Unsafe action that provides access to Bus
+--
+-- When using it, ticks ARE NOT taken into account.
+-- For testing purposes
+{-# INLINE unsafeLiftBus #-}
+unsafeLiftBus :: BusM (a, Bus) a -> CPU r a
+unsafeLiftBus f = MkCPU $ \st bus cont -> do
+    (res, _) <- runBusM bus f
+    cont st bus res
+
+{-# INLINE tick #-}
+tick :: Int -> CPU r ()
+tick = liftBus . BusM.tick
+
+{-# INLINE tickOnce #-}
+tickOnce :: CPU r ()
+tickOnce = Nes.CPU.Monad.tick 1
+
+instance MemoryInterface () (CPU r) where
+    {-# INLINE readByte #-}
+    readByte n () = do
+        res <- liftBus (Nes.Memory.readByte n ())
+        tickOnce
+        return res
+
+    {-# INLINE readAddr #-}
+    readAddr n () = do
+        res <- liftBus (Nes.Memory.readAddr n ())
+        tick 2
+        return res
+
+    {-# INLINE writeByte #-}
+    writeByte byte dest () = do
+        liftBus (Nes.Memory.writeByte byte dest ())
+        tickOnce
+
+    {-# INLINE writeAddr #-}
+    writeAddr byte dest () = do
+        liftBus (Nes.Memory.writeAddr byte dest ())
+        tick 2
 
 -- | Returns the value of the Program counter as an Addr
+{-# INLINE getPC #-}
 getPC :: CPU r Addr
 getPC = gets programCounter
 
@@ -154,59 +196,9 @@ pushAddrStack addr = do
     pushByteStack high
     pushByteStack low
 
-{-# INLINE withBus #-}
-withBus :: BusM (a, Bus) a -> CPU r a
-withBus f = MkCPU $ \st bus cont -> do
-    (res, bus') <- runBusM bus f
-    cont st bus' res
-
--- | Unsafe action that provides access to Bus
---
--- When using it, ticks ARE NOT taken into account.
--- For testing purposes
-{-# INLINE unsafeWithBus #-}
-unsafeWithBus :: BusM (a, Bus) a -> CPU r a
-unsafeWithBus f = MkCPU $ \st bus cont -> do
-    (res, _) <- runBusM bus f
-    cont st bus res
-
 -- | Resets the state of the CPU
 reset :: CPU r ()
 reset = do
     set newCPUState
     pc <- readAddr 0xfffc ()
     set newCPUState{programCounter = pc}
-
-modifyInterruptStatus :: (InterruptStatus -> InterruptStatus) -> CPU r ()
-modifyInterruptStatus = withBus . modifyBus . Nes.Bus.modifyInterruptStatus
-
-instance MemoryInterface () (CPU r) where
-    {-# INLINE readByte #-}
-    readByte n () = do
-        res <- withBus (Nes.Memory.readByte n ())
-        tickOnce
-        return res
-
-    {-# INLINE readAddr #-}
-    readAddr n () = do
-        res <- withBus (Nes.Memory.readAddr n ())
-        tick 2
-        return res
-
-    {-# INLINE writeByte #-}
-    writeByte byte dest () = do
-        withBus (Nes.Memory.writeByte byte dest ())
-        tickOnce
-
-    {-# INLINE writeAddr #-}
-    writeAddr byte dest () = do
-        withBus (Nes.Memory.writeAddr byte dest ())
-        tick 2
-
-{-# INLINE tick #-}
-tick :: Int -> CPU r ()
-tick = withBus . BusM.tick
-
-{-# INLINE tickOnce #-}
-tickOnce :: CPU r ()
-tickOnce = Nes.CPU.Monad.tick 1
