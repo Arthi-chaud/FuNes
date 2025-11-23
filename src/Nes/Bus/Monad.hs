@@ -19,7 +19,7 @@ import Nes.Internal.MonadState
 import Nes.Interrupt (InterruptStatus)
 import Nes.Memory
 import Nes.PPU.Constants (oamDataSize)
-import Nes.PPU.Monad hiding (modifyPPUState, tick)
+import Nes.PPU.Monad hiding (tick)
 import qualified Nes.PPU.Monad as PPUM
 import Nes.PPU.State hiding (cycles)
 import Nes.Rom
@@ -83,9 +83,9 @@ tick n = MkBus $ \bus cont -> do
     (newLastSleepTime, newUnsleptCycles) <-
         cycleCallback bus (lastSleepTime bus) unsleptCycles_
     (isNewFrame, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
-        before <- withPPUState nmiInterrupt
+        before <- gets nmiInterrupt
         _ <- PPUM.tick (n * 3)
-        after <- withPPUState nmiInterrupt
+        after <- gets nmiInterrupt
         return (not before && after)
     ((), !apuSt, !interr) <- runAPU (apuState bus) (cpuInterrupt bus) $ APU.tick (odd (Nes.Bus.State.cycles bus)) n
     let bus' =
@@ -134,10 +134,10 @@ instance MemoryInterface () (Bus r) where
                     2 -> liftPPU $ do
                         st <- readStatus
                         -- https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS_-_Rendering_events_($2002_read)
-                        PPUM.modifyPPUState $ modifyStatusRegister $ clearFlag VBlankStarted
-                        oldIoBusState <- withPPUState ioBus
+                        modify $ modifyStatusRegister $ clearFlag VBlankStarted
+                        oldIoBusState <- gets ioBus
                         let newIoBus = (st .&. 0b11100000) .|. (oldIoBusState .&. 0b11111)
-                        PPUM.modifyPPUState $ setIOBus newIoBus
+                        modify $ setIOBus newIoBus
                         return $ DataBus st
                     3 -> onInvalidRead
                     4 -> do
