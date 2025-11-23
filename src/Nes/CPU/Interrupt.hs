@@ -1,7 +1,6 @@
 module Nes.CPU.Interrupt (handleInterrupt) where
 
 import Control.Monad
-import Nes.APU.Monad (modifyAPUStateWithInterrupt)
 import Nes.APU.State (APUState (dmc), modifyDMC')
 import Nes.APU.State.DMC (DMC (sampleBufferAddr), loadSampleBuffer)
 import Nes.Bus.Monad (liftAPU)
@@ -49,7 +48,7 @@ handleInterrupt = do
     when (pendingSignal == Just (IRQ DMC)) $ liftBus $ do
         sampleByteAddr <- gets $ sampleBufferAddr . dmc . apuState
         sample <- Nes.Memory.readByte sampleByteAddr ()
-        liftAPU $ modifyAPUStateWithInterrupt $ modifyDMC' $ loadSampleBuffer sample
+        liftAPU $ modify $ uncurry (modifyDMC' $ loadSampleBuffer sample)
     -- Cleanup state
     case pendingSignal of
         Nothing -> return ()
