@@ -2,6 +2,7 @@ module PPUSpec (spec) where
 
 import Control.Monad
 import Nes.FlagRegister (getFlag, setFlag)
+import Nes.Internal.MonadState
 import Nes.Memory (MemoryInterface (readByte, writeByte))
 import Nes.PPU.Monad
 import Nes.PPU.Pointers
@@ -138,7 +139,7 @@ spec = do
                 )
                 ( do
                     a <- MkSR <$> readStatus
-                    b <- withPPUState statusRegister
+                    b <- gets statusRegister
                     return (a, b)
                 )
                 ( \(regA, regB) _ _ -> do
@@ -158,7 +159,7 @@ spec = do
                     writeToAddressRegister 0x21
                     writeToAddressRegister 0x23
                     writeToAddressRegister 0x23
-                    isHighPtr <- withPPUState $ highPtr . addressRegister
+                    isHighPtr <- gets $ highPtr . addressRegister
                     a <- readData >> readData
                     void readStatus -- Reset latch in address register
                     writeToAddressRegister 0x23

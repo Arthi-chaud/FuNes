@@ -8,8 +8,6 @@ module Nes.PPU.Monad (
 
     -- * State
     withPointers,
-    withPPUState,
-    modifyPPUState,
 
     -- * Vram
     readData,
@@ -41,6 +39,7 @@ import Data.Foldable (foldlM)
 import Data.Functor ((<&>))
 import Data.Ix
 import Nes.FlagRegister
+import Nes.Internal.MonadState
 import Nes.Memory
 import Nes.Memory.Unsafe ()
 import Nes.PPU.Constants
@@ -52,7 +51,7 @@ newtype PPU r a = MkPPU
     { unPPU ::
         PPUState ->
         PPUPointers ->
-        Rom ->
+        Rom -> -- TODO Delete?
         ( PPUState ->
           PPUPointers ->
           a ->
@@ -66,7 +65,7 @@ newtype PPU r a = MkPPU
 runPPU :: PPUState -> PPUPointers -> Rom -> PPU (a, PPUState) a -> IO (a, PPUState)
 runPPU st ptrs rom f = unPPU op st ptrs rom $ \_ _ a -> return a
   where
-    op = f >>= \a -> withPPUState (a,)
+    op = f >>= \a -> gets (a,)
 
 instance Applicative (PPU r) where
     {-# INLINE pure #-}
@@ -93,30 +92,36 @@ instance (MonadFail (PPU r)) where
     {-# INLINE fail #-}
     fail s = liftIO $ fail s
 
+instance MonadState PPUState (PPU r) where
+    {-# INLINE get #-}
+    get = MkPPU $ \st ptr _ cont -> cont st ptr st
+    {-# INLINE set #-}
+    set st' = MkPPU $ \_ ptr _ cont -> cont st' ptr ()
+
 tick :: Int -> PPU r Bool
 tick cycles_ = do
     setCycles (+ cycles_)
-    newCycles <- withPPUState cycles
+    newCycles <- gets cycles
     if newCycles >= 341
         then do
             hits <- isSpriteZeroHit newCycles
             when hits $
-                modifyPPUState $
+                modify $
                     modifyStatusRegister $
                         setFlag SpriteZeroHit
             setCycles (\c -> c - 341)
-            modifyPPUState $ \st -> st{scanline = scanline st + 1}
-            scanline_ <- withPPUState scanline
+            modify $ \st -> st{scanline = scanline st + 1}
+            scanline_ <- gets scanline
             when (scanline_ == 241) $ do
-                modifyPPUState $
+                modify $
                     modifyStatusRegister $
                         setFlag VBlankStarted . clearFlag SpriteZeroHit
-                shouldStartNmi <- withPPUState $ getFlag GenerateNMI . controlRegister
-                modifyPPUState $ \st -> st{nmiInterrupt = shouldStartNmi}
+                shouldStartNmi <- gets $ getFlag GenerateNMI . controlRegister
+                modify $ \st -> st{nmiInterrupt = shouldStartNmi}
             if scanline_ >= 262
                 then do
-                    modifyPPUState $ \st -> st{scanline = 0, nmiInterrupt = False}
-                    modifyPPUState $
+                    modify $ \st -> st{scanline = 0, nmiInterrupt = False}
+                    modify $
                         modifyStatusRegister $
                             clearFlag SpriteZeroHit . clearFlag VBlankStarted
                     return True
@@ -125,14 +130,14 @@ tick cycles_ = do
 
 {-# INLINE setCycles #-}
 setCycles :: (Int -> Int) -> PPU r ()
-setCycles f = modifyPPUState $ \st -> st{cycles = f (cycles st)}
+setCycles f = modify $ \st -> st{cycles = f (cycles st)}
 
 isSpriteZeroHit :: Int -> PPU r Bool
 isSpriteZeroHit cycle_ = do
-    scanline_ <- withPPUState scanline
+    scanline_ <- gets scanline
     line <- unAddr . byteToAddr <$> (readByte 0 =<< withPointers oamData)
     col <- byteToInt <$> (readByte 3 =<< withPointers oamData)
-    showSprites <- withPPUState $ getFlag ShowSprites . maskRegister
+    showSprites <- gets $ getFlag ShowSprites . maskRegister
     return $ (line == scanline_) && col <= cycle_ && showSprites
 
 {-# INLINE withPointers #-}
@@ -140,19 +145,9 @@ withPointers :: (PPUPointers -> a) -> PPU r a
 withPointers f = MkPPU $ \st ptr _ cont ->
     cont st ptr (f ptr)
 
-{-# INLINE withPPUState #-}
-withPPUState :: (PPUState -> a) -> PPU r a
-withPPUState f = MkPPU $ \st ptr _ cont ->
-    cont st ptr (f st)
-
-{-# INLINE modifyPPUState #-}
-modifyPPUState :: (PPUState -> PPUState) -> PPU r ()
-modifyPPUState f = MkPPU $ \st ptr _ cont ->
-    cont (f st) ptr ()
-
 {-# INLINE incrementVramAddr #-}
 incrementVramAddr :: PPU r ()
-incrementVramAddr = modifyPPUState $ \st ->
+incrementVramAddr = modify $ \st ->
     st
         { addressRegister =
             addressRegisterIncrement
@@ -162,8 +157,8 @@ incrementVramAddr = modifyPPUState $ \st ->
 
 readStatus :: PPU r Byte
 readStatus = do
-    byte <- unSR <$> withPPUState statusRegister
-    modifyPPUState $
+    byte <- unSR <$> gets statusRegister
+    modify $
         modifyStatusRegister (clearFlag VBlankStarted)
             . modifyAddressRegister addressRegisterResetLatch
             . modifyScrollRegister scrollRegisterResetLatch
@@ -172,13 +167,13 @@ readStatus = do
 readOamData :: PPU r Byte
 readOamData = do
     oam <- withPointers oamData
-    addr <- withPPUState oamOffset
+    addr <- gets oamOffset
     readByte (byteToAddr addr) oam
 
 writeOamData :: Byte -> PPU r ()
 writeOamData byte = do
     oam <- withPointers oamData
-    addr <- withPPUState oamOffset
+    addr <- gets oamOffset
     writeByte byte (byteToAddr addr) oam
     setOamOffset (addr + 1)
 
@@ -189,32 +184,32 @@ writeListToOam = foldlM (\_ item -> writeOamData item) ()
 {-# INLINE writeToAddressRegister #-}
 writeToAddressRegister :: Byte -> PPU r ()
 writeToAddressRegister byte =
-    modifyPPUState $
+    modify $
         \st -> st{addressRegister = addressRegisterUpdate byte (addressRegister st)}
 
 writeToControlRegister :: Byte -> PPU r ()
 writeToControlRegister byte = do
-    oldNmi <- withPPUState $ getFlag GenerateNMI . controlRegister
+    oldNmi <- gets $ getFlag GenerateNMI . controlRegister
     let newCR = MkCR byte
         newNmi = getFlag GenerateNMI newCR
-    modifyPPUState $ \st -> st{controlRegister = newCR}
-    isInVBlank <- withPPUState $ getFlag VBlankStarted . statusRegister
+    modify $ \st -> st{controlRegister = newCR}
+    isInVBlank <- gets $ getFlag VBlankStarted . statusRegister
     when (not oldNmi && newNmi && isInVBlank) $
-        modifyPPUState $
+        modify $
             \st -> st{nmiInterrupt = True}
 
 {-# INLINE setMaskRegister #-}
 setMaskRegister :: Byte -> PPU r ()
-setMaskRegister byte = modifyPPUState $ \st -> st{maskRegister = MkMR byte}
+setMaskRegister byte = modify $ \st -> st{maskRegister = MkMR byte}
 
 {-# INLINE setOamOffset #-}
 setOamOffset :: Byte -> PPU r ()
-setOamOffset byte = modifyPPUState $ \st -> st{oamOffset = byte}
+setOamOffset byte = modify $ \st -> st{oamOffset = byte}
 
 {-# INLINE setScrollRegister #-}
 setScrollRegister :: Byte -> PPU r ()
 setScrollRegister byte =
-    modifyPPUState $
+    modify $
         modifyScrollRegister $
             scrollRegisterWrite byte
 
@@ -224,22 +219,22 @@ withCartridge f = MkPPU $ \st ptrs rom cont -> cont st ptrs (f rom)
 
 readData :: PPU r Byte
 readData = do
-    addr <- withPPUState $ addressRegisterGet . addressRegister
+    addr <- gets $ addressRegisterGet . addressRegister
     res <- go addr
     incrementVramAddr
     return res
   where
     go addr
         | inRange chrRomRange addr = do
-            res <- withPPUState internalBuffer
+            res <- gets internalBuffer
             value <- Byte <$> (withCartridge chrRom <&> (`BS.index` addrToInt addr))
-            modifyPPUState $ \st -> st{internalBuffer = value}
+            modify $ \st -> st{internalBuffer = value}
             return res
         | inRange vramRange addr = do
-            res <- withPPUState internalBuffer
-            mirr <- withPPUState mirroring
+            res <- gets internalBuffer
+            mirr <- gets mirroring
             value <- readByte (mirrorVramAddr mirr addr) =<< withPointers vram
-            modifyPPUState $ \st -> st{internalBuffer = value}
+            modify $ \st -> st{internalBuffer = value}
             return res
         | inRange unusedAddrRange addr = do
             liftIO $ putStrLn "Address range should not be accessed"
@@ -258,14 +253,14 @@ readData = do
 
 writeData :: Byte -> PPU r ()
 writeData byte = do
-    addr <- withPPUState $ addressRegisterGet . addressRegister
+    addr <- gets $ addressRegisterGet . addressRegister
     incrementVramAddr
     go addr
   where
     go addr
         | inRange chrRomRange addr = liftIO $ putStrLn "Invalid write to CHR Rom"
         | inRange vramRange addr = do
-            mirr <- withPPUState mirroring
+            mirr <- gets mirroring
             writeByte byte (mirrorVramAddr mirr addr) =<< withPointers vram
         | inRange unusedAddrRange addr = liftIO $ putStrLn "Invalid write in address space"
         | inRange paletteTableRange addr = do
