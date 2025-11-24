@@ -16,7 +16,7 @@ dependencies:
   - containers
   - array
   - vector
-
+  - lens
 default-extensions:
   - Strict
   - BinaryLiterals

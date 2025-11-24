@@ -17,7 +17,7 @@ import Nes.CPU.State
 import Nes.Internal.MonadState
 import Nes.Interrupt
 import Nes.Memory
-import Nes.PPU.State (PPUState (nmiInterrupt))
+import Nes.PPU.State (nmiInterrupt)
 import Text.Printf
 
 -- | Runs the program that's on the memory (interfaced by the given 'Bus').
@@ -42,8 +42,8 @@ interpretWithCallback callback = do
     hasNmiInterrupt <-
         liftBus
             ( liftPPU $ do
-                f <- gets nmiInterrupt
-                modify $ \st -> st{nmiInterrupt = False}
+                f <- use nmiInterrupt
+                nmiInterrupt .= False
                 return f
             )
     when hasNmiInterrupt $ modify $ \s -> s{nmi = True}

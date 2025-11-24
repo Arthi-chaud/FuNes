@@ -119,6 +119,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , lens
     , vector
   default-language: Haskell2010
 
@@ -155,6 +156,7 @@ executable fake-snake
     , bytestring
     , containers
     , funes
+    , lens
     , random
     , sdl2
     , vector
@@ -194,6 +196,7 @@ executable funes-exe
     , bytestring
     , containers
     , funes
+    , lens
     , sdl2
     , vector
   default-language: Haskell2010
@@ -233,6 +236,7 @@ test-suite nestest
     , containers
     , funes
     , hspec
+    , lens
     , vector
   default-language: Haskell2010
 
@@ -286,5 +290,6 @@ test-suite unit
     , containers
     , funes
     , hspec
+    , lens
     , vector
   default-language: Haskell2010

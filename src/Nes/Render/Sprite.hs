@@ -21,7 +21,7 @@ renderSprites :: BusState -> Render BGDrawn BGAndSpritesDrawn r ()
 renderSprites bus = Render.do
     let oam = oamData $ ppuPointers bus
         chr = chrRom . cartridge $ bus
-        bank = addrToInt . getSpritePatternAddr . controlRegister . ppuState $ bus
+        bank = addrToInt . getSpritePatternAddr . _controlRegister . ppuState $ bus
     for_ (reverse [0, 4 .. oamDataSize - 1]) $ \i -> Render.do
         tileIdx <- liftIO $ byteToInt <$> readByte (fromIntegral i + 1) oam
         tileCol <- liftIO $ byteToInt <$> readByte (fromIntegral i + 3) oam

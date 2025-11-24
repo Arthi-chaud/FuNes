@@ -22,11 +22,11 @@ renderBackground :: BusState -> Render DirtyFrame BGDrawn r ()
 renderBackground bus = Render.do
     let (scrollX, scrollY) =
             let
-                scroll = (scrollRegister $ ppuState bus)
+                scroll = (_scrollRegister $ ppuState bus)
              in
                 (byteToInt $ Scroll.x scroll, byteToInt $ Scroll.y scroll)
         ppuVram = vram $ ppuPointers bus
-    let (nt1, nt2) = case (Nes.PPU.State.mirroring $ ppuState bus, getNametableAddr . controlRegister $ ppuState bus) of
+    let (nt1, nt2) = case (_mirroring $ ppuState bus, getNametableAddr . _controlRegister $ ppuState bus) of
             (Vertical, 0x2000) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
             (Vertical, 0x2800) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
             (Horizontal, 0x2000) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
@@ -53,7 +53,7 @@ renderBackground bus = Render.do
 renderNameTable :: BusState -> ByteString -> ViewPort -> (Int, Int) -> Render a b r ()
 renderNameTable bus nametable vp (shiftX, shiftY) = Render.do
     let chr = chrRom . cartridge $ bus
-        bank = addrToInt . getBackgroundPatternAddr . controlRegister . ppuState $ bus
+        bank = addrToInt . getBackgroundPatternAddr . _controlRegister . ppuState $ bus
         attrTable = BS.drop 0x3c0 nametable
     for_ [0 .. 0x3c0] $ \i -> Render.do
         let tileOffset = fromIntegral $ BS.index nametable i
