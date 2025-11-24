@@ -1,5 +1,6 @@
 module PPUSpec (spec) where
 
+import Control.Lens hiding (op, use, uses, (.=))
 import Control.Monad
 import Nes.FlagRegister (getFlag, setFlag)
 import Nes.Internal.MonadState
@@ -34,8 +35,8 @@ spec = do
                 )
                 ( \res st _ -> do
                     res `shouldBe` 0x01
-                    addressRegisterGet (addressRegister st) `shouldBe` 0x2307
-                    internalBuffer st `shouldBe` 0x00 -- should have been reset
+                    addressRegisterGet (_addressRegister st) `shouldBe` 0x2307
+                    _internalBuffer st `shouldBe` 0x00 -- should have been reset
                 )
         it "Read across page" $
             withNewPPU
@@ -77,7 +78,7 @@ spec = do
                     writeByte 0x01 0x01ff (vram ptrs)
                     writeByte 0x02 (0x01ff + 32) (vram ptrs)
                     writeByte 0x03 (0x01ff + 64) (vram ptrs)
-                    return $ modifyControlRegister (setFlag VramAddIncrement) st
+                    return $ (controlRegister %~ setFlag VramAddIncrement) st
                 )
                 ( do
                     writeToAddressRegister 0x21
@@ -99,13 +100,13 @@ spec = do
             withNewPPU
                 noSetup
                 ( do
-                    setOamOffset 0x10
+                    oamOffset .= 0x10
                     writeOamData 0x01
                     writeOamData 0x02
 
-                    setOamOffset 0x10
+                    oamOffset .= 0x10
                     a <- readOamData
-                    setOamOffset 0x11
+                    oamOffset .= 0x11
                     b <- readOamData
                     return (a, b)
                 )
@@ -117,12 +118,12 @@ spec = do
             withNewPPU
                 noSetup
                 ( do
-                    setOamOffset 0x10
+                    oamOffset .= 0x10
                     let list = (0x01 : replicate 254 0) ++ [0x03]
                     writeListToOam list
-                    setOamOffset 0x10
+                    oamOffset .= 0x10
                     a <- readOamData
-                    setOamOffset 0xf -- Wrapping around
+                    oamOffset .= 0xf
                     b <- readOamData
                     return (a, b)
                 )
@@ -134,12 +135,10 @@ spec = do
     describe "Reading Status" $ do
         it "Reset VBlank Flag" $
             withNewPPU
-                ( \st _ -> do
-                    return $ modifyStatusRegister (setFlag VBlankStarted) st
-                )
+                (\st _ -> pure $ (statusRegister %~ setFlag VBlankStarted) st)
                 ( do
                     a <- MkSR <$> readStatus
-                    b <- gets statusRegister
+                    b <- use statusRegister
                     return (a, b)
                 )
                 ( \(regA, regB) _ _ -> do
@@ -159,7 +158,7 @@ spec = do
                     writeToAddressRegister 0x21
                     writeToAddressRegister 0x23
                     writeToAddressRegister 0x23
-                    isHighPtr <- gets $ highPtr . addressRegister
+                    isHighPtr <- uses addressRegister highPtr
                     a <- readData >> readData
                     void readStatus -- Reset latch in address register
                     writeToAddressRegister 0x23

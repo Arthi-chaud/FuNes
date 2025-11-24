@@ -83,9 +83,9 @@ tick n = MkBus $ \bus cont -> do
     (newLastSleepTime, newUnsleptCycles) <-
         cycleCallback bus (lastSleepTime bus) unsleptCycles_
     (isNewFrame, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
-        before <- gets nmiInterrupt
+        before <- use nmiInterrupt
         _ <- PPUM.tick (n * 3)
-        after <- gets nmiInterrupt
+        after <- use nmiInterrupt
         return (not before && after)
     ((), !apuSt, !interr) <- runAPU (apuState bus) (cpuInterrupt bus) $ APU.tick (odd (Nes.Bus.State.cycles bus)) n
     let bus' =
@@ -120,7 +120,7 @@ instance MemoryInterface () (Bus r) where
                 fmap DataBus . liftIO . readByte mirroredDownAddr =<< gets cpuVram
             | inRange ppuRegisters idx = do
                 let mirroredIdx = Addr . fromIntegral $ addrToInt (idx - fst ppuRegisters) `mod` 8
-                    onInvalidRead = DataBus <$> gets (ioBus . ppuState)
+                    onInvalidRead = DataBus <$> gets (_ioBus . ppuState)
                 case mirroredIdx of
                     0 ->
                         if idx == 0x2000
@@ -134,22 +134,22 @@ instance MemoryInterface () (Bus r) where
                     2 -> liftPPU $ do
                         st <- readStatus
                         -- https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS_-_Rendering_events_($2002_read)
-                        modify $ modifyStatusRegister $ clearFlag VBlankStarted
-                        oldIoBusState <- gets ioBus
+                        statusRegister %= clearFlag VBlankStarted
+                        oldIoBusState <- use ioBus
                         let newIoBus = (st .&. 0b11100000) .|. (oldIoBusState .&. 0b11111)
-                        modify $ setIOBus newIoBus
+                        ioBus .= newIoBus
                         return $ DataBus st
                     3 -> onInvalidRead
-                    4 -> do
-                        res <- liftPPU readOamData
-                        modify $ modifyPPUState $ setIOBus res
-                        return $ DataBus res
+                    4 -> fmap DataBus $ liftPPU $ do
+                        res <- readOamData
+                        ioBus .= res
+                        return res
                     5 -> onInvalidRead
                     6 -> onInvalidRead
-                    7 -> do
-                        res <- liftPPU readData
-                        modify $ modifyPPUState $ setIOBus res
-                        return $ DataBus res
+                    7 -> fmap DataBus $ liftPPU $ do
+                        res <- readData
+                        ioBus .= res
+                        return res
                     _ -> error "Cannot happen"
             | inRange prgRomRange idx = do
                 rom <- gets cartridge
@@ -189,7 +189,7 @@ instance MemoryInterface () (Bus r) where
                     liftIO . writeByte byte addr =<< gets cpuVram
             | inRange ppuRegisters idx = do
                 let mirroredIdx = Addr . fromIntegral $ addrToInt (idx - fst ppuRegisters) `mod` 8
-                modify $ modifyPPUState $ setIOBus byte
+                liftPPU $ ioBus .= byte
                 case mirroredIdx of
                     0 ->
                         if idx == 0x2000
@@ -199,9 +199,9 @@ instance MemoryInterface () (Bus r) where
                                     addr = idx .&. 0b0010000000000111
                                  in
                                     writeByte byte addr ()
-                    1 -> liftPPU $ setMaskRegister byte
+                    1 -> liftPPU $ maskRegister .= MkMR byte
                     2 -> return ()
-                    3 -> liftPPU $ setOamOffset byte
+                    3 -> liftPPU $ oamOffset .= byte
                     4 -> liftPPU $ writeOamData byte
                     5 -> liftPPU $ setScrollRegister byte
                     6 -> liftPPU $ writeToAddressRegister byte

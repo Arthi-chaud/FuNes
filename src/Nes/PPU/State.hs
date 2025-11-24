@@ -1,8 +1,9 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Nes.PPU.State (
     -- * State
     PPUState (..),
     newPPUState,
-    setIOBus,
 
     -- *  Address Register
     AddressRegister (highPtr),
@@ -12,12 +13,10 @@ module Nes.PPU.State (
     addressRegisterIncrement,
     addressRegisterUpdate,
     addressRegisterResetLatch,
-    modifyAddressRegister,
 
     -- * Control Register
     ControlRegister (..),
     ControlRegisterFlag (..),
-    modifyControlRegister,
     getBackgroundPatternAddr,
     getSpritePatternAddr,
     getNametableAddr,
@@ -25,24 +24,36 @@ module Nes.PPU.State (
     -- * Status Register
     StatusRegister (..),
     StatusRegisterFlag (..),
-    modifyStatusRegister,
 
     -- * Scroll Register
     ScrollRegister (..),
     newScrollRegister,
     scrollRegisterWrite,
     scrollRegisterResetLatch,
-    modifyScrollRegister,
 
     -- * Mask Register
     MaskRegister (..),
     MaskRegisterFlag (..),
-    modifyMaskRegister,
 
     -- * VRAM
     vramAddrIncrement,
+
+    -- * Lenses
+    Nes.PPU.State.mirroring,
+    controlRegister,
+    addressRegister,
+    statusRegister,
+    scrollRegister,
+    maskRegister,
+    internalBuffer,
+    oamOffset,
+    cycles,
+    scanline,
+    nmiInterrupt,
+    ioBus,
 ) where
 
+import Control.Lens (makeLenses)
 import Data.Bits
 import Data.Word
 import Nes.FlagRegister
@@ -50,57 +61,34 @@ import Nes.Memory (Addr (..), Byte (..), bytesToAddr)
 import Nes.Rom
 
 data PPUState = MkPPUState
-    { mirroring :: {-# UNPACK #-} !Mirroring
-    , controlRegister :: {-# UNPACK #-} !ControlRegister
-    , addressRegister :: {-# UNPACK #-} !AddressRegister
-    , statusRegister :: {-# UNPACK #-} !StatusRegister
-    , scrollRegister :: {-# UNPACK #-} !ScrollRegister
-    , maskRegister :: {-# UNPACK #-} !MaskRegister
-    , internalBuffer :: {-# UNPACK #-} !Byte
-    , oamOffset :: {-# UNPACK #-} !Byte
-    , cycles :: {-# UNPACK #-} !Int
-    , scanline :: {-# UNPACK #-} !Word16
-    , nmiInterrupt :: {-# UNPACK #-} !Bool
-    , ioBus :: {-# UNPACK #-} !Byte
+    { _mirroring :: {-# UNPACK #-} !Mirroring
+    , _controlRegister :: {-# UNPACK #-} !ControlRegister
+    , _addressRegister :: {-# UNPACK #-} !AddressRegister
+    , _statusRegister :: {-# UNPACK #-} !StatusRegister
+    , _scrollRegister :: {-# UNPACK #-} !ScrollRegister
+    , _maskRegister :: {-# UNPACK #-} !MaskRegister
+    , _internalBuffer :: {-# UNPACK #-} !Byte
+    , _oamOffset :: {-# UNPACK #-} !Byte
+    , _cycles :: {-# UNPACK #-} !Int
+    , _scanline :: {-# UNPACK #-} !Word16
+    , _nmiInterrupt :: {-# UNPACK #-} !Bool
+    , _ioBus :: {-# UNPACK #-} !Byte
     }
 
-{-# INLINE modifyControlRegister #-}
-modifyControlRegister :: (ControlRegister -> ControlRegister) -> PPUState -> PPUState
-modifyControlRegister f st = st{controlRegister = f $ controlRegister st}
-
-{-# INLINE modifyAddressRegister #-}
-modifyAddressRegister :: (AddressRegister -> AddressRegister) -> PPUState -> PPUState
-modifyAddressRegister f st = st{addressRegister = f $ addressRegister st}
-
-{-# INLINE modifyStatusRegister #-}
-modifyStatusRegister :: (StatusRegister -> StatusRegister) -> PPUState -> PPUState
-modifyStatusRegister f st = st{statusRegister = f $ statusRegister st}
-
-{-# INLINE modifyScrollRegister #-}
-modifyScrollRegister :: (ScrollRegister -> ScrollRegister) -> PPUState -> PPUState
-modifyScrollRegister f st = st{scrollRegister = f $ scrollRegister st}
-
-{-# INLINE modifyMaskRegister #-}
-modifyMaskRegister :: (MaskRegister -> MaskRegister) -> PPUState -> PPUState
-modifyMaskRegister f st = st{maskRegister = f $ maskRegister st}
-
 newPPUState :: Mirroring -> PPUState
-newPPUState mirroring =
-    let addressRegister = newAddressRegister
-        controlRegister = MkCR 0
-        statusRegister = MkSR 0
-        maskRegister = MkMR 0
-        scrollRegister = newScrollRegister
-        internalBuffer = 0
-        oamOffset = 0
-        cycles = 0
-        scanline = 0
-        nmiInterrupt = False
-        ioBus = 0
+newPPUState _mirroring =
+    let _addressRegister = newAddressRegister
+        _controlRegister = MkCR 0
+        _statusRegister = MkSR 0
+        _maskRegister = MkMR 0
+        _scrollRegister = newScrollRegister
+        _internalBuffer = 0
+        _oamOffset = 0
+        _cycles = 0
+        _scanline = 0
+        _nmiInterrupt = False
+        _ioBus = 0
      in MkPPUState{..}
-
-setIOBus :: Byte -> PPUState -> PPUState
-setIOBus b st = st{ioBus = b}
 
 data AddressRegister = AddressRegister
     { low :: {-# UNPACK #-} !Byte
@@ -280,3 +268,5 @@ instance FlagRegister MaskRegister where
     fromByte = MkMR
     toByte = unMR
     flagToBitOffset = fromEnum
+
+makeLenses ''PPUState
