@@ -15,25 +15,21 @@ write400C byte = do
     let haltLC = byte `testBit` 5
         constVol = byte `testBit` 4
         vol = byte .&. 0b1111
-    modify $
-        modifyNoise $
-            withLengthCounter
-                (\lc -> lc{isHalted = haltLC})
-                . withEnvelope
-                    (\e -> e{constantVolume = byteToInt vol, useConstantVolume = constVol, loopFlag = haltLC})
+    noise %= withEnvelope (\e -> e{constantVolume = byteToInt vol, useConstantVolume = constVol, loopFlag = haltLC})
+    noise %= withLengthCounter (\lc -> lc{isHalted = haltLC})
 
 {-# INLINE write400E #-}
 write400E :: Byte -> APU r ()
 write400E byte = do
     let modeFlag = byte `testBit` 7
         periodIndex = byteToInt $ byte .&. 0b1111
-    modify $ modifyNoise $ \t -> t{period = getPeriodValue periodIndex, useBit6ForFeedback = modeFlag}
+    noise %= \t -> t{period = getPeriodValue periodIndex, useBit6ForFeedback = modeFlag}
 
 {-# INLINE write400F #-}
 write400F :: Byte -> APU r ()
 write400F byte = do
     let newLCLoad = byteToInt $ byte `shiftR` 3
-    modify $
-        modifyNoise $
-            withLengthCounter (loadLengthCounter newLCLoad)
+    noise
+        %= ( withLengthCounter (loadLengthCounter newLCLoad)
                 . withEnvelope (\e -> e{startFlag = True})
+           )

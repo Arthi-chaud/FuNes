@@ -13,13 +13,11 @@ import Nes.Memory
 {-# INLINE write4017 #-}
 write4017 :: Byte -> APU r ()
 write4017 byte = do
-    c <- gets Nes.APU.State.cycle
+    c <- use Nes.APU.State.cycle
     let seqMode = sequenceModeFromBool $ byte `testBit` 7
         inhibit = byte `testBit` 6
         delay = if even c then 4 else 3
-    modify $
-        modifyFrameCounter $
-            \fc -> fc{sequenceMode = seqMode, inhibitInterrupt = inhibit, delayedWriteSideEffectCycle = Just delay}
+    frameCounter %= \fc' -> fc'{sequenceMode = seqMode, inhibitInterrupt = inhibit, delayedWriteSideEffectCycle = Just delay}
     when (seqMode == FiveStep) $ do
         runQuarterFrameEvent
         runHalfFrameEvent
