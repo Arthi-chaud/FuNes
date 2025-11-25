@@ -27,13 +27,13 @@ withStateAndMemorySetup program st memSetup post = do
     _ <- memSetup bus
     -- Not we do not read 0xfffc because it's out of the bus read
     (st'', ticks) <- runProgram' st bus stopAtBrk
-    _ <- post st'' (bus{cycles = ticks})
+    _ <- post st'' (bus{_cycles = ticks})
     return ()
   where
     stopAtBrk = MkCPU $ \st' bus cont -> do
-        b <- readByte (_pc st') (cpuVram bus)
+        b <- readByte (_pc st') (_cpuVram bus)
         if b == 0x00
-            then pure (st', cycles bus)
+            then pure (st', _cycles bus)
             else cont st' bus ()
 
 -- | Runs a program and returns the state of the CPU at the end of the execution
@@ -50,4 +50,4 @@ withMemorySetup program = withStateAndMemorySetup program newCPUState
 loadProgramToMemory :: [Word8] -> BusState -> IO ()
 loadProgramToMemory program bus = do
     forM_ (zip program [0 ..]) $
-        \(byte, idx) -> writeByte (Byte byte) (Addr idx) (cpuVram bus)
+        \(byte, idx) -> writeByte (Byte byte) (Addr idx) (_cpuVram bus)

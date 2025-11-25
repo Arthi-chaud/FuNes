@@ -439,4 +439,4 @@ gameCode =
 loadProgramToMemory :: [Word8] -> BusState -> IO ()
 loadProgramToMemory program bus = do
     forM_ (zip program [(unAddr programOffset) ..]) $
-        \(byte, idx) -> writeByte (Byte byte) (Addr idx) (cpuVram bus)
+        \(byte, idx) -> writeByte (Byte byte) (Addr idx) (_cpuVram bus)

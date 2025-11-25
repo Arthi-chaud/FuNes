@@ -86,9 +86,9 @@ instance MonadState BusState (CPU r) where
 
 instance MonadState InterruptStatus (CPU r) where
     {-# INLINE set #-}
-    set is = MkCPU $ \st bus cont -> cont st bus{cpuInterrupt = is} ()
+    set is = MkCPU $ \st bus cont -> cont st bus{_cpuInterrupt = is} ()
     {-# INLINE get #-}
-    get = MkCPU $ \st bus cont -> cont st bus (cpuInterrupt bus)
+    get = MkCPU $ \st bus cont -> cont st bus (_cpuInterrupt bus)
 
 liftBus :: Bus (a, BusState) a -> CPU r a
 liftBus f = MkCPU $ \st bus cont -> do

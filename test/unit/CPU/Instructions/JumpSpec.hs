@@ -10,7 +10,7 @@ import Test.Hspec
 spec :: Spec
 spec = describe "Jump" $ do
     it "Absolute" $ do
-        let setup bus = writeAddr 0x00e8 0x05 (cpuVram bus)
+        let setup bus = writeAddr 0x00e8 0x05 (_cpuVram bus)
         withStateAndMemorySetup [0x4c, 0x05, 0x00, 0x00] newCPUState setup $
             \cpu _ -> _registerX cpu `shouldBe` 1
 

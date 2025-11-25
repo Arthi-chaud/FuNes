@@ -4,7 +4,7 @@ import Control.Monad
 import Nes.APU.State (APUState (dmc), modifyDMC')
 import Nes.APU.State.DMC (DMC (sampleBufferAddr), loadSampleBuffer)
 import Nes.Bus.Monad (liftAPU)
-import Nes.Bus.State (BusState (apuState, cpuInterrupt))
+import Nes.Bus.State
 import Nes.CPU.Monad
 import Nes.CPU.State
 import Nes.FlagRegister
@@ -34,7 +34,7 @@ signalVectorAddr = \case
 handleInterrupt :: CPU r ()
 handleInterrupt = do
     maskInterrupt <- uses status $ getFlag InterruptDisable
-    pendingSignal <- signalFromInterrupt <$> gets cpuInterrupt
+    pendingSignal <- signalFromInterrupt <$> use cpuInterrupt
     case pendingSignal of
         Nothing -> pure ()
         Just signal
@@ -46,7 +46,7 @@ handleInterrupt = do
                 (pc .=) =<< readAddr (signalVectorAddr signal) ()
     -- TODO Ugly, shouldn't be here
     when (pendingSignal == Just (IRQ DMC)) $ liftBus $ do
-        sampleByteAddr <- gets $ sampleBufferAddr . dmc . apuState
+        sampleByteAddr <- sampleBufferAddr . dmc <$> use apuState
         sample <- Nes.Memory.readByte sampleByteAddr ()
         liftAPU $ modify $ uncurry (modifyDMC' $ loadSampleBuffer sample)
     -- Cleanup state
