@@ -1,5 +1,8 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Nes.APU.BusInterface.Status (write4015, read4015) where
 
+import Control.Lens (Lens')
 import Control.Monad
 import Data.Bits
 import Nes.APU.Monad
@@ -20,33 +23,31 @@ write4015 byte = do
         enableTriangleLc = byte `testBit` 2
         enableNoiseLc = byte `testBit` 3
         enableDmc = byte `testBit` 4
-    toggleLengthCounter enablePulse1Lc modifyPulse1
-    toggleLengthCounter enablePulse2Lc modifyPulse2
-    toggleLengthCounter enableTriangleLc modifyTriangle
-    toggleLengthCounter enableNoiseLc modifyNoise
-    modify $ modifyDMC $ \t ->
+    toggleLengthCounter enablePulse1Lc pulse1
+    toggleLengthCounter enablePulse2Lc pulse2
+    toggleLengthCounter enableTriangleLc triangle
+    toggleLengthCounter enableNoiseLc noise
+    dmc %= \t ->
         if enableDmc
             -- TODO If there are bits remaining in the 1-byte sample buffer, these will finish playing before the next sample is fetched.
             then if sampleBytesRemaining t == 0 then restartSample t else t
             else t{sampleBytesRemaining = 0}
 
 {-# INLINE toggleLengthCounter #-}
-toggleLengthCounter :: (HasLengthCounter a) => Bool -> ((a -> a) -> APUState -> APUState) -> APU r ()
-toggleLengthCounter enable f =
-    modify $
-        f $
-            withLengthCounter $
-                if enable then enableLengthCounter else disableLengthCounter . clearAndHaltLengthCounter
+toggleLengthCounter :: (HasLengthCounter a) => Bool -> Lens' APUState a -> APU r ()
+toggleLengthCounter enable l =
+    l
+        %= withLengthCounter (if enable then enableLengthCounter else disableLengthCounter . clearAndHaltLengthCounter)
 
 {-# INLINE read4015 #-}
 read4015 :: APU r Byte
 read4015 = do
-    noiseBit <- gets $ lengthCounterBit . noise
-    triangleBit <- gets $ lengthCounterBit . triangle
-    pulse1Bit <- gets $ lengthCounterBit . pulse1
-    pulse2Bit <- gets $ lengthCounterBit . pulse2
-    dmcBit <- gets $ \st -> sampleBytesRemaining (dmc st) > 0
-    frameInterruptBit <- gets $ frameInterruptFlag . frameCounter
+    noiseBit <- uses noise lengthCounterBit
+    triangleBit <- uses triangle lengthCounterBit
+    pulse1Bit <- uses pulse1 lengthCounterBit
+    pulse2Bit <- uses pulse2 lengthCounterBit
+    dmcBit <- uses dmc $ \d -> sampleBytesRemaining d > 0
+    frameInterruptBit <- uses frameCounter frameInterruptFlag
     dmcInterruptBit <- gets $ (== Just DMC) . irq
     -- TODO Clearing flag should be done on every GET cycle
     -- https://github.com/100thCoin/AccuracyCoin/blob/a7bf0cfaee7dee9e7bfbd0e30435b85cb539139e/AccuracyCoin.asm#L9003

@@ -1,18 +1,25 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Nes.APU.State (
     -- * Definition
     APUState (..),
     newAPUState,
 
-    -- * Setters
-    modifyFrameCounter,
-    modifyPulse1,
-    modifyPulse2,
-    modifyTriangle,
-    modifyNoise,
-    modifyDMC,
-    modifyDMC',
+    -- * Lens
+    frameCounter,
+    pulse1,
+    pulse2,
+    triangle,
+    noise,
+    dmc,
+    cycle,
+    filterThread,
+    samplePeriod,
+    sampleTimer,
+    pushSampleCallback,
 ) where
 
+import Control.Lens (makeLenses)
 import Nes.APU.State.DMC
 import Nes.APU.State.Filter.Constants (defaultOutputRate)
 import Nes.APU.State.Filter.Thread (FilterThread)
@@ -20,63 +27,36 @@ import Nes.APU.State.FrameCounter
 import Nes.APU.State.Noise
 import Nes.APU.State.Pulse
 import Nes.APU.State.Triangle
-import Nes.Interrupt (InterruptStatus)
 import Prelude hiding (cycle)
 
 data APUState = MkAPUState
-    { frameCounter :: !FrameCounter
-    , pulse1 :: !Pulse
-    , pulse2 :: !Pulse
-    , triangle :: !Triangle
-    , noise :: !Noise
-    , dmc :: !DMC
-    , cycle :: {-# UNPACK #-} !Int
+    { _frameCounter :: !FrameCounter
+    , _pulse1 :: !Pulse
+    , _pulse2 :: !Pulse
+    , _triangle :: !Triangle
+    , _noise :: !Noise
+    , _dmc :: !DMC
+    , _cycle :: {-# UNPACK #-} !Int
     -- ^ Number of CPU cycles since the start
-    , filterThread :: !FilterThread
-    , sampleTimer :: {-# UNPACK #-} !Float
+    , _filterThread :: !FilterThread
+    , _sampleTimer :: {-# UNPACK #-} !Float
     -- ^ The number of CPU cycles since the last call to 'pushSampleCallback'
-    , samplePeriod :: {-# UNPACK #-} !Float
+    , _samplePeriod :: {-# UNPACK #-} !Float
     -- ^ The number of CPU cycles between each call to 'pushSampleCallback'
-    , pushSampleCallback :: Float -> IO ()
+    , _pushSampleCallback :: Float -> IO ()
     }
 
 newAPUState :: (Float -> IO ()) -> FilterThread -> APUState
-newAPUState pushSampleCallback filterThread = MkAPUState{..}
+newAPUState _pushSampleCallback _filterThread = MkAPUState{..}
   where
-    frameCounter = newFrameCounter
-    cycle = 0
-    pulse1 = newPulse True
-    pulse2 = newPulse False
-    triangle = newTriangle
-    noise = newNoise
-    dmc = newDMC
-    samplePeriod = (21477272 / 12) / defaultOutputRate
-    sampleTimer = samplePeriod
+    _frameCounter = newFrameCounter
+    _cycle = 0
+    _pulse1 = newPulse True
+    _pulse2 = newPulse False
+    _triangle = newTriangle
+    _noise = newNoise
+    _dmc = newDMC
+    _samplePeriod = (21477272 / 12) / defaultOutputRate
+    _sampleTimer = _samplePeriod
 
-{-# INLINE modifyPulse1 #-}
-modifyPulse1 :: (Pulse -> Pulse) -> APUState -> APUState
-modifyPulse1 f st = st{pulse1 = f (pulse1 st)}
-
-{-# INLINE modifyPulse2 #-}
-modifyPulse2 :: (Pulse -> Pulse) -> APUState -> APUState
-modifyPulse2 f st = st{pulse2 = f (pulse2 st)}
-
-{-# INLINE modifyTriangle #-}
-modifyTriangle :: (Triangle -> Triangle) -> APUState -> APUState
-modifyTriangle f st = st{triangle = f (triangle st)}
-
-{-# INLINE modifyNoise #-}
-modifyNoise :: (Noise -> Noise) -> APUState -> APUState
-modifyNoise f st = st{noise = f (noise st)}
-
-{-# INLINE modifyDMC #-}
-modifyDMC :: (DMC -> DMC) -> APUState -> APUState
-modifyDMC f st = let dmc' = f $ dmc st in st{dmc = dmc'}
-
-{-# INLINE modifyDMC' #-}
-modifyDMC' :: (DMC -> InterruptStatus -> (DMC, InterruptStatus)) -> APUState -> InterruptStatus -> (APUState, InterruptStatus)
-modifyDMC' f st s = let (dmc', s') = f (dmc st) s in (st{dmc = dmc'}, s')
-
-{-# INLINE modifyFrameCounter #-}
-modifyFrameCounter :: (FrameCounter -> FrameCounter) -> APUState -> APUState
-modifyFrameCounter f st = st{frameCounter = f (frameCounter st)}
+makeLenses ''APUState

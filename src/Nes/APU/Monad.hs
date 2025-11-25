@@ -3,10 +3,12 @@
 module Nes.APU.Monad (
     APU (..),
     runAPU,
+    modifyDMCAndInterrupt,
 ) where
 
 import Control.Monad.IO.Class
 import Nes.APU.State
+import Nes.APU.State.DMC
 import Nes.Internal.MonadState
 import Nes.Interrupt
 
@@ -52,8 +54,11 @@ instance MonadState InterruptStatus (APU r) where
     {-# INLINE set #-}
     set interr' = MkAPU $ \st _ cont -> cont st interr' ()
 
-instance MonadState (APUState, InterruptStatus) (APU r) where
-    {-# INLINE get #-}
-    get = MkAPU $ \st interr cont -> cont st interr (st, interr)
-    {-# INLINE set #-}
-    set (st, interr) = MkAPU $ \_ _ cont -> cont st interr ()
+{-# INLINE modifyDMCAndInterrupt #-}
+modifyDMCAndInterrupt :: (DMC -> InterruptStatus -> (DMC, InterruptStatus)) -> APU r ()
+modifyDMCAndInterrupt f = do
+    dmc' <- use dmc
+    i <- get
+    let (dmc'', i') = f dmc' i
+    dmc .= dmc''
+    set i'

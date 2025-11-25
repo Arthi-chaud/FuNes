@@ -10,11 +10,11 @@ import Prelude hiding (cycle)
 getMixerOutput :: APUState -> Float
 getMixerOutput MkAPUState{..} =
     let
-        !pulse1Out = getPulseOutput pulse1
-        !pulse2Out = getPulseOutput pulse2
-        !triangleOut = getTriangleOutput triangle
-        !noiseOut = getNoiseOutput noise
-        !dmcOut = getDMCOutput dmc
+        !pulse1Out = getPulseOutput _pulse1
+        !pulse2Out = getPulseOutput _pulse2
+        !triangleOut = getTriangleOutput _triangle
+        !noiseOut = getNoiseOutput _noise
+        !dmcOut = getDMCOutput _dmc
         !pulseOut = pulseTable (pulse1Out + pulse2Out)
         !tndOut = tndTable (3 * triangleOut + 2 * noiseOut + dmcOut)
         !mixerOutput = pulseOut + tndOut
