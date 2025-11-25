@@ -1,7 +1,7 @@
 module CPU.Instructions.UnofficialSpec (spec) where
 
 import Internal
-import Nes.Bus.State (BusState (cpuVram))
+import Nes.Bus.State (BusState (_cpuVram))
 import Nes.CPU.State
 import Nes.Memory
 import Test.Hspec
@@ -22,7 +22,7 @@ spec = do
                             }
                     setup _ = return ()
                 withStateAndMemorySetup program st setup $ \_ bus ->
-                    readByte 0x700 (cpuVram bus) `shouldReturn` 0x1f
+                    readByte 0x700 (_cpuVram bus) `shouldReturn` 0x1f
 
             it "Does not cross page" $ do
                 let program = [0x9f, 0x80, 0x1e]
@@ -34,7 +34,7 @@ spec = do
                             }
                     setup _ = return ()
                 withStateAndMemorySetup program st setup $ \_ bus ->
-                    readByte 0x681 (cpuVram bus) `shouldReturn` 0x1f
+                    readByte 0x681 (_cpuVram bus) `shouldReturn` 0x1f
 
         -- Test E
         describe "Indirect Y" $ do
@@ -46,9 +46,9 @@ spec = do
                             , _registerX = 0xff
                             , _registerY = 0x80
                             }
-                    setup = writeAddr 0x1e80 0x50 . cpuVram
+                    setup = writeAddr 0x1e80 0x50 . _cpuVram
                 withStateAndMemorySetup program st setup $ \_ bus ->
-                    readByte 0x700 (cpuVram bus) `shouldReturn` 0x1f
+                    readByte 0x700 (_cpuVram bus) `shouldReturn` 0x1f
 
     describe "SHX" $ do
         -- Test B
@@ -62,7 +62,7 @@ spec = do
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
-                readByte 0x500 (cpuVram bus) `shouldReturn` 0x5
+                readByte 0x500 (_cpuVram bus) `shouldReturn` 0x5
 
         it "Does not cross page" $ do
             let program = [0x9e, 0x80, 0x1e]
@@ -74,7 +74,7 @@ spec = do
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
-                readByte 0x681 (cpuVram bus) `shouldReturn` 0x5
+                readByte 0x681 (_cpuVram bus) `shouldReturn` 0x5
 
     describe "SHY" $ do
         -- Test C
@@ -88,7 +88,7 @@ spec = do
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
-                readByte 0x500 (cpuVram bus) `shouldReturn` 0x5
+                readByte 0x500 (_cpuVram bus) `shouldReturn` 0x5
 
         it "Does not cross page" $ do
             let program = [0x9c, 0x80, 0x1e]
@@ -100,7 +100,7 @@ spec = do
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
-                readByte 0x681 (cpuVram bus) `shouldReturn` 0x5
+                readByte 0x681 (_cpuVram bus) `shouldReturn` 0x5
 
     describe "SHS" $ do
         -- Test D
@@ -114,7 +114,7 @@ spec = do
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
-                readByte 0x700 (cpuVram bus) `shouldReturn` 0x1f
+                readByte 0x700 (_cpuVram bus) `shouldReturn` 0x1f
 
         it "Does not cross page" $ do
             let program = [0x9b, 0x80, 0x1e, 0xba]
@@ -126,4 +126,4 @@ spec = do
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
-                readByte 0x681 (cpuVram bus) `shouldReturn` 0x1f
+                readByte 0x681 (_cpuVram bus) `shouldReturn` 0x1f

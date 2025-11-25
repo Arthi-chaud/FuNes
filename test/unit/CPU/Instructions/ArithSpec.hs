@@ -20,7 +20,7 @@ spec = do
                 getFlag Overflow (_status st') `shouldBe` False
         it "Zero Page, set Negative" $ do
             let st = newCPUState{_registerA = 10}
-                setup bus = writeByte 11 0x10 (cpuVram bus)
+                setup bus = writeByte 11 0x10 (_cpuVram bus)
             withStateAndMemorySetup [0xe5, 0x10, 0x00] st setup $ \st' _ -> do
                 _registerA st' `shouldBe` 10 - 11 - 1
                 getFlag Negative (_status st') `shouldBe` True
@@ -39,9 +39,9 @@ spec = do
                 getFlag Overflow (_status st') `shouldBe` True
     describe "Decrement Register" $ do
         it "In memory (w/ Neg Flag)" $ do
-            let setup bus = writeByte 0x00 0x05 (cpuVram bus)
+            let setup bus = writeByte 0x00 0x05 (_cpuVram bus)
             withStateAndMemorySetup [0xc6, 0x05, 0x00] newCPUState setup $ \cpu bus -> do
-                readByte 0x05 (cpuVram bus) `shouldReturn` 0xff
+                readByte 0x05 (_cpuVram bus) `shouldReturn` 0xff
                 getFlag Negative (_status cpu) `shouldBe` True
         it "Register X (w/ Zero flag)" $ do
             let st = newCPUState{_registerX = 1}
@@ -59,9 +59,9 @@ spec = do
     describe "Increment Register" $ do
         describe "In memory" $ do
             it "Base (Overflow)" $ do
-                let setup bus = writeByte 0xff 0x05 (cpuVram bus)
+                let setup bus = writeByte 0xff 0x05 (_cpuVram bus)
                 withStateAndMemorySetup [0xe6, 0x05, 0x00] newCPUState setup $ \cpu bus -> do
-                    readByte 0x05 (cpuVram bus) `shouldReturn` 0x00
+                    readByte 0x05 (_cpuVram bus) `shouldReturn` 0x00
                     getFlag Zero (_status cpu) `shouldBe` True
         describe "Register X" $ do
             it "Base" $ do

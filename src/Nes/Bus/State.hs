@@ -1,9 +1,27 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Nes.Bus.State (
     BusState (..),
     newBusState,
-    modifyPPUState,
+
+    -- * Lenses
+    cpuVram,
+    cartridge,
+    controller,
+    cycles,
+    unsleptCycles,
+    cycleCallback,
+    lastSleepTime,
+    ppuState,
+    ppuPointers,
+    onNewFrame,
+    dataBus,
+    apuState,
+    pollControls,
+    cpuInterrupt,
 ) where
 
+import Control.Lens (makeLenses)
 import Nes.APU.State (APUState, newAPUState)
 import Nes.APU.State.Filter.Constants (Sample)
 import Nes.APU.State.Filter.Thread (FilterThread)
@@ -19,29 +37,29 @@ import Nes.Rom (Rom (..))
 
 -- | Interface for the CPU that allows it to read/write to RAM
 data BusState = BusState
-    { cpuVram :: {-# UNPACK #-} !MemoryPointer
+    { _cpuVram :: {-# UNPACK #-} !MemoryPointer
     -- ^ Pointer to writeable memory
-    , cartridge :: !Rom
+    , _cartridge :: !Rom
     -- ^ Read-only memory, see 'Rom'
-    , controller :: !ControllerState
+    , _controller :: !ControllerState
     -- ^ Aka Joypad
-    , cycles :: {-# UNPACK #-} !Integer
-    , unsleptCycles :: {-# UNPACK #-} !Int
+    , _cycles :: {-# UNPACK #-} !Integer
+    , _unsleptCycles :: {-# UNPACK #-} !Int
     -- ^ The number of cycles that we need to call 'threadDelay' for
-    , cycleCallback :: Double -> Int -> IO (Double, Int)
+    , _cycleCallback :: Double -> Int -> IO (Double, Int)
     -- ^ The function to call 'threadDelay' according to 'unsleptCycles' (> 'unsleptCyclesThreshold')
     -- The return value is the new number of unslept cycles
-    , lastSleepTime :: {-# UNPACK #-} !Double
-    , ppuState :: !PPUState
+    , _lastSleepTime :: {-# UNPACK #-} !Double
+    , _ppuState :: !PPUState
     -- ^ The state of the PPU
-    , ppuPointers :: !PPUPointers
+    , _ppuPointers :: !PPUPointers
     -- ^ Memory dedicated to PPU
-    , onNewFrame :: BusState -> IO ()
-    , pollControls :: ControllerState -> IO ControllerState
-    , dataBus :: {-# UNPACK #-} !Byte
+    , _onNewFrame :: BusState -> IO ()
+    , _pollControls :: ControllerState -> IO ControllerState
+    , _dataBus :: {-# UNPACK #-} !Byte
     -- ^ Last read/written byte
-    , apuState :: !APUState
-    , cpuInterrupt :: {-# UNPACK #-} !InterruptStatus
+    , _apuState :: !APUState
+    , _cpuInterrupt :: {-# UNPACK #-} !InterruptStatus
     }
 
 newBusState ::
@@ -56,18 +74,17 @@ newBusState ::
     (Double -> Int -> IO (Double, Int)) ->
     FilterThread ->
     IO BusState
-newBusState cartridge onNewFrame pollControls pushSample cycleCallback filterThread = do
-    cpuVram <- callocForeignPtr vramSize
-    ppuPointers <- newPPUPointers
-    let controller = newControllerState
-        ppuState = newPPUState (mirroring cartridge)
-        cycles = 0
-        unsleptCycles = 0
-        lastSleepTime = 0
-        dataBus = 0
-        apuState = newAPUState pushSample filterThread
-        cpuInterrupt = MkIS Nothing False
+newBusState _cartridge _onNewFrame _pollControls pushSample _cycleCallback filterThread = do
+    _cpuVram <- callocForeignPtr vramSize
+    _ppuPointers <- newPPUPointers
+    let _controller = newControllerState
+        _ppuState = newPPUState (mirroring _cartridge)
+        _cycles = 0
+        _unsleptCycles = 0
+        _lastSleepTime = 0
+        _dataBus = 0
+        _apuState = newAPUState pushSample filterThread
+        _cpuInterrupt = MkIS Nothing False
     return $ BusState{..}
 
-modifyPPUState :: (PPUState -> PPUState) -> BusState -> BusState
-modifyPPUState f bus = bus{ppuState = f $ ppuState bus}
+makeLenses ''BusState

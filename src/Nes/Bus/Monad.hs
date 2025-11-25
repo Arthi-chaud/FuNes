@@ -60,48 +60,48 @@ runBus bus f = unBus f bus (\bus' a -> return (a, bus'))
 {-# INLINE liftPPU #-}
 liftPPU :: PPU (a, PPUState) a -> Bus r a
 liftPPU f = MkBus $ \bus cont -> do
-    (res, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) f
-    cont (bus{ppuState = ppuSt}) res
+    (res, ppuSt) <- runPPU (_ppuState bus) (_ppuPointers bus) (_cartridge bus) f
+    cont (bus{_ppuState = ppuSt}) res
 
 {-# INLINE liftAPU #-}
 liftAPU :: APU (a, APUState, InterruptStatus) a -> Bus r a
 liftAPU f = MkBus $ \bus cont -> do
-    (!res, !apuSt, !interr) <- runAPU (apuState bus) (cpuInterrupt bus) f
-    cont (bus{apuState = apuSt, cpuInterrupt = interr}) res
+    (!res, !apuSt', !cpuInterr') <- runAPU (_apuState bus) (_cpuInterrupt bus) f
+    cont (bus{_apuState = apuSt', _cpuInterrupt = cpuInterr'}) res
 
 {-# INLINE liftController #-}
 liftController :: Controller (a, ControllerState) a -> Bus r a
 liftController f = MkBus $ \bus cont ->
     let
-        (res, controller') = runController f (controller bus)
+        (res, controller') = runController f (_controller bus)
      in
-        cont (bus{controller = controller'}) res
+        cont (bus{_controller = controller'}) res
 
 tick :: Int -> Bus r ()
 tick n = MkBus $ \bus cont -> do
-    let unsleptCycles_ = n + unsleptCycles bus
+    let unsleptCycles_ = n + _unsleptCycles bus
     (newLastSleepTime, newUnsleptCycles) <-
-        cycleCallback bus (lastSleepTime bus) unsleptCycles_
-    (isNewFrame, ppuSt) <- runPPU (ppuState bus) (ppuPointers bus) (cartridge bus) $ do
+        _cycleCallback bus (_lastSleepTime bus) unsleptCycles_
+    (isNewFrame, ppuSt) <- runPPU (_ppuState bus) (_ppuPointers bus) (_cartridge bus) $ do
         before <- use nmiInterrupt
         _ <- PPUM.tick (n * 3)
         after <- use nmiInterrupt
         return (not before && after)
-    ((), !apuSt, !interr) <- runAPU (apuState bus) (cpuInterrupt bus) $ APU.tick (odd (Nes.Bus.State.cycles bus)) n
+    ((), !apuSt, !interr) <- runAPU (_apuState bus) (_cpuInterrupt bus) $ APU.tick (odd (Nes.Bus.State._cycles bus)) n
     let bus' =
             bus
-                { unsleptCycles = newUnsleptCycles
-                , ppuState = ppuSt
-                , apuState = apuSt
-                , cycles = fromIntegral n + cycles bus
-                , lastSleepTime = newLastSleepTime
-                , cpuInterrupt = interr
+                { _unsleptCycles = newUnsleptCycles
+                , _ppuState = ppuSt
+                , _apuState = apuSt
+                , _cycles = fromIntegral n + Nes.Bus.State._cycles bus
+                , _lastSleepTime = newLastSleepTime
+                , _cpuInterrupt = interr
                 }
     if isNewFrame
         then do
-            onNewFrame bus' bus'
-            controller' <- liftIO (pollControls bus' $ controller bus')
-            cont bus'{controller = controller'} ()
+            _onNewFrame bus' bus'
+            controller' <- liftIO (_pollControls bus' $ _controller bus')
+            cont bus'{_controller = controller'} ()
         else
             cont bus' ()
 
@@ -110,17 +110,17 @@ data BusReadOutput = OpenBus | DataBus Byte | Internal Byte
 instance MemoryInterface () (Bus r) where
     readByte idx () =
         go >>= \case
-            DataBus byte -> modify (\b -> b{dataBus = byte}) $> byte
-            OpenBus -> gets dataBus
+            DataBus byte -> (dataBus .= byte) $> byte
+            OpenBus -> use dataBus
             Internal byte -> return byte
       where
         go
             | inRange ramRange idx = do
                 let mirroredDownAddr = idx .&. 0b11111111111 -- 11 bits
-                fmap DataBus . liftIO . readByte mirroredDownAddr =<< gets cpuVram
+                fmap DataBus . liftIO . readByte mirroredDownAddr =<< use cpuVram
             | inRange ppuRegisters idx = do
                 let mirroredIdx = Addr . fromIntegral $ addrToInt (idx - fst ppuRegisters) `mod` 8
-                    onInvalidRead = DataBus <$> gets (_ioBus . ppuState)
+                    onInvalidRead = DataBus <$> uses ppuState _ioBus
                 case mirroredIdx of
                     0 ->
                         if idx == 0x2000
@@ -152,16 +152,16 @@ instance MemoryInterface () (Bus r) where
                         return res
                     _ -> error "Cannot happen"
             | inRange prgRomRange idx = do
-                rom <- gets cartridge
+                rom <- use cartridge
                 DataBus <$> readPrgRomAddr (idx - fst prgRomRange) rom readByte
             | idx == 0x4014 = return $ DataBus 0
             | idx == 0x4016 = do
                 res <- liftController readButtonStatus
-                oldDataBusState <- gets dataBus
+                oldDataBusState <- use dataBus
                 let newDataBus = (oldDataBusState .&. 0b11100000) .|. (res .&. 0b11111)
                 return $ DataBus newDataBus
             | idx == 0x4017 = do
-                oldDataBusState <- gets dataBus
+                oldDataBusState <- use dataBus
                 return $ DataBus $ oldDataBusState .&. 0b11100000
             | (0x4000, 0x4017) `inRange` idx = do
                 res <- liftAPU $ readFromAPU idx
@@ -171,14 +171,14 @@ instance MemoryInterface () (Bus r) where
                         b' <- do
                             if idx == 0x4015
                                 then do
-                                    bit5 <- gets $ (`testBit` 5) . dataBus
+                                    bit5 <- uses dataBus (`testBit` 5)
                                     return $ if bit5 then b `setBit` 5 else b `clearBit` 5
                                 else return b
                         return $ Internal b'
             | otherwise = return OpenBus
 
     writeByte byte idx () = guardWriteBound idx $ do
-        modify $ \bus -> bus{dataBus = byte}
+        dataBus .= byte
         go
       where
         go
@@ -186,7 +186,7 @@ instance MemoryInterface () (Bus r) where
                 let
                     addr = idx .&. 0b11111111111
                  in
-                    liftIO . writeByte byte addr =<< gets cpuVram
+                    liftIO . writeByte byte addr =<< use cpuVram
             | inRange ppuRegisters idx = do
                 let mirroredIdx = Addr . fromIntegral $ addrToInt (idx - fst ppuRegisters) `mod` 8
                 liftPPU $ ioBus .= byte
@@ -213,7 +213,7 @@ instance MemoryInterface () (Bus r) where
                 bytes <- forM [0 .. oamDataSize - 1] $ \i -> do
                     readByte (high + Addr (fromIntegral i)) ()
                 liftPPU $ writeListToOam bytes
-                cycles_ <- gets Nes.Bus.State.cycles
+                cycles_ <- use Nes.Bus.State.cycles
                 -- TODO 1) ticks should be done 256 * 2 (as it's a writting operarion) times
                 -- TODO 2) Not sure about about the tick count
                 tick (513 + fromEnum (odd cycles_))

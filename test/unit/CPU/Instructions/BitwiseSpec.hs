@@ -12,7 +12,7 @@ spec = do
     describe "Bit Test" $ do
         it "sets carry" $ do
             let program = [0x24, 0x06, 0x00]
-                setup bus = writeByte 0b0001000 0x06 (cpuVram bus)
+                setup bus = writeByte 0b0001000 0x06 (_cpuVram bus)
                 st = newCPUState{_registerA = 0b0010000}
             withStateAndMemorySetup program st setup $ \st' _ -> do
                 getFlag Zero (_status st') `shouldBe` True
@@ -20,7 +20,7 @@ spec = do
                 getFlag Negative (_status st') `shouldBe` False
         it "sets overflow" $ do
             let program = [0x24, 0x06, 0x00]
-                setup bus = writeByte 0b01100000 0x06 (cpuVram bus)
+                setup bus = writeByte 0b01100000 0x06 (_cpuVram bus)
                 st = newCPUState{_registerA = 0b00100000}
             withStateAndMemorySetup program st setup $ \st' _ -> do
                 getFlag Zero (_status st') `shouldBe` False

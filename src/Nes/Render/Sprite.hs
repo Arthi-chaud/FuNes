@@ -19,9 +19,9 @@ import Nes.Rom
 -- It  expects the background to be already drawn on the pixel buffer
 renderSprites :: BusState -> Render BGDrawn BGAndSpritesDrawn r ()
 renderSprites bus = Render.do
-    let oam = oamData $ ppuPointers bus
-        chr = chrRom . cartridge $ bus
-        bank = addrToInt . getSpritePatternAddr . _controlRegister . ppuState $ bus
+    let oam = oamData $ _ppuPointers bus
+        chr = chrRom . _cartridge $ bus
+        bank = addrToInt . getSpritePatternAddr . _controlRegister . _ppuState $ bus
     for_ (reverse [0, 4 .. oamDataSize - 1]) $ \i -> Render.do
         tileIdx <- liftIO $ byteToInt <$> readByte (fromIntegral i + 1) oam
         tileCol <- liftIO $ byteToInt <$> readByte (fromIntegral i + 3) oam
@@ -34,7 +34,7 @@ renderSprites bus = Render.do
             tile =
                 BS.take 16 $
                     BS.drop (bank + tileIdx * 16) chr
-        (_, c1, c2, c3) <- liftIO $ getSpritePalette (ppuPointers bus) paletteIdx
+        (_, c1, c2, c3) <- liftIO $ getSpritePalette (_ppuPointers bus) paletteIdx
         for_ [0 .. 7] $ \y -> Render.do
             let upper = BS.index tile y
                 lower = BS.index tile (y + 8)

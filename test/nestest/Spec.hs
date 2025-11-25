@@ -42,7 +42,7 @@ spec = it "Trace should match logfile" $ do
     traceRef <- newIORef (T [] 0)
     let st = newCPUState{_pc = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
-    _ <- try @IOException $ runProgram' st (bus{cycles = 7}) (trace traceRef)
+    _ <- try @IOException $ runProgram' st (bus{_cycles = 7}) (trace traceRef)
     actualTrace <- fmap fixStackValue . beforeAPUAccess . toRawTrace <$> readIORef traceRef
     -- BS.writeFile "actual.log" $ BSC.unlines actualTrace
     length actualTrace `shouldBe` length expectedTrace
@@ -70,11 +70,11 @@ trace traceRef = do
 
 getTrace :: CPU r String
 getTrace = do
-    pc <- getPCTrace
+    pc' <- getPCTrace
     opcode <- getOpCodeTrace
     st <- getCPUStateTrace
     cycl <- getCycleTrace
-    return $ unwords [pc, opcode, st, cycl]
+    return $ unwords [pc', opcode, st, cycl]
 
 getPCTrace :: CPU r String
 getPCTrace = printf "%04X " . unAddr <$> use pc
@@ -156,7 +156,7 @@ getOpCodeAsmArg opcode ptr addressing = do
             return (unAddr addr, unByte byte)
 
 getCycleTrace :: CPU r String
-getCycleTrace = printf "CYC:%d" <$> unsafeLiftBus (gets cycles)
+getCycleTrace = printf "CYC:%d" <$> unsafeLiftBus (use cycles)
 
 getCPUStateTrace :: CPU r String
 getCPUStateTrace = gets $ \st ->
@@ -201,4 +201,4 @@ fixStackValue bs =
 
 withoutTick :: CPU r a -> CPU r a
 withoutTick (MkCPU f) = MkCPU $ \st bus cont -> do
-    f st bus{cycleCallback = curry pure} $ \st' _ -> cont st' bus
+    f st bus{_cycleCallback = curry pure} $ \st' _ -> cont st' bus

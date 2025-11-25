@@ -22,11 +22,11 @@ renderBackground :: BusState -> Render DirtyFrame BGDrawn r ()
 renderBackground bus = Render.do
     let (scrollX, scrollY) =
             let
-                scroll = (_scrollRegister $ ppuState bus)
+                scroll = (_scrollRegister $ _ppuState bus)
              in
                 (byteToInt $ Scroll.x scroll, byteToInt $ Scroll.y scroll)
-        ppuVram = vram $ ppuPointers bus
-    let (nt1, nt2) = case (_mirroring $ ppuState bus, getNametableAddr . _controlRegister $ ppuState bus) of
+        ppuVram = vram $ _ppuPointers bus
+    let (nt1, nt2) = case (_mirroring $ _ppuState bus, getNametableAddr . _controlRegister $ _ppuState bus) of
             (Vertical, 0x2000) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
             (Vertical, 0x2800) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
             (Horizontal, 0x2000) -> (bsFromSlice ppuVram (0, 0x400), bsFromSlice ppuVram (0x400, 0x800))
@@ -52,8 +52,8 @@ renderBackground bus = Render.do
 
 renderNameTable :: BusState -> ByteString -> ViewPort -> (Int, Int) -> Render a b r ()
 renderNameTable bus nametable vp (shiftX, shiftY) = Render.do
-    let chr = chrRom . cartridge $ bus
-        bank = addrToInt . getBackgroundPatternAddr . _controlRegister . ppuState $ bus
+    let chr = chrRom . _cartridge $ bus
+        bank = addrToInt . getBackgroundPatternAddr . _controlRegister . _ppuState $ bus
         attrTable = BS.drop 0x3c0 nametable
     for_ [0 .. 0x3c0] $ \i -> Render.do
         let tileOffset = fromIntegral $ BS.index nametable i
@@ -62,7 +62,7 @@ renderNameTable bus nametable vp (shiftX, shiftY) = Render.do
             tile =
                 BS.take 16 $
                     BS.drop (bank + tileOffset * 16) chr
-        palette <- liftIO $ getBackgroundPalette (ppuPointers bus) attrTable tileCol tileRow
+        palette <- liftIO $ getBackgroundPalette (_ppuPointers bus) attrTable tileCol tileRow
         renderTile palette tile tileCol tileRow
     unsafeStep
   where

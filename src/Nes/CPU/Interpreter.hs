@@ -30,11 +30,11 @@ runProgram prog callback = unCPU
     (reset >> interpretWithCallback callback)
     newCPUState
     prog
-    $ \state' bus _ -> return (state', cycles bus)
+    $ \state' bus _ -> return (state', _cycles bus)
 
 -- | Same as 'runProgram', but uses a given state
 runProgram' :: CPUState -> BusState -> CPU (CPUState, Integer) () -> IO (CPUState, Integer)
-runProgram' state prog callback = unCPU (interpretWithCallback callback) state prog $ \state' bus _ -> return (state', cycles bus)
+runProgram' state prog callback = unCPU (interpretWithCallback callback) state prog $ \state' bus _ -> return (state', _cycles bus)
 
 -- | Interpretation loop of the program
 interpretWithCallback :: CPU r () -> CPU r ()
@@ -48,11 +48,11 @@ interpretWithCallback callback = do
             )
     when hasNmiInterrupt $ modify $ \s -> s{nmi = True}
     callback
-    oldCycleCount <- gets cycles
+    oldCycleCount <- use cycles
     opCode <- readAtPC
     incrementPC
     forceMultiByte <- go opCode
-    newCycleCount <- gets cycles
+    newCycleCount <- use cycles
     -- Each opcode should take at least 2 ticks
     -- We cannot just check that addressing is none,
     -- because some opcode w/o addressing take more that 1 cycle
