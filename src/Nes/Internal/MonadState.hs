@@ -13,6 +13,7 @@ module Nes.Internal.MonadState (
     (%=),
     use,
     uses,
+    usesM,
 ) where
 
 import qualified Control.Lens as Lens
@@ -58,3 +59,7 @@ use l = gets (Lens.view l)
 
 uses :: (MonadState s m) => Lens.Getting a s a -> (a -> r) -> m r
 uses l f = gets (f . Lens.view l)
+
+-- | Like 'uses', but the computation can have side effect
+usesM :: (MonadState s m) => Lens.Getting a s a -> (a -> m r) -> m r
+usesM l f = gets (Lens.view l) >>= f

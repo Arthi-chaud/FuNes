@@ -31,7 +31,7 @@ withStateAndMemorySetup program st memSetup post = do
     return ()
   where
     stopAtBrk = MkCPU $ \st' bus cont -> do
-        b <- readByte (programCounter st') (cpuVram bus)
+        b <- readByte (_pc st') (cpuVram bus)
         if b == 0x00
             then pure (st', cycles bus)
             else cont st' bus ()

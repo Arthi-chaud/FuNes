@@ -36,7 +36,7 @@ import Nes.Memory
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#ADC
 adc :: AddressingMode -> CPU r ()
 adc mode = do
-    value <- getOperandAddr mode >>= flip readByte ()
+    value <- getOperandAddr mode >>= (`readByte` ())
     addToRegisterA value
 
 -- | Regisiter A - (_value in memory_) - (1 - Carry)
@@ -44,7 +44,7 @@ adc mode = do
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#SBC
 sbc :: AddressingMode -> CPU r ()
 sbc mode = do
-    value <- getOperandAddr mode >>= flip readByte ()
+    value <- getOperandAddr mode >>= (`readByte` ())
     addToRegisterA (negateByte value)
 
 -- | Does the computation and sets Carry and Overflow accordingly
@@ -53,19 +53,19 @@ sbc mode = do
 {-# INLINE addToRegisterA #-}
 addToRegisterA :: Byte -> CPU r ()
 addToRegisterA value = do
-    carry <- gets $ getFlag Carry . status
-    regA :: Word16 <- fromIntegral . unByte <$> gets (getRegister A)
+    carry <- uses status $ getFlag Carry
+    regA :: Word16 <- fromIntegral . unByte <$> use registerA
     let sumInt =
             regA
                 + (fromIntegral . unByte $ value)
                 + (if carry then 1 else 0)
-    modify $ modifyStatusRegister (setFlag' Carry $ sumInt > 0x00ff)
+    status %= setFlag' Carry (sumInt > 0x00ff)
     let sumByte = fromIntegral sumInt :: Byte
-    modify $
-        modifyStatusRegister $
-            setFlag' Overflow $
-                (value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0
-    modify $ setRegister A sumByte
+    status
+        %= setFlag'
+            Overflow
+            ((value `xor` sumByte) .&. (sumByte `xor` fromIntegral regA) .&. 0x80 /= 0)
+    registerA .= sumByte
     setZeroAndNegativeFlags sumByte
 
 -- | Increment value in memory
@@ -117,8 +117,8 @@ dey = decrementRegister Y
 {-# INLINE decrementRegister #-}
 decrementRegister :: Register -> CPU r ()
 decrementRegister reg = do
-    res <- (\y -> y - 1) <$> gets (getRegister reg)
-    modify $ setRegister reg res
+    res <- uses (register reg) (\y -> y - 1)
+    register reg .= res
     setZeroAndNegativeFlags res
 
 -- | Increment the value of the X register
@@ -136,6 +136,6 @@ iny = incrementRegister Y
 {-# INLINE incrementRegister #-}
 incrementRegister :: Register -> CPU r ()
 incrementRegister reg = do
-    newRegY <- (+ 1) <$> gets (getRegister reg)
-    modify (setRegister reg newRegY)
+    newRegY <- uses (register reg) (+ 1)
+    register reg .= newRegY
     setZeroAndNegativeFlags newRegY

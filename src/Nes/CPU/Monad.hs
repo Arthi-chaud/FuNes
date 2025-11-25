@@ -6,9 +6,8 @@ module Nes.CPU.Monad (
 
     -- * State
     reset,
-    --- * PC
-    getPC,
-    setPC,
+
+    -- * Program counter
     incrementPC,
     readAtPC,
     --- * Ticks
@@ -137,27 +136,19 @@ instance MemoryInterface () (CPU r) where
         liftBus (Nes.Memory.writeAddr byte dest ())
         tick 2
 
--- | Returns the value of the Program counter as an Addr
-{-# INLINE getPC #-}
-getPC :: CPU r Addr
-getPC = gets programCounter
-
-setPC :: Addr -> CPU r ()
-setPC addr = modify $ \st -> st{programCounter = addr}
-
 {-# INLINE incrementPC #-}
 incrementPC :: CPU r ()
-incrementPC = modify $ \st -> st{programCounter = 1 + programCounter st}
+incrementPC = pc += 1
 
 -- | Read Word8 from memory, using the program counter as offset
 {-# INLINE readAtPC #-}
 readAtPC :: CPU r Byte
-readAtPC = getPC >>= flip readByte ()
+readAtPC = usesM pc (`readByte` ())
 
 popStackByte :: CPU r Byte
 popStackByte = do
-    newRegS <- (+ 1) <$> gets (getRegister S)
-    modify $ setRegister S newRegS
+    newRegS <- uses registerS (+ 1)
+    registerS .= newRegS
     readByte (stackAddr + byteToAddr newRegS) ()
 
 {-# INLINE popStackAddr #-}
@@ -166,14 +157,14 @@ popStackAddr = liftA2 bytesToAddr popStackByte popStackByte
 
 pushByteStack :: Byte -> CPU r ()
 pushByteStack byte = do
-    regS <- gets $ getRegister S
+    regS <- use registerS
     writeByte byte (stackAddr + byteToAddr regS) ()
-    modify $ setRegister S (regS - 1)
+    register S += (-1)
 
 -- | If the argument is True, the pushed value will have the B Flag set
 pushStatusRegister :: Bool -> CPU r ()
 pushStatusRegister b = do
-    s <- gets status
+    s <- use status
     let value = unSR $ setFlag Unusued $ setFlag' BFlag b s
     pushByteStack value
 
@@ -183,7 +174,7 @@ popStatusRegister = do
     value <- fromByte <$> popStackByte
     -- TODO Breaks Nestest
     let s = clearFlag Unusued $ clearFlag BFlag value
-    modify $ modifyStatusRegister $ const s
+    status .= s
 
 {-# INLINE pushAddrStack #-}
 pushAddrStack :: Addr -> CPU r ()
@@ -197,5 +188,4 @@ pushAddrStack addr = do
 reset :: CPU r ()
 reset = do
     set newCPUState
-    pc <- readAddr 0xfffc ()
-    set newCPUState{programCounter = pc}
+    (pc .=) =<< readAddr 0xfffc ()

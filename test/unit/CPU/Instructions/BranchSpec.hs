@@ -1,5 +1,6 @@
 module CPU.Instructions.BranchSpec (spec) where
 
+import Control.Lens
 import Internal
 import Nes.CPU.State
 import Nes.FlagRegister
@@ -15,7 +16,7 @@ spec = describe "Branch when" $ do
             it "should not branch" $ do
                 let program = [0x70, 0x02, 0x00, 0xe8, 0x00]
                 withProgram program $ \st' -> do
-                    registerX st' `shouldBe` 0
+                    _registerX st' `shouldBe` 0
     describe "Zero" $ do
         describe "Is Clear" $ testBranch Nothing 0xd0
         describe "Is Set" $ testBranch (Just Zero) 0xf0
@@ -29,8 +30,8 @@ spec = describe "Branch when" $ do
     testBranch Nothing opcode = it "should branch" $ do
         let program = [opcode, 0x01, 0x00, 0xe8, 0x00]
         withState program newCPUState $ \st' -> do
-            registerX st' `shouldBe` 1
+            _registerX st' `shouldBe` 1
     testBranch (Just flag) opcode = it "should branch" $ do
         let program = [opcode, 0x01, 0x00, 0xe8, 0x00]
-        withState program (modifyStatusRegister (setFlag flag) newCPUState) $ \st' -> do
-            registerX st' `shouldBe` 1
+        withState program ((status %~ setFlag flag) newCPUState) $ \st' -> do
+            _registerX st' `shouldBe` 1

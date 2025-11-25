@@ -11,7 +11,7 @@ import Nes.Memory
 {-# INLINE setZeroAndNegativeFlags #-}
 setZeroAndNegativeFlags :: Byte -> CPU r ()
 setZeroAndNegativeFlags res =
-    modify $
-        modifyStatusRegister $
-            setFlag' Zero (res == 0)
+    status
+        %= ( setFlag' Zero (res == 0)
                 . setFlag' Negative (testBit res 7)
+           )

@@ -46,7 +46,7 @@ main = do
     _ <- renderSetScale rendererPtr 32 32
     texture <- createTexture renderer RGB24 TextureAccessTarget (V2 32 32)
     frame <- newArray @IOUArray (0, frameSize) (0 :: Word8)
-    let cpuState = newCPUState{programCounter = programOffset}
+    let cpuState = newCPUState{_pc = programOffset}
     bus <- newBusState unsafeEmptyRom (\_ -> pure ()) pure (\_ -> pure ()) (curry pure) newNoopFilterThread
     loadProgramToMemory gameCode bus
     _ <- runProgram' cpuState bus (callback frame texture renderer)
@@ -54,12 +54,12 @@ main = do
 
 callback :: IOUArray Int Word8 -> Texture -> Renderer -> CPU r ()
 callback frame texture renderer = do
-    pc <- getPC
-    opCode <- unsafeLiftBus $ readByte pc ()
-    b1 <- unsafeLiftBus $ readByte (pc + 1) ()
-    b2 <- unsafeLiftBus $ readByte (pc + 2) ()
-    (a, x, y, stack, statusFlags) <- gets $ \st -> (registerA st, registerX st, registerY st, registerS st, status st)
-    liftIO $ printf "OP: 0x%02x (0x%02x 0x%02x), A: %d, X: %d, Y: %d, PC: 0x%02x, Stack: 0x%02x, Flag: 0b%08b\n" (unByte opCode) (unByte b1) (unByte b2) (unByte a) (unByte x) (unByte y) (unAddr pc) (unByte stack) (unByte $ unSR statusFlags)
+    pc' <- use pc
+    opCode <- unsafeLiftBus $ readByte pc' ()
+    b1 <- unsafeLiftBus $ readByte (pc' + 1) ()
+    b2 <- unsafeLiftBus $ readByte (pc' + 2) ()
+    (a, x, y, stack, statusFlags) <- gets $ \st -> (_registerA st, _registerX st, _registerY st, _registerS st, _status st)
+    liftIO $ printf "OP: 0x%02x (0x%02x 0x%02x), A: %d, X: %d, Y: %d, PC: 0x%02x, Stack: 0x%02x, Flag: 0b%08b\n" (unByte opCode) (unByte b1) (unByte b2) (unByte a) (unByte x) (unByte y) (unAddr pc') (unByte stack) (unByte $ unSR statusFlags)
     handleEvents
     randomByte <- Byte <$> getStdRandom (randomR (1, 16))
     unsafeLiftBus $ writeByte randomByte 0xfe ()
