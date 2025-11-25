@@ -11,4 +11,4 @@ spec = do
         let program = [0xad, 0x00, 0x73]
             st = newCPUState
         withState program st $ \st' -> do
-            registerA st' `shouldBe` 0x73
+            _registerA st' `shouldBe` 0x73

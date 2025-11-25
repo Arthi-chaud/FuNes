@@ -42,10 +42,10 @@ ldy = loadRegisterFromMemory Y
 
 {-# INLINE loadRegisterFromMemory #-}
 loadRegisterFromMemory :: Register -> AddressingMode -> CPU r ()
-loadRegisterFromMemory register mode = do
+loadRegisterFromMemory reg mode = do
     argAddr <- getOperandAddr mode
     param <- readByte argAddr ()
-    modify $ setRegister register param
+    register reg .= param
     setZeroAndNegativeFlags param
 
 -- | Store the value of the A register in memory
@@ -70,7 +70,7 @@ sty = storeRegisterInMemory Y
 storeRegisterInMemory :: Register -> AddressingMode -> CPU r ()
 storeRegisterInMemory reg mode = do
     (addr, crosses) <- getOperandAddr' mode
-    value <- gets $ getRegister reg
+    value <- use $ register reg
     -- https://www.nesdev.org/wiki/Cycle_counting
     -- assumes the worst case of page crossing and always spends 1 extra read cycle.
     let shouldDummyRead = (crosses && (mode /= AbsoluteX)) || (not crosses && (mode == AbsoluteX || mode == AbsoluteY || mode == IndirectY))
@@ -81,10 +81,9 @@ las :: AddressingMode -> CPU r ()
 las mode = do
     addr <- getOperandAddr mode
     byte <- readByte addr ()
-    s <- gets $ getRegister S
+    s <- use registerS
     let res = byte .&. s
-    modify $
-        setRegister A res
-            . setRegister X res
-            . setRegister S res
+    registerA .= res
+    registerX .= res
+    registerS .= res
     setZeroAndNegativeFlags res

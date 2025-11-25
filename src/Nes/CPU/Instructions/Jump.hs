@@ -11,17 +11,19 @@ module Nes.CPU.Instructions.Jump (
 import Data.Bits
 import Nes.CPU.Instructions.Addressing
 import Nes.CPU.Monad
+import Nes.CPU.State
+import Nes.Internal.MonadState
 import Nes.Memory
 
 -- | Sets the program counter to the address specified by the operand
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#JMP
 jmp :: AddressingMode -> CPU r ()
-jmp Absolute = getPC >>= flip readAddr () >>= setPC
+jmp Absolute = usesM pc (`readAddr` ()) >>= (pc .=)
 -- See https://www.nesdev.org/wiki/Instruction_reference#JMP
 -- And https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch3.4/src/cpu.rs#L692
 jmp Indirect = do
-    addr <- getPC >>= flip readAddr ()
+    addr <- usesM pc (`readAddr` ())
     ref <-
         if addr .&. 0x00FF == 0x00FF
             then do
@@ -29,7 +31,7 @@ jmp Indirect = do
                 high <- byteToAddr <$> readByte (addr .&. 0xff00) ()
                 return $ shiftL high 8 .|. low
             else readAddr addr ()
-    setPC ref
+    pc .= ref
 jmp _ = fail "Unsupported addressing mode"
 
 -- | Jump to Subroutine
@@ -37,10 +39,10 @@ jmp _ = fail "Unsupported addressing mode"
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#JSR
 jsr :: CPU r ()
 jsr = do
-    pc <- getPC
-    pushAddrStack (pc + 2 - 1)
+    pc' <- use pc
+    pushAddrStack (pc' + 2 - 1)
     tickOnce
-    readAddr pc () >>= setPC
+    (pc .=) =<< readAddr pc' ()
 
 -- | Return from Subroutine
 --
@@ -53,7 +55,7 @@ rts = do
     -- https://www.nesdev.org/wiki/Cycle_counting
     --  plus 1 cycle to post-increment the program counter
     tickOnce
-    setPC (res + 1)
+    pc .= (res + 1)
 
 -- | Return from interrupt
 --
@@ -61,5 +63,5 @@ rts = do
 rti :: CPU r ()
 rti = do
     popStatusRegister
-    setPC =<< popStackAddr
+    (pc .=) =<< popStackAddr
     tick 2

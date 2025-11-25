@@ -43,14 +43,14 @@ import Prelude hiding (and)
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#BIT
 bit :: AddressingMode -> CPU r ()
 bit mode = do
-    value <- getOperandAddr mode >>= flip readByte ()
-    regA <- gets $ getRegister A
+    value <- getOperandAddr mode >>= (`readByte` ())
+    regA <- use registerA
     let res = regA .&. value
-    modify $
-        modifyStatusRegister $
-            setFlag' Zero (res == 0)
+    status
+        %= ( setFlag' Zero (res == 0)
                 . setFlag' Overflow (testBit value 6)
                 . setFlag' Negative (testBit value 7)
+           )
 
 -- | Register A = Register A & _value in memory_
 --
@@ -73,7 +73,7 @@ eor = applyLogicOnRegisterA (.^.)
 {-# INLINE applyLogicOnRegisterA #-}
 applyLogicOnRegisterA :: (Byte -> Byte -> Byte) -> AddressingMode -> CPU r ()
 applyLogicOnRegisterA op mode = do
-    value <- getOperandAddr mode >>= flip readByte ()
+    value <- getOperandAddr mode >>= (`readByte` ())
     void $ modifyRegisterA (`op` value)
 
 -- | Rotate left
@@ -92,7 +92,7 @@ rol_ =
             let shifted = shiftL value 1
              in if carry then setBit shifted 0 else shifted
         )
-        (\byte -> modifyStatusRegister $ setFlag' Carry (testBit byte 7))
+        (\byte -> status %= setFlag' Carry (testBit byte 7))
 
 -- | Rotate right
 --
@@ -110,16 +110,16 @@ ror_ =
             let shifted = shiftR value 1
              in if carry then setBit shifted 7 else shifted
         )
-        (\byte -> modifyStatusRegister $ setFlag' Carry (testBit byte 0))
+        (\byte -> status %= setFlag' Carry (testBit byte 0))
 
-rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPUState -> CPUState) -> AddressingMode -> CPU r Byte
+rotate :: (Byte -> Bool -> Byte) -> (Byte -> CPU r ()) -> AddressingMode -> CPU r Byte
 rotate f setCarry mode =
     withOperand
         mode
         ( \value -> do
-            res <- f value <$> gets (getFlag Carry . status)
+            res <- f value <$> uses status (getFlag Carry)
             setZeroAndNegativeFlags res
-            modify $ setCarry value
+            setCarry value
             return res
         )
 
@@ -131,8 +131,8 @@ rla mode = do
 anc :: AddressingMode -> CPU r ()
 anc =
     and >=> \() -> do
-        isNeg <- gets $ getFlag Negative . status
-        modify $ modifyStatusRegister (setFlag' Carry isNeg)
+        isNeg <- uses status $ getFlag Negative
+        status %= setFlag' Carry isNeg
 
 -- | Arithmetic Shift Left
 --
@@ -145,7 +145,7 @@ asl_ :: AddressingMode -> CPU r Byte
 asl_ mode = withOperand mode $ \value -> do
     let carry = testBit value 7
         res = shiftL value 1
-    modify $ modifyStatusRegister $ setFlag' Carry carry
+    status %= setFlag' Carry carry
     setZeroAndNegativeFlags res
     return res
 
@@ -163,7 +163,7 @@ lsr_ mode =
         ( \value -> do
             let carry = testBit value 0
                 res = shiftR value 1
-            modify $ modifyStatusRegister $ setFlag' Carry carry
+            status %= setFlag' Carry carry
             setZeroAndNegativeFlags res
             return res
         )
@@ -195,11 +195,11 @@ arr mode = do
     byte <- readByte addr ()
     void $ modifyRegisterA (.&. byte)
     ror Accumulator
-    res <- gets $ getRegister A
-    modify $
-        modifyStatusRegister $
-            setFlag' Carry (testBit res 6)
+    res <- use registerA
+    status
+        %= ( setFlag' Carry (testBit res 6)
                 . setFlag' Overflow (testBit res 6 `xor` testBit res 5)
+           )
     setZeroAndNegativeFlags res
 
 -- | (Unofficial)
@@ -207,18 +207,18 @@ arr mode = do
 -- Source: https://github.com/bugzmanov/nes_ebook/blob/785b9ed8b803d9f4bd51274f4d0c68c14a1b3a8b/code/ch8/src/cpu.rs#L1133
 xaa :: AddressingMode -> CPU r ()
 xaa mode = do
-    x <- gets $ getRegister X
-    modify $ setRegister A x
+    x <- use registerX
+    registerA .= x
     setZeroAndNegativeFlags x
-    byte <- flip readByte () =<< getOperandAddr mode
+    byte <- getOperandAddr mode >>= (`readByte` ())
     void $ modifyRegisterA (.&. byte)
 
 {-# INLINE withOperand #-}
 withOperand :: AddressingMode -> (Byte -> CPU r Byte) -> CPU r Byte
 withOperand Accumulator f = do
-    a <- gets $ getRegister A
+    a <- use registerA
     res <- f a
-    modify $ setRegister A res
+    registerA .= res
     tickOnce
     return res
 withOperand mode f = do
@@ -234,8 +234,8 @@ withOperand mode f = do
 {-# INLINE modifyRegisterA #-}
 modifyRegisterA :: (Byte -> Byte) -> CPU r Byte
 modifyRegisterA f = do
-    regA <- gets $ getRegister A
+    regA <- use registerA
     let res = f regA
     setZeroAndNegativeFlags res
-    modify $ setRegister A res
+    registerA .= res
     return res

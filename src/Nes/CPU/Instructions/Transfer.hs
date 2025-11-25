@@ -56,6 +56,6 @@ tsx = void $ transferToRegister S X >>= setZeroAndNegativeFlags
 {-# INLINE transferToRegister #-}
 transferToRegister :: Register -> Register -> CPU r Byte
 transferToRegister src dest = do
-    value <- gets $ getRegister src
-    modify $ setRegister dest value
+    value <- use $ register src
+    register dest .= value
     return value

@@ -9,7 +9,7 @@ import Nes.Internal.MonadState
 --
 -- https://www.nesdev.org/obelisk-6502-guide/reference.html#PHA
 pha :: CPU r ()
-pha = tickOnce >> gets (getRegister A) >>= pushByteStack
+pha = tickOnce >> use registerA >>= pushByteStack
 
 -- | Pushes a copy of the status flags on to the stack.
 --
@@ -26,7 +26,7 @@ pla :: CPU r ()
 pla = do
     value <- popStackByte
     tick 2
-    modify $ setRegister A value
+    registerA .= value
     setZeroAndNegativeFlags value
 
 -- | Pulls an 8 bit value from the stack and into the accumulator.

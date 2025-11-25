@@ -1,5 +1,6 @@
 module CPU.Instructions.FlagsSpec (spec) where
 
+import Control.Lens
 import Internal
 import Nes.CPU.State
 import Nes.FlagRegister
@@ -20,9 +21,9 @@ spec = do
     testSetFlag flag opcode =
         it (show flag) $ do
             withProgram [opcode, 0x00] $ \cpu ->
-                getFlag flag (status cpu) `shouldBe` True
+                getFlag flag (_status cpu) `shouldBe` True
     testClearFlag flag opcode =
         it (show flag) $ do
-            let st = modifyStatusRegister (setFlag flag) newCPUState
+            let st = (status %~ setFlag flag) newCPUState
             withState [opcode, 0x00] st $ \cpu ->
-                getFlag flag (status cpu) `shouldBe` False
+                getFlag flag (_status cpu) `shouldBe` False

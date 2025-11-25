@@ -40,7 +40,7 @@ spec = it "Trace should match logfile" $ do
         either fail return eitherRom
     bus <- newBusState rom (\_ -> pure ()) pure (\_ -> pure ()) (curry return) newNoopFilterThread
     traceRef <- newIORef (T [] 0)
-    let st = newCPUState{programCounter = 0xc000}
+    let st = newCPUState{_pc = 0xc000}
     -- TODO why is the tick count set to 7 ? Reset?
     _ <- try @IOException $ runProgram' st (bus{cycles = 7}) (trace traceRef)
     actualTrace <- fmap fixStackValue . beforeAPUAccess . toRawTrace <$> readIORef traceRef
@@ -60,8 +60,8 @@ toRawTrace (T stack _) = pack <$> reverse stack
 
 trace :: IORef Trace -> CPU r ()
 trace traceRef = do
-    pc <- getPC
-    when (pc == 0x0088) $ fail "End" -- TODO should not be needed
+    pc' <- use pc
+    when (pc' == 0x0088) $ fail "End" -- TODO should not be needed
     newEntry <- getTrace
     liftIO $ modifyIORef traceRef (push newEntry)
   where
@@ -77,25 +77,25 @@ getTrace = do
     return $ unwords [pc, opcode, st, cycl]
 
 getPCTrace :: CPU r String
-getPCTrace = printf "%04X " . unAddr <$> getPC
+getPCTrace = printf "%04X " . unAddr <$> use pc
 
 getOpCodeTrace :: CPU r String
 getOpCodeTrace = do
-    pc <- getPC
-    opcodeByte <- unsafeLiftBus $ readByte pc ()
+    pc' <- use pc
+    opcodeByte <- unsafeLiftBus $ readByte pc' ()
     (opname, _, addressing, type_) <-
         maybe
             (fail $ printf "Unknown opcode: %02X" $ unByte opcodeByte)
             return
             (Map.lookup opcodeByte opcodeMap)
     instrArgs <- forM [1 .. (getOperandSize addressing)] $
-        \offset -> unsafeLiftBus $ readByte (Addr $ unAddr pc + fromIntegral offset) ()
+        \offset -> unsafeLiftBus $ readByte (Addr $ unAddr pc' + fromIntegral offset) ()
     let fmtBytesList = unwords (printf "%02X" . unByte <$> (opcodeByte : instrArgs))
         fmtOpname = (if type_ == Unofficial then '*' else ' ') : BSC.unpack opname
     asm <- do
         incrementPC
-        asm <- getOpCodeAsmArg opcodeByte (pc + 1) addressing
-        modify $ \st -> st{programCounter = pc}
+        asm <- getOpCodeAsmArg opcodeByte (pc' + 1) addressing
+        modify $ \st -> st{_pc = pc'}
         return asm
     return $ printf "%-8s %s %-27s" fmtBytesList fmtOpname asm
 
@@ -105,8 +105,8 @@ getOpCodeAsmArg opcode ptr addressing = do
     addressByte <- unByte <$> unsafeLiftBus (readByte ptr ())
     addressAddr <- unAddr <$> unsafeLiftBus (readAddr ptr ())
 
-    x <- gets $ getRegister X
-    y <- gets $ getRegister Y
+    x <- use registerX
+    y <- use registerY
     case opcode of
         0x4c -> return $ printf "$%04X" memAddr
         0x20 -> return $ printf "$%04X" memAddr
@@ -162,11 +162,11 @@ getCPUStateTrace :: CPU r String
 getCPUStateTrace = gets $ \st ->
     printf
         "A:%02X X:%02X Y:%02X P:%02X SP:%02X"
-        (unByte $ registerA st)
-        (unByte $ registerX st)
-        (unByte $ registerY st)
-        (unByte $ unSR $ status st)
-        (unByte $ registerS st)
+        (unByte $ _registerA st)
+        (unByte $ _registerX st)
+        (unByte $ _registerY st)
+        (unByte $ unSR $ _status st)
+        (unByte $ _registerS st)
 
 beforeAPUAccess :: [ByteString] -> [ByteString]
 beforeAPUAccess =

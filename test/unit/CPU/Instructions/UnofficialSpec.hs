@@ -16,9 +16,9 @@ spec = do
                 let program = [0x9f, 0x80, 0x1e]
                 let st =
                         newCPUState
-                            { registerA = 0x1f
-                            , registerX = 0xff
-                            , registerY = 0x80
+                            { _registerA = 0x1f
+                            , _registerX = 0xff
+                            , _registerY = 0x80
                             }
                     setup _ = return ()
                 withStateAndMemorySetup program st setup $ \_ bus ->
@@ -28,9 +28,9 @@ spec = do
                 let program = [0x9f, 0x80, 0x1e]
                 let st =
                         newCPUState
-                            { registerA = 0x1f
-                            , registerX = 0xff
-                            , registerY = 0x01
+                            { _registerA = 0x1f
+                            , _registerX = 0xff
+                            , _registerY = 0x01
                             }
                     setup _ = return ()
                 withStateAndMemorySetup program st setup $ \_ bus ->
@@ -42,9 +42,9 @@ spec = do
                 let program = [0x93, 0x50]
                 let st =
                         newCPUState
-                            { registerA = 0x1f
-                            , registerX = 0xff
-                            , registerY = 0x80
+                            { _registerA = 0x1f
+                            , _registerX = 0xff
+                            , _registerY = 0x80
                             }
                     setup = writeAddr 0x1e80 0x50 . cpuVram
                 withStateAndMemorySetup program st setup $ \_ bus ->
@@ -56,9 +56,9 @@ spec = do
             let program = [0x9e, 0x80, 0x1e]
             let st =
                     newCPUState
-                        { registerA = 0x00
-                        , registerX = 0x5
-                        , registerY = 0x80
+                        { _registerA = 0x00
+                        , _registerX = 0x5
+                        , _registerY = 0x80
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
@@ -68,9 +68,9 @@ spec = do
             let program = [0x9e, 0x80, 0x1e]
             let st =
                     newCPUState
-                        { registerA = 0x00
-                        , registerX = 0x5
-                        , registerY = 0x01
+                        { _registerA = 0x00
+                        , _registerX = 0x5
+                        , _registerY = 0x01
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
@@ -82,9 +82,9 @@ spec = do
             let program = [0x9c, 0x80, 0x1e]
             let st =
                     newCPUState
-                        { registerA = 0x00
-                        , registerX = 0x80
-                        , registerY = 0x5
+                        { _registerA = 0x00
+                        , _registerX = 0x80
+                        , _registerY = 0x5
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
@@ -94,9 +94,9 @@ spec = do
             let program = [0x9c, 0x80, 0x1e]
             let st =
                     newCPUState
-                        { registerA = 0x00
-                        , registerX = 0x01
-                        , registerY = 0x5
+                        { _registerA = 0x00
+                        , _registerX = 0x01
+                        , _registerY = 0x5
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
@@ -108,9 +108,9 @@ spec = do
             let program = [0x9b, 0x80, 0x1e, 0xba]
             let st =
                     newCPUState
-                        { registerA = 0x1f
-                        , registerX = 0xff
-                        , registerY = 0x80
+                        { _registerA = 0x1f
+                        , _registerX = 0xff
+                        , _registerY = 0x80
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->
@@ -120,9 +120,9 @@ spec = do
             let program = [0x9b, 0x80, 0x1e, 0xba]
             let st =
                     newCPUState
-                        { registerA = 0x1f
-                        , registerX = 0xff
-                        , registerY = 0x01
+                        { _registerA = 0x1f
+                        , _registerX = 0xff
+                        , _registerY = 0x01
                         }
                 setup _ = return ()
             withStateAndMemorySetup program st setup $ \_ bus ->

@@ -53,7 +53,7 @@ getOperandAddr' :: AddressingMode -> CPU r (Addr, Bool)
 getOperandAddr' mode = do
     (res, crosses) <- getOperandAddr'' mode
     let offset = Addr $ fromIntegral $ getOperandSize mode
-    modify $ \st -> st{programCounter = programCounter st + offset}
+    pc += offset
     return (res, crosses)
 
 -- | Gives the address of the current op code's parameter
@@ -62,46 +62,46 @@ getOperandAddr' mode = do
 getOperandAddr'' :: AddressingMode -> CPU r (Addr, Bool)
 getOperandAddr'' = \case
     Accumulator -> fail "Do not use this function when the mode is Accumulator"
-    Immediate -> (,False) <$> getPC
+    Immediate -> (,False) <$> use pc
     Relative -> do
-        pc <- getPC
-        offset <- readByte pc ()
-        let intPC = addrToInt pc
+        pc' <- use pc
+        offset <- readByte pc' ()
+        let intPC = addrToInt pc'
             -- Note we need to wrap the unsinged word into a signed value
             -- See https://www.nesdev.org/wiki/Instruction_reference#BPL
             signedOffset = fromIntegral (fromIntegral (unByte offset) :: Int8)
             res = Addr $ fromIntegral $ intPC + 1 + signedOffset
         return (res, crossesPage (fromIntegral $ intPC + 1) res)
     ZeroPage -> do
-        arg <- getPC >>= flip readByte ()
+        arg <- usesM pc (`readByte` ())
         return (byteToAddr arg, False)
-    ZeroPageX -> zeroPageAddressing registerX
-    ZeroPageY -> zeroPageAddressing registerY
+    ZeroPageX -> zeroPageAddressing X
+    ZeroPageY -> zeroPageAddressing Y
     Absolute -> do
-        pc <- getPC
-        addr <- readAddr pc ()
+        pc' <- use pc
+        addr <- readAddr pc' ()
         return (addr, False)
-    AbsoluteX -> absoluteAddressing registerX
-    AbsoluteY -> absoluteAddressing registerY
+    AbsoluteX -> absoluteAddressing X
+    AbsoluteY -> absoluteAddressing Y
     -- No need to increment PC here. Mode is only used by jmp
     Indirect -> do
-        pc <- getPC
-        addr1 <- readAddr pc ()
+        pc' <- use pc
+        addr1 <- readAddr pc' ()
         addr2 <- readAddr addr1 ()
         return (addr2, False)
     IndirectX -> do
         -- Note: we do not convert the ptr to an Addr because we need the overflow to happen
-        base <- getPC >>= flip readByte ()
-        ptr <- gets $ (+ base) . registerX
+        base <- usesM pc (`readByte` ())
+        ptr <- uses (register X) (+ base)
         low <- readByte (byteToAddr ptr) ()
         high <- readByte (byteToAddr (ptr + 1)) ()
         let res = bytesToAddr low high
         return (res, crossesPage (byteToAddr ptr) res)
     IndirectY -> do
-        ptr <- getPC >>= flip readByte ()
+        ptr <- usesM pc (`readByte` ())
         low <- readByte (byteToAddr ptr) ()
         high <- readByte (byteToAddr (ptr + 1)) ()
-        y <- gets $ getRegister Y
+        y <- use registerY
         let derefBase = bytesToAddr low high
             deref = derefBase + byteToAddr y
             crosses = crossesPage deref derefBase
@@ -113,18 +113,18 @@ getOperandAddr'' = \case
     None -> fail $ printf "Mode not supported: %s" $ show None
 
 {-# INLINE zeroPageAddressing #-}
-zeroPageAddressing :: (CPUState -> Byte) -> CPU r (Addr, Bool)
-zeroPageAddressing getter = do
-    pos <- getPC >>= flip readByte ()
-    regVal <- gets getter
+zeroPageAddressing :: Register -> CPU r (Addr, Bool)
+zeroPageAddressing reg = do
+    pos <- usesM pc (`readByte` ())
+    regVal <- use $ register reg
     tickOnce
     return (byteToAddr $ pos + regVal, False)
 
 {-# INLINE absoluteAddressing #-}
-absoluteAddressing :: (CPUState -> Byte) -> CPU r (Addr, Bool)
-absoluteAddressing getter = do
-    base <- getPC >>= flip readAddr ()
-    offset <- gets getter
+absoluteAddressing :: Register -> CPU r (Addr, Bool)
+absoluteAddressing reg = do
+    base <- usesM pc (`readAddr` ())
+    offset <- use $ register reg
     let addr = byteToAddr offset + base
     let crosses = crossesPage base addr
     -- Dummy read
